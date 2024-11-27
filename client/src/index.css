@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply antialiased text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-900;
+    }
+}
+
+@layer components {
+    .btn {
+        @apply px-4 py-2 rounded-lg font-medium transition-colors;
+    }
+
+    .btn-primary {
+        @apply bg-blue-900 text-white hover:bg-blue-800 dark:bg-blue-800 dark:hover:bg-blue-700;
+    }
+
+    .btn-secondary {
+        @apply bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700;
+    }
+}
+
+/* Add this to your global CSS */
+.video-container:fullscreen {
+    background: black;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.video-container:fullscreen video,
+.video-container:fullscreen canvas {
+    max-width: 100%;
+    max-height: 100%;
+}

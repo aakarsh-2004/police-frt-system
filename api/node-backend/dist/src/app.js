@@ -1,0 +1,23 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const http_errors_1 = __importDefault(require("http-errors"));
+const cors_1 = __importDefault(require("cors"));
+const personRoutes_1 = __importDefault(require("./routes/person/personRoutes"));
+const statsRoutes_1 = __importDefault(require("./routes/stats/statsRoutes"));
+const app = (0, express_1.default)();
+app.use(express_1.default.json());
+app.use((0, cors_1.default)({
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    credentials: true
+}));
+app.get('/api', (req, res, next) => {
+    const error = (0, http_errors_1.default)(400, "Something went wrong");
+    throw error;
+});
+app.use('/api/persons', personRoutes_1.default);
+app.use('/api/stats', statsRoutes_1.default);
+exports.default = app;

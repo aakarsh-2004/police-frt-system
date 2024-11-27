@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Person {
+  id               String            @id @default(uuid())
+  firstName        String
+  lastName         String
+  age              Int
+  dateOfBirth      DateTime
+  gender           String
+  email            String?
+  phone            String?
+  address          String
+  personImageUrl   String?
+  type             String            @default("suspect")
+  nationalId       String?
+  nationality      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  suspect          Suspect?
+  missingPerson    MissingPerson?
+  recognizedPerson RecognizedPerson?
+}
+
+model CrimeRecord {
+  id                     String    @id @default(uuid())
+  personName             String
+  suspects               Suspect?
+  crimeType              String
+  crimeDescription       String
+  crimeDate              DateTime
+  convictionDate         DateTime?
+  status                 String
+  crimeLocation          String
+  investigationOfficerId String    
+  user                   User      @relation(fields: [investigationOfficerId], references: [id])
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+model Suspect {
+  id             String       @id @default(uuid())
+  personId       String       @unique
+  criminalId     String?      @unique
+  person         Person       @relation(fields: [personId], references: [id])
+  criminalRecord CrimeRecord? @relation(fields: [criminalId], references: [id])
+  riskLevel      String
+  foundStatus    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model MissingPerson {
+  id               String   @id @default(uuid())
+  personId         String   @unique
+  person           Person   @relation(fields: [personId], references: [id])
+  lastSeenDate     DateTime
+  lastSeenLocation String
+  missingSince     DateTime
+  status           String
+  reportBy         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model RecognizedPerson {
+  id               String   @id @default(uuid())
+  personId         String   @unique
+  person           Person   @relation(fields: [personId], references: [id])
+  capturedImageUrl String
+  capturedLocation String
+  capturedDateTime DateTime
+  cameraId         String
+  camera           Camera   @relation(fields: [cameraId], references: [id])
+  type             String
+  confidenceScore  String
+}
+
+model User {
+  id               String        @id @default(uuid())
+  firstName        String
+  lastName         String
+  username         String        @unique
+  email            String        @unique
+  password         String
+  role             String        @default("non-admin")
+  designation      String
+  userImageUrl     String?
+  policeId         String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  requests         Requests[]
+  approvedRequests Requests[]    @relation("ApprovedRequests")
+  crimeRecords     CrimeRecord[]
+}
+
+model Camera {
+  id                String             @id @default(uuid())
+  location          String
+  cameraUrl         String
+  recognizedPersons RecognizedPerson[]
+}
+
+model Requests {
+  id           String   @id @default(uuid())
+  requestedBy  String
+  user         User     @relation(fields: [requestedBy], references: [id])
+  approvedBy   String?
+  approvedUser User?    @relation("ApprovedRequests", fields: [approvedBy], references: [id])
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  approvedAt   DateTime @updatedAt
+}
