@@ -11,32 +11,21 @@ interface SuspectGridProps {
         riskLevel?: string;
         lastSeenDate?: string;
     }>;
-    onSuspectClick: (id: string) => void;
+    onViewDetails: (id: string) => void;
 }
 
-export default function SuspectGrid({ persons, onSuspectClick }: SuspectGridProps) {
+export default function SuspectGrid({ persons, onViewDetails }: SuspectGridProps) {
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {persons.map((person) => (
-                <div
-                    key={person.id}
-                    className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-                >
-                    <div className="aspect-square relative">
-                        <img
-                            src={person.personImageUrl}
-                            alt={`${person.firstName} ${person.lastName}`}
-                            className="w-full h-full object-cover"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent text-white p-3">
-                            <h3 className="text-sm font-semibold truncate">
-                                {person.firstName} {person.lastName}
-                            </h3>
-                            <p className="text-xs opacity-75">{person.id}</p>
-                        </div>
-                    </div>
-
-                    <div className="p-3 space-y-2">
+                <div key={person.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
+                    <img 
+                        src={person.personImageUrl} 
+                        alt={`${person.firstName} ${person.lastName}`}
+                        className="w-full h-48 object-cover"
+                    />
+                    <div className="p-4">
+                        <h3 className="font-semibold">{person.firstName} {person.lastName}</h3>
                         <div className="flex items-center justify-between text-xs">
                             <span className={`px-2 py-1 rounded-full font-medium
                             ${person.type === 'suspect'
@@ -64,12 +53,11 @@ export default function SuspectGrid({ persons, onSuspectClick }: SuspectGridProp
                             )}
                         </div>
 
-                        <button
-                            onClick={() => onSuspectClick(person.id)}
-                            className=" btn btn-primary text-xs py-1 flex gap-1 h-8 items-center"
+                        <button 
+                            onClick={() => onViewDetails(person.id)}
+                            className="btn btn-primary w-full mt-4"
                         >
-                            <h1>View Details</h1>
-                            <ArrowRight className="w-3 h-3 ml-1" />
+                            View Details
                         </button>
                     </div>
                 </div>

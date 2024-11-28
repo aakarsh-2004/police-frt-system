@@ -21,6 +21,13 @@ interface Person {
     lastName: string;
     personImageUrl: string;
     type: string;
+    suspect?: {
+        foundStatus: boolean;
+        riskLevel: string;
+    };
+    missingPerson?: {
+        foundStatus: boolean;
+    };
 }
 
 interface PersonResponse {
@@ -108,7 +115,10 @@ export default function LiveMonitoring() {
         name: `${person.firstName} ${person.lastName}`,
         images: [person.personImageUrl],
         personId: person.id,
-        cameraId: cameras[0].id
+        cameraId: cameras[0].id,
+        type: person.type,
+        isSuspect: person.suspect !== null,
+        isMissing: person.missingPerson !== null
     })) || [];
     
     console.log("Persons from API:", persons);
@@ -121,14 +131,18 @@ export default function LiveMonitoring() {
         camera: Camera;
         capturedFrame: string;
         personId: string;
+        type: string;
     }) => {
+        const person = persons.find(p => p.id === detection.personId);
+        if (!person) return;
+
         const newDetection: Detection = {
             id: uuidv4(),
             timestamp: new Date().toISOString(),
             confidence: detection.confidence,
             location: detection.camera.name,
             cameraId: detection.camera.id,
-            type: detection.confidence > 80 ? 'match' : 'suspicious',
+            type: person.type,
             status: 'pending',
             suspectImage: detection.personImageUrl,
             matchedImage: detection.capturedFrame,
@@ -147,7 +161,7 @@ export default function LiveMonitoring() {
             formData.append('capturedLocation', detection.camera.name);
             formData.append('capturedDateTime', new Date().toISOString());
             formData.append('cameraId', detection.camera.id);
-            formData.append('type', detection.confidence > 80 ? 'match' : 'suspicious');
+            formData.append('type', person.type);
             formData.append('confidenceScore', detection.confidence.toString());
             formData.append('capturedImage', file);
 
@@ -226,17 +240,18 @@ export default function LiveMonitoring() {
                                     <FaceApi 
                                         videoUrl={camera.streamUrl}
                                         targets={targets}
-                                        onDetection={(name, confidence, personImageUrl, capturedFrame, personId, cameraId) => 
-                                            handleDetection({
-                                                name,
-                                                confidence,
-                                                personImageUrl,
+                                        onDetection={(...args) => {
+                                            const target = targets.find(t => t.name === args[0]);
+                                            void handleDetection({
+                                                name: args[0],
+                                                confidence: args[1],
+                                                personImageUrl: args[2],
                                                 camera,
-                                                capturedFrame,
-                                                personId,
-                                                cameraId
-                                            })
-                                        }
+                                                capturedFrame: args[3],
+                                                personId: args[4],
+                                                type: target?.type || 'unknown'
+                                            });
+                                        }}
                                     />
                                 </div>
                             </div>

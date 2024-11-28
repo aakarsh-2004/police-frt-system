@@ -100,7 +100,7 @@ const approveRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                     lastSeenDate: new Date(lastSeenDate),
                     lastSeenLocation,
                     missingSince: new Date(missingSince),
-                    status: status || 'active',
+                    foundStatus: false,
                     reportBy
                 }
             });

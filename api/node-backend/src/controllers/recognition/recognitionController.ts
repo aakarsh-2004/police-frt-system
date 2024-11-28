@@ -42,37 +42,46 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
     }
 
     try {
-        const result = await prisma.$transaction(async (prisma) => {
-            // Upload image to cloudinary
-            const imageUrl = await cloudinary.uploader.upload(file.path, {
-                folder: 'recognitions'
-            });
-
-            // Create recognition record
-            const recognition = await prisma.recognizedPerson.create({
-                data: {
-                    personId,
-                    capturedImageUrl: imageUrl.secure_url,
-                    capturedLocation,
-                    capturedDateTime: new Date(capturedDateTime),
-                    cameraId,
-                    type,
-                    confidenceScore: confidenceScore.toString()
-                }
-            });
-
-            // Clean up the temporary file
-            fs.unlinkSync(file.path);
-
-            return recognition;
+        // First verify the person exists
+        const person = await prisma.person.findUnique({
+            where: { id: personId },
+            include: {
+                suspect: true,
+                missingPerson: true
+            }
         });
+
+        if (!person) {
+            throw createHttpError(404, "Person not found");
+        }
+
+        // Upload image to cloudinary
+        const imageUrl = await cloudinary.uploader.upload(file.path, {
+            folder: 'recognitions'
+        });
+
+        // Create recognition record
+        const recognition = await prisma.recognizedPerson.create({
+            data: {
+                personId,
+                capturedImageUrl: imageUrl.secure_url,
+                capturedLocation,
+                capturedDateTime: new Date(capturedDateTime),
+                cameraId,
+                type: person.type,
+                confidenceScore: confidenceScore.toString()
+            }
+        });
+
+        // Clean up temp file
+        fs.unlinkSync(file.path);
 
         res.status(201).json({
             message: "Recognition saved successfully",
-            data: result
+            data: recognition
         });
     } catch (error) {
-        // Clean up the temporary file in case of error
+        // Clean up temp file in case of error
         if (file && fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
         }

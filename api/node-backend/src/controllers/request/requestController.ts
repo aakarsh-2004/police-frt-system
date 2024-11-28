@@ -93,7 +93,7 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
                     lastSeenDate: new Date(lastSeenDate),
                     lastSeenLocation,
                     missingSince: new Date(missingSince),
-                    status: status || 'active',
+                    foundStatus: false,
                     reportBy
                 }
             });

@@ -63,7 +63,7 @@ model MissingPerson {
   lastSeenDate     DateTime
   lastSeenLocation String
   missingSince     DateTime
-  status           String
+  foundStatus      Boolean  @default(false)
   reportBy         String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

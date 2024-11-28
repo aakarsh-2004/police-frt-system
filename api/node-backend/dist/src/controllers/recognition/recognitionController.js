@@ -46,34 +46,42 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         return next((0, http_errors_1.default)(400, "No image file provided"));
     }
     try {
-        const result = yield prisma_1.prisma.$transaction((prisma) => __awaiter(void 0, void 0, void 0, function* () {
-            // Upload image to cloudinary
-            const imageUrl = yield cloudinary_1.default.uploader.upload(file.path, {
-                folder: 'recognitions'
-            });
-            // Create recognition record
-            const recognition = yield prisma.recognizedPerson.create({
-                data: {
-                    personId,
-                    capturedImageUrl: imageUrl.secure_url,
-                    capturedLocation,
-                    capturedDateTime: new Date(capturedDateTime),
-                    cameraId,
-                    type,
-                    confidenceScore: confidenceScore.toString()
-                }
-            });
-            // Clean up the temporary file
-            fs_1.default.unlinkSync(file.path);
-            return recognition;
-        }));
+        // First verify the person exists
+        const person = yield prisma_1.prisma.person.findUnique({
+            where: { id: personId },
+            include: {
+                suspect: true,
+                missingPerson: true
+            }
+        });
+        if (!person) {
+            throw (0, http_errors_1.default)(404, "Person not found");
+        }
+        // Upload image to cloudinary
+        const imageUrl = yield cloudinary_1.default.uploader.upload(file.path, {
+            folder: 'recognitions'
+        });
+        // Create recognition record
+        const recognition = yield prisma_1.prisma.recognizedPerson.create({
+            data: {
+                personId,
+                capturedImageUrl: imageUrl.secure_url,
+                capturedLocation,
+                capturedDateTime: new Date(capturedDateTime),
+                cameraId,
+                type: person.type,
+                confidenceScore: confidenceScore.toString()
+            }
+        });
+        // Clean up temp file
+        fs_1.default.unlinkSync(file.path);
         res.status(201).json({
             message: "Recognition saved successfully",
-            data: result
+            data: recognition
         });
     }
     catch (error) {
-        // Clean up the temporary file in case of error
+        // Clean up temp file in case of error
         if (file && fs_1.default.existsSync(file.path)) {
             fs_1.default.unlinkSync(file.path);
         }

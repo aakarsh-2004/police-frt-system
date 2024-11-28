@@ -9,6 +9,7 @@ import config from '../../config/config';
 import CreatePersonModal from './CreatePersonModal';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 type ViewType = 'suspects' | 'missing';
 
 interface Person {
@@ -44,6 +45,7 @@ export default function SuspectsPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     const fetchPersons = useCallback(async () => {
         try {
@@ -103,6 +105,10 @@ export default function SuspectsPage() {
         e.preventDefault();
         // Filter persons based on search query
         // Implementation depends on your requirements
+    };
+
+    const handleViewDetails = (personId: string) => {
+        navigate(`/person/${personId}`);
     };
 
     if (loading) {
@@ -194,7 +200,7 @@ export default function SuspectsPage() {
                         </h2>
                         <SuspectGrid
                             persons={persons}
-                            onSuspectClick={setSelectedSuspectId}
+                            onViewDetails={handleViewDetails}
                         />
                     </>
                 )}

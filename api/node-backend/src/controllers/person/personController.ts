@@ -7,7 +7,12 @@ import fs from "node:fs";
 
 const getAllPersons = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const persons = await prisma.person.findMany();
+        const persons = await prisma.person.findMany({
+            include: {
+                suspect: true,
+                missingPerson: true
+            }
+        });
         res.status(200).json({
             message: "All persons fetched successfully",
             data: persons
@@ -21,11 +26,26 @@ const getPersonById = async (req: Request, res: Response, next: NextFunction) =>
     try {
         const { id } = req.params;
         const person = await prisma.person.findUnique({
-            where: { id }
+            where: { id },
+            include: {
+                suspect: {
+                    include: {
+                        criminalRecord: true
+                    }
+                },
+                missingPerson: true,
+                recognizedPerson: {
+                    orderBy: {
+                        capturedDateTime: 'desc'
+                    }
+                }
+            }
         });
+
         if (!person) {
-            next(createHttpError(404, "Person not found"));
+            return next(createHttpError(404, "Person not found"));
         }
+
         res.status(200).json({
             message: "Person fetched successfully",
             data: person
@@ -128,7 +148,7 @@ export const createPerson = async (req: Request, res: Response, next: NextFuncti
                             lastSeenDate: new Date(lastSeenDate),
                             lastSeenLocation,
                             missingSince: new Date(missingSince),
-                            status: status || 'active',
+                            foundStatus: false,
                             reportBy
                         }
                     });

@@ -4,6 +4,7 @@ import {
     Users, Settings, ChevronLeft, User, MapPin, Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
     onPageChange: (page: string) => void;
@@ -26,10 +27,16 @@ const menuItems = [
 export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
     const { user } = useAuth();
     const [collapsed, setCollapsed] = React.useState(false);
+    const navigate = useNavigate();
 
     const visibleMenuItems = menuItems.filter(item => 
         (!item.adminOnly || user?.role === 'admin')
     );
+
+    const handleNavigation = (page: string) => {
+        onPageChange(page);
+        navigate(`/${page === 'dashboard' ? '' : page}`);
+    };
 
     return (
         <aside className={`fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 flex flex-col z-40
@@ -45,7 +52,7 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
                 {visibleMenuItems.map((item) => (
                     <button
                         key={item.id}
-                        onClick={() => onPageChange(item.id)}
+                        onClick={() => handleNavigation(item.id)}
                         className={`w-full flex items-center space-x-3 px-4 py-3 mb-2 rounded-lg transition-colors ${item.id === currentPage
                                 ? 'bg-blue-900 text-white dark:bg-blue-800'
                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}

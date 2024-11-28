@@ -20,7 +20,12 @@ const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
 const node_fs_1 = __importDefault(require("node:fs"));
 const getAllPersons = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const persons = yield prisma_1.prisma.person.findMany();
+        const persons = yield prisma_1.prisma.person.findMany({
+            include: {
+                suspect: true,
+                missingPerson: true
+            }
+        });
         res.status(200).json({
             message: "All persons fetched successfully",
             data: persons
@@ -35,10 +40,23 @@ const getPersonById = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     try {
         const { id } = req.params;
         const person = yield prisma_1.prisma.person.findUnique({
-            where: { id }
+            where: { id },
+            include: {
+                suspect: {
+                    include: {
+                        criminalRecord: true
+                    }
+                },
+                missingPerson: true,
+                recognizedPerson: {
+                    orderBy: {
+                        capturedDateTime: 'desc'
+                    }
+                }
+            }
         });
         if (!person) {
-            next((0, http_errors_1.default)(404, "Person not found"));
+            return next((0, http_errors_1.default)(404, "Person not found"));
         }
         res.status(200).json({
             message: "Person fetched successfully",
@@ -120,7 +138,7 @@ const createPerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                             lastSeenDate: new Date(lastSeenDate),
                             lastSeenLocation,
                             missingSince: new Date(missingSince),
-                            status: status || 'active',
+                            foundStatus: false,
                             reportBy
                         }
                     });
