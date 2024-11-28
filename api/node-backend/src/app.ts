@@ -3,6 +3,8 @@ import createHttpError from "http-errors";
 import cors from "cors";
 import personRouter from "./routes/person/personRoutes";
 import statsRouter from "./routes/stats/statsRoutes";
+import authRouter from "./routes/auth/authRoutes";
+import userRouter from "./routes/user/userRoutes";
 
 const app = express();
 app.use(express.json());
@@ -18,5 +20,7 @@ app.get('/api', (req: Request, res: Response, next: NextFunction) => {
 
 app.use('/api/persons', personRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
 
 export default app;

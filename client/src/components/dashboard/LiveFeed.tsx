@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, ChevronLeft, ChevronRight, User, MapPin, Clock, Shield } from 'lucide-react';
+import JSMpeg from 'jsmpeg-player';
+import config from '../../config/config';
 
 interface VideoFeed {
     id: string;
@@ -14,24 +16,19 @@ interface VideoFeed {
         timestamp: string;
         location: string;
     }[];
+    isRTSP?: boolean;
 }
 
 const videoFeeds: VideoFeed[] = [
     {
         id: '1',
         url: '/videos/1.mp4',
-        title: 'MP Nagar Gate',
+        isRTSP: true,
+        title: 'Live RTSP Camera',
         location: 'Zone 1, MP Nagar',
         area: 'Bhopal, Madhya Pradesh',
         timestamp: '2024-03-14 10:30:45',
-        recognitions: [
-            {
-                id: '1',
-                confidence: 98.5,
-                timestamp: '2024-03-14 10:30:45',
-                location: 'MP Nagar Zone 1'
-            }
-        ]
+        recognitions: []
     },
     {
         id: '2',
@@ -83,9 +80,51 @@ const videoFeeds: VideoFeed[] = [
 export default function LiveFeed() {
     const [selectedFeed, setSelectedFeed] = useState<VideoFeed>(videoFeeds[0]);
     const [showGrid, setShowGrid] = useState(true);
+    const [player, setPlayer] = useState<any>(null);
+
+    useEffect(() => {
+        if (!showGrid && selectedFeed.isRTSP) {
+            const canvas = document.getElementById('video-canvas') as HTMLCanvasElement;
+            if (canvas) {
+                try {
+                    // Cleanup previous player if exists
+                    if (player) {
+                        player.destroy();
+                    }
+
+                    // Create new player
+                    const newPlayer = new JSMpeg(selectedFeed.url, {
+                        canvas,
+                        autoplay: true,
+                        audio: false,
+                        loop: true
+                    });
+                    setPlayer(newPlayer);
+                } catch (error) {
+                    console.error('Failed to initialize video player:', error);
+                    // Fallback to showing an error message
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Failed to connect to camera', canvas.width/2, canvas.height/2);
+                    }
+                }
+            }
+        }
+
+        return () => {
+            if (player) {
+                player.destroy();
+            }
+        };
+    }, [showGrid, selectedFeed, player]);
 
     return (
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="card">
             <div className="p-4 border-b flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                     <Camera className="w-5 h-5 text-blue-900" />
@@ -135,17 +174,23 @@ export default function LiveFeed() {
                 </div>
             ) : (
                 <div className="relative">
-                    <div className="aspect-video">
-                        <video
-                            src={selectedFeed.url}
-                            autoPlay
-                            muted
-                            loop
-                            className="w-full h-full object-cover"
-                        />
+                    <div className="card">
+                        <div className="aspect-video bg-gray-900">
+                            {selectedFeed.isRTSP ? (
+                                <canvas id="video-canvas" className="w-full h-full object-cover" />
+                            ) : (
+                                <video
+                                    src={selectedFeed.url}
+                                    autoPlay
+                                    muted
+                                    loop
+                                    className="w-full h-full object-cover"
+                                />
+                            )}
+                        </div>
 
                         {/* Overlay Information */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/25">
+                        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
                             {/* Top Bar */}
                             <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between">
                                 <div className="flex items-center">

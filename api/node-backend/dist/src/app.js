@@ -8,6 +8,8 @@ const http_errors_1 = __importDefault(require("http-errors"));
 const cors_1 = __importDefault(require("cors"));
 const personRoutes_1 = __importDefault(require("./routes/person/personRoutes"));
 const statsRoutes_1 = __importDefault(require("./routes/stats/statsRoutes"));
+const authRoutes_1 = __importDefault(require("./routes/auth/authRoutes"));
+const userRoutes_1 = __importDefault(require("./routes/user/userRoutes"));
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
@@ -20,4 +22,6 @@ app.get('/api', (req, res, next) => {
 });
 app.use('/api/persons', personRoutes_1.default);
 app.use('/api/stats', statsRoutes_1.default);
+app.use('/api/auth', authRoutes_1.default);
+app.use('/api/users', userRoutes_1.default);
 exports.default = app;

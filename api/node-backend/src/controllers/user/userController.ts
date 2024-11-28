@@ -1,26 +1,57 @@
 import { NextFunction, Request, Response } from "express";
-import createHttpError from "http-errors";
 import { prisma } from "../../lib/prisma";
 import path from "node:path";
+import createHttpError from "http-errors";
 import cloudinary from "../../config/cloudinary";
+import bcrypt from 'bcrypt';
+import fs from "node:fs";
 
 const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const users = await prisma.user.findMany();
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                username: true,
+                role: true,
+                designation: true,
+                userImageUrl: true,
+                policeId: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
         res.status(200).json(users);
     } catch (error) {
         next(createHttpError(500, "Error while fetching users " + error));
     }
-}
+};
 
 const getUserById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+        const user = await prisma.user.findUnique({
+            where: { id: req.params.id },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                username: true,
+                role: true,
+                designation: true,
+                userImageUrl: true,
+                policeId: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
         res.status(200).json(user);
     } catch (error) {
         next(createHttpError(500, "Error while fetching user " + error));
     }
-}
+};
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
     const {
@@ -33,12 +64,20 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
         designation,
         policeId
     } = req.body;
+
+    if (!firstName || !lastName || !username || !email || !password || !role || !designation) {
+        return next(createHttpError(400, "Missing required fields"));
+    }
+
     const files = req.files as { [key: string]: Express.Multer.File[] };
     const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
     const fileName = files.userImageUrl[0].filename;
-    const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);    
+    const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
 
     try {
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         const result = await prisma.$transaction(async (prisma) => {
             const imageUrl = await cloudinary.uploader.upload(filePath, {
                 filename_override: fileName,
@@ -52,7 +91,7 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
                     lastName,
                     username,
                     email,
-                    password,
+                    password: hashedPassword, // Use hashed password
                     role,
                     designation,
                     userImageUrl: imageUrl.secure_url,
@@ -60,14 +99,22 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
                 }
             });
 
-            return user;
-        })
+            // Don't send password in response
+            const { password: _, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+        });
 
         res.status(201).json(result);
     } catch (error) {
         next(createHttpError(500, "Error while creating user " + error));
+    } finally {
+        try {
+            fs.unlinkSync(filePath);
+        } catch (error) {
+            next(createHttpError(500, "Error while deleting file " + error));
+        }
     }
-}
+};
 
 const updateUser = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
@@ -81,94 +128,118 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
         designation,
         policeId
     } = req.body;
-    const files = req.files as { [key: string]: Express.Multer.File[] };
-    const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
-    const fileName = files.userImageUrl[0].filename;
-    const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
 
     try {
         const result = await prisma.$transaction(async (prisma) => {
             const user = await prisma.user.findUnique({
-                where: {
-                    id: id
-                }
+                where: { id }
             });
 
-            if(!user) {
-                next(createHttpError(404, "User not found"));
-                return;
+            if (!user) {
+                throw createHttpError(404, "User not found");
             }
 
-            let imageUrl;
-            if(files.userImageUrl && user && user.userImageUrl) {
-                try {
+            let updateData: any = {
+                firstName,
+                lastName,
+                username,
+                email,
+                role,
+                designation,
+                policeId
+            };
+
+            // Only hash and update password if it's provided
+            if (password) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+                updateData.password = hashedPassword;
+            }
+
+            // Handle image update if provided
+            if (req.files && 'userImageUrl' in req.files) {
+                const files = req.files as { [key: string]: Express.Multer.File[] };
+                const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
+                const fileName = files.userImageUrl[0].filename;
+                const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
+
+                // Delete old image from cloudinary if exists
+                if (user.userImageUrl) {
                     const userSplit = user.userImageUrl.split('/');
                     const lastTwo = userSplit.slice(-2);
                     if (lastTwo.length === 2) {
                         const userImageSplit = `${lastTwo[0]}/${lastTwo[1].split('.')[0]}`;
                         await cloudinary.uploader.destroy(userImageSplit);
                     }
+                }
 
-                    imageUrl = await cloudinary.uploader.upload(filePath, {
-                        filename_override: fileName,
-                        folder: 'user-images',
-                        format: userImageMimeType
-                    })
+                // Upload new image
+                const imageUrl = await cloudinary.uploader.upload(filePath, {
+                    filename_override: fileName,
+                    folder: 'user-images',
+                    format: userImageMimeType
+                });
+
+                updateData.userImageUrl = imageUrl.secure_url;
+
+                // Clean up uploaded file
+                try {
+                    fs.unlinkSync(filePath);
                 } catch (error) {
-                    return res.status(500).json({
-                        message: 'Error deleting target picture ' + error
-                    })
+                    console.error("Error deleting file:", error);
                 }
             }
 
             const updatedUser = await prisma.user.update({
-                where: { id: id },
-                data: { ...req.body, userImageUrl: imageUrl?.secure_url || user.userImageUrl }
-            })
+                where: { id },
+                data: updateData
+            });
 
-            return updatedUser;
-        })
+            // Don't send password in response
+            const { password: _, ...userWithoutPassword } = updatedUser;
+            return userWithoutPassword;
+        });
 
         res.status(200).json(result);
     } catch (error) {
         next(createHttpError(500, "Error while updating user " + error));
     }
-}
+};
 
 const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 
     try {
         const result = await prisma.$transaction(async (prisma) => {
-            const user = await prisma.user.findUnique({ where: { id: id } });
+            const user = await prisma.user.findUnique({
+                where: { id }
+            });
 
-            if(!user) {
-                next(createHttpError(404, "User not found"));
-                return;
+            if (!user) {
+                throw createHttpError(404, "User not found");
             }
 
             if (user.userImageUrl) {
-                try {
-                    const userSplit = user.userImageUrl.split('/');
-                    const lastTwo = userSplit.slice(-2);
-                    if (lastTwo.length === 2) {
-                        const userImageSplit = `${lastTwo[0]}/${lastTwo[1].split('.')[0]}`;
-                        await cloudinary.uploader.destroy(userImageSplit);
-                    }
-                } catch (error) {
-                    return res.status(500).json({
-                        message: 'Error deleting image ' + error
-                    });
+                const userSplit = user.userImageUrl.split('/');
+                const lastTwo = userSplit.slice(-2);
+                if (lastTwo.length === 2) {
+                    const userImageSplit = `${lastTwo[0]}/${lastTwo[1].split('.')[0]}`;
+                    await cloudinary.uploader.destroy(userImageSplit);
                 }
             }
-            
-            const result = await prisma.user.delete({ where: { id: id } });
-            return result;
-        })
+
+            const deletedUser = await prisma.user.delete({
+                where: { id }
+            });
+
+            // Don't send password in response
+            const { password: _, ...userWithoutPassword } = deletedUser;
+            return userWithoutPassword;
+        });
+
         res.status(200).json(result);
     } catch (error) {
         next(createHttpError(500, "Error while deleting user " + error));
     }
-}
+};
 
 export { getAllUsers, getUserById, createUser, updateUser, deleteUser };

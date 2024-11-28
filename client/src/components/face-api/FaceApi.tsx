@@ -10,9 +10,15 @@ interface Target {
 interface FaceApiProps {
     videoUrl: string;
     targets: Target[];
+    onDetection: (
+        name: string, 
+        confidence: number, 
+        personImageUrl: string,
+        capturedFrame: string
+    ) => void;
 }
 
-const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets }) => {
+const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => {
 
     const [modelsLoaded, setModelsLoaded] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
@@ -27,7 +33,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets }) => {
     const [zoom, setZoom] = useState(1);
     const [rotation, setRotation] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
-    console.log("targets", targets);
     
 
     // Load models
@@ -212,6 +217,28 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets }) => {
                                 }
                             });
                             drawBox.draw(canvas);
+
+                            if (match.label !== 'unknown' && match.distance < 0.6) {
+                                const target = targets.find(t => t.name === match.label);
+                                if (target) {
+                                    // Capture the current frame
+                                    const captureCanvas = document.createElement('canvas');
+                                    captureCanvas.width = video.videoWidth;
+                                    captureCanvas.height = video.videoHeight;
+                                    const ctx = captureCanvas.getContext('2d');
+                                    ctx?.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+                                    
+                                    // Get the frame as data URL
+                                    const capturedFrame = captureCanvas.toDataURL('image/jpeg');
+
+                                    onDetection(
+                                        match.label,
+                                        (1 - match.distance) * 100,
+                                        target.images[0],
+                                        capturedFrame  // Add captured frame
+                                    );
+                                }
+                            }
                         });
 
                         // Update detected names and greeting
@@ -236,7 +263,7 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets }) => {
                 clearInterval(recognitionInterval);
             }
         };
-    }, [modelsLoaded, faceMatcher, videoPlaying]);
+    }, [modelsLoaded, faceMatcher, videoPlaying, targets, onDetection]);
 
     // Add this effect to start video after models are loaded
     useEffect(() => {

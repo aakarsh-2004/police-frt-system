@@ -15,8 +15,24 @@ import ReportsPage from './components/reports/ReportPage';
 import MapView from './components/mapview/MapView';
 import UserManagement from './components/user/UserManagement';
 import Settings from './components/settings/Settings';
+import { useAuth } from './context/AuthContext';
+import Login from './components/auth/Login';
 
 function App() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   const renderPage = () => {
