@@ -17,6 +17,8 @@ import UserManagement from './components/user/UserManagement';
 import Settings from './components/settings/Settings';
 import { useAuth } from './context/AuthContext';
 import Login from './components/auth/Login';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import RequestsPage from './components/requests/RequestsPage';
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -65,9 +67,19 @@ function App() {
       case 'mapview':
         return <MapView />
       case 'users':
-        return <UserManagement />
+        return (
+          <ProtectedRoute allowedRoles={['admin']}>
+            <UserManagement />
+          </ProtectedRoute>
+        );
       case 'settings':
         return <Settings />
+      case 'requests':
+        return (
+          <ProtectedRoute allowedRoles={['admin']}>
+            <RequestsPage />
+          </ProtectedRoute>
+        );
       default:
         return <div>404 Not Found</div>;
     }

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = void 0;
+exports.deletePerson = exports.updatePerson = exports.getPersonById = exports.getAllPersons = exports.createPerson = void 0;
 const prisma_1 = require("../../lib/prisma");
 const node_path_1 = __importDefault(require("node:path"));
 const http_errors_1 = __importDefault(require("http-errors"));
@@ -51,96 +51,117 @@ const getPersonById = (req, res, next) => __awaiter(void 0, void 0, void 0, func
 });
 exports.getPersonById = getPersonById;
 const createPerson = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { firstName, lastName, age, dateOfBirth, gender, email, phone, address, type, nationalId, nationality, 
-    // Files for missing or suspect
-    riskLevel, lastSeenDate, lastSeenLocation, missingSince, status, reportBy } = req.body;
-    if (!firstName || !lastName || !age || !gender || !email || !phone || !address || !type || !nationality) {
-        res.status(400).json({
-            message: 'Missing required fields'
-        });
-        return;
-    }
-    if (!req.files || !('personImageUrl' in req.files)) {
-        res.status(400).json({
-            message: 'User image is required'
-        });
-        return;
-    }
     const files = req.files;
-    const personImageMimeType = files.personImageUrl[0].mimetype.split('/').at(-1);
-    const fileName = files.personImageUrl[0].filename;
-    const filePath = node_path_1.default.resolve(__dirname, `../../../public/uploads/${fileName}`);
+    const { role } = req.user;
     try {
-        const result = yield prisma_1.prisma.$transaction((prisma) => __awaiter(void 0, void 0, void 0, function* () {
-            const imageUrl = yield cloudinary_1.default.uploader.upload(filePath, {
-                filename_override: fileName,
-                folder: 'person-images',
-                format: personImageMimeType
+        if (role === 'admin') {
+            const { firstName, lastName, age, dateOfBirth, gender, email, phone, address, type, nationalId, nationality, 
+            // Files for missing or suspect
+            riskLevel, lastSeenDate, lastSeenLocation, missingSince, status, reportBy } = req.body;
+            if (!firstName || !lastName || !age || !gender || !email || !phone || !address || !type || !nationality) {
+                res.status(400).json({
+                    message: 'Missing required fields'
+                });
+                return;
+            }
+            if (!req.files || !('personImageUrl' in req.files)) {
+                res.status(400).json({
+                    message: 'User image is required'
+                });
+                return;
+            }
+            const personImageMimeType = files.personImageUrl[0].mimetype.split('/').at(-1);
+            const fileName = files.personImageUrl[0].filename;
+            const filePath = node_path_1.default.resolve(__dirname, `../../../public/uploads/${fileName}`);
+            const result = yield prisma_1.prisma.$transaction((prisma) => __awaiter(void 0, void 0, void 0, function* () {
+                const imageUrl = yield cloudinary_1.default.uploader.upload(filePath, {
+                    filename_override: fileName,
+                    folder: 'person-images',
+                    format: personImageMimeType
+                });
+                const person = yield prisma.person.create({
+                    data: {
+                        firstName,
+                        lastName,
+                        age: parseInt(age),
+                        dateOfBirth: new Date(dateOfBirth),
+                        gender,
+                        email,
+                        phone,
+                        address,
+                        personImageUrl: imageUrl.secure_url,
+                        type,
+                        nationalId,
+                        nationality
+                    }
+                });
+                if (type === 'suspect') {
+                    const fullName = `${firstName} ${lastName}`;
+                    const crimeRecord = yield prisma.crimeRecord.findFirst({
+                        where: {
+                            personName: {
+                                equals: fullName
+                            }
+                        }
+                    });
+                    yield prisma.suspect.create({
+                        data: {
+                            personId: person.id,
+                            riskLevel: riskLevel || 'low',
+                            foundStatus: false,
+                            criminalId: (crimeRecord === null || crimeRecord === void 0 ? void 0 : crimeRecord.id) || null
+                        }
+                    });
+                }
+                else if (type === 'missing-person') {
+                    yield prisma.missingPerson.create({
+                        data: {
+                            personId: person.id,
+                            lastSeenDate: new Date(lastSeenDate),
+                            lastSeenLocation,
+                            missingSince: new Date(missingSince),
+                            status: status || 'active',
+                            reportBy
+                        }
+                    });
+                }
+                return person;
+            }));
+            res.status(201).json({
+                message: `${type} created successfully`,
+                person: result
             });
-            const person = yield prisma.person.create({
-                data: {
-                    firstName,
-                    lastName,
-                    age: parseInt(age),
-                    dateOfBirth: new Date(dateOfBirth),
-                    gender,
-                    email,
-                    phone,
-                    address,
-                    personImageUrl: imageUrl.secure_url,
-                    type,
-                    nationalId,
-                    nationality
+        }
+        else {
+            const requestData = {
+                requestedBy: req.user.id,
+                status: 'pending',
+                personData: JSON.stringify(Object.assign(Object.assign({}, req.body), { personImageUrl: null }))
+            };
+            if (files === null || files === void 0 ? void 0 : files.personImageUrl) {
+                const fileName = files.personImageUrl[0].filename;
+                const filePath = node_path_1.default.resolve(__dirname, `../../../public/uploads/${fileName}`);
+                const imageUrl = yield cloudinary_1.default.uploader.upload(filePath, {
+                    filename_override: fileName,
+                    folder: 'temp-requests'
+                });
+                requestData.personData = JSON.stringify(Object.assign(Object.assign({}, JSON.parse(requestData.personData)), { personImageUrl: imageUrl.secure_url }));
+                node_fs_1.default.unlinkSync(filePath);
+            }
+            const request = yield prisma_1.prisma.requests.create({
+                data: requestData,
+                include: {
+                    user: true
                 }
             });
-            if (type === 'suspect') {
-                const fullName = `${firstName} ${lastName}`;
-                const crimeRecord = yield prisma.crimeRecord.findFirst({
-                    where: {
-                        personName: {
-                            equals: fullName
-                        }
-                    }
-                });
-                yield prisma.suspect.create({
-                    data: {
-                        personId: person.id,
-                        riskLevel: riskLevel || 'low',
-                        foundStatus: false,
-                        criminalId: (crimeRecord === null || crimeRecord === void 0 ? void 0 : crimeRecord.id) || null
-                    }
-                });
-            }
-            else if (type === 'missing-person') {
-                yield prisma.missingPerson.create({
-                    data: {
-                        personId: person.id,
-                        lastSeenDate: new Date(lastSeenDate),
-                        lastSeenLocation,
-                        missingSince: new Date(missingSince),
-                        status: status || 'active',
-                        reportBy
-                    }
-                });
-            }
-            return person;
-        }));
-        res.status(201).json({
-            message: `${type} created successfully`,
-            person: result
-        });
+            res.status(201).json({
+                message: "Request created successfully. Waiting for admin approval.",
+                data: request
+            });
+        }
     }
     catch (error) {
-        next((0, http_errors_1.default)(500, "Error while creating person " + error));
-    }
-    finally {
-        try {
-            node_fs_1.default.unlinkSync(filePath);
-            console.log('File deleted successfully');
-        }
-        catch (error) {
-            next((0, http_errors_1.default)(500, "Error while deleting file " + error));
-        }
+        next((0, http_errors_1.default)(500, "Error while creating person/request " + error));
     }
 });
 exports.createPerson = createPerson;

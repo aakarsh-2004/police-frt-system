@@ -106,18 +106,21 @@ export default function LiveMonitoring() {
     // Convert persons to targets format for FaceApi
     const targets = persons?.filter(person => person.personImageUrl).map(person => ({
         name: `${person.firstName} ${person.lastName}`,
-        images: [person.personImageUrl]
+        images: [person.personImageUrl],
+        personId: person.id,
+        cameraId: cameras[0].id
     })) || [];
     
     console.log("Persons from API:", persons);
     console.log("Converted targets:", targets);
 
-    const handleDetection = (detection: {
+    const handleDetection = async (detection: {
         name: string;
         confidence: number;
         personImageUrl: string;
         camera: Camera;
         capturedFrame: string;
+        personId: string;
     }) => {
         const newDetection: Detection = {
             id: uuidv4(),
@@ -132,15 +135,40 @@ export default function LiveMonitoring() {
             personName: detection.name
         };
 
-        // Filter out detections older than 20 seconds
-        const twentySecondsAgo = new Date(Date.now() - 20000);
-        
-        setDetections(prev => {
-            const recentDetections = prev.filter(d => 
-                new Date(d.timestamp) > twentySecondsAgo
-            );
-            return [newDetection, ...recentDetections];
-        });
+        try {
+            // Convert base64 to file
+            const response = await fetch(detection.capturedFrame);
+            const blob = await response.blob();
+            const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+
+            // Create FormData
+            const formData = new FormData();
+            formData.append('personId', detection.personId);
+            formData.append('capturedLocation', detection.camera.name);
+            formData.append('capturedDateTime', new Date().toISOString());
+            formData.append('cameraId', detection.camera.id);
+            formData.append('type', detection.confidence > 80 ? 'match' : 'suspicious');
+            formData.append('confidenceScore', detection.confidence.toString());
+            formData.append('capturedImage', file);
+
+            // Save to database
+            await axios.post(`${config.apiUrl}/api/recognitions`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            // Update local state
+            setDetections(prev => {
+                const twentySecondsAgo = new Date(Date.now() - 20000);
+                const recentDetections = prev.filter(d => 
+                    new Date(d.timestamp) > twentySecondsAgo
+                );
+                return [newDetection, ...recentDetections];
+            });
+        } catch (error) {
+            console.error('Failed to save recognition:', error);
+        }
     };
 
     if (loading) {
@@ -198,13 +226,15 @@ export default function LiveMonitoring() {
                                     <FaceApi 
                                         videoUrl={camera.streamUrl}
                                         targets={targets}
-                                        onDetection={(name, confidence, personImageUrl, capturedFrame) => 
+                                        onDetection={(name, confidence, personImageUrl, capturedFrame, personId, cameraId) => 
                                             handleDetection({
                                                 name,
                                                 confidence,
                                                 personImageUrl,
                                                 camera,
-                                                capturedFrame
+                                                capturedFrame,
+                                                personId,
+                                                cameraId
                                             })
                                         }
                                     />

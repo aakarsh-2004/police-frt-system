@@ -7,6 +7,8 @@ import ShareDialog from '../common/ShareDialog';
 import axios from 'axios';
 import config from '../../config/config';
 import CreatePersonModal from './CreatePersonModal';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-hot-toast';
 type ViewType = 'suspects' | 'missing';
 
 interface Person {
@@ -33,6 +35,7 @@ interface PersonResponse {
 }
 
 export default function SuspectsPage() {
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSuspectId, setSelectedSuspectId] = useState<string | null>(null);
     const [showShareDialog, setShowShareDialog] = useState(false);
@@ -65,16 +68,21 @@ export default function SuspectsPage() {
 
     const handleCreatePerson = async (formData: FormData) => {
         try {
-            await axios.post(`${config.apiUrl}/api/persons`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            const response = await axios.post(`${config.apiUrl}/api/persons`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
+
+            if (user?.role !== 'admin') {
+                toast.success('Request submitted successfully. Waiting for admin approval.');
+            } else {
+                toast.success('Person created successfully');
+            }
+
             fetchPersons();
             setShowCreateModal(false);
         } catch (err) {
             console.error('Error creating person:', err);
-            setError('Failed to create person');
+            toast.error('Failed to create person');
         }
     };
 

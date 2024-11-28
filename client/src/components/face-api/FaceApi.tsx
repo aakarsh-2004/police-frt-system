@@ -5,6 +5,8 @@ import VideoControls from "../video/VideoControls";
 interface Target {
     name: string;
     images: string[];
+    personId: string;
+    cameraId: string;
 }
 
 interface FaceApiProps {
@@ -14,7 +16,9 @@ interface FaceApiProps {
         name: string, 
         confidence: number, 
         personImageUrl: string,
-        capturedFrame: string
+        capturedFrame: string,
+        personId: string,
+        cameraId: string
     ) => void;
 }
 
@@ -235,7 +239,9 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
                                         match.label,
                                         (1 - match.distance) * 100,
                                         target.images[0],
-                                        capturedFrame  // Add captured frame
+                                        capturedFrame,
+                                        target.personId,
+                                        target.cameraId
                                     );
                                 }
                             }

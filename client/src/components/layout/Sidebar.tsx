@@ -1,8 +1,9 @@
 import React from 'react';
 import {
     BarChart2, Camera, Search, Bell, FileText,
-    Users, Settings, ChevronLeft, User, MapPin
+    Users, Settings, ChevronLeft, User, MapPin, Clock
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
     onPageChange: (page: string) => void;
@@ -18,11 +19,17 @@ const menuItems = [
     { id: 'reports', icon: FileText, label: 'Reports' },
     { id: 'mapview', icon: MapPin, label: 'Map View' },
     { id: 'users', icon: Users, label: 'User Management' },
-    { id: 'settings', icon: Settings, label: 'Settings' }
+    { id: 'settings', icon: Settings, label: 'Settings' },
+    { id: 'requests', icon: Clock, label: 'Requests', adminOnly: true }
 ];
 
 export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
+    const { user } = useAuth();
     const [collapsed, setCollapsed] = React.useState(false);
+
+    const visibleMenuItems = menuItems.filter(item => 
+        (!item.adminOnly || user?.role === 'admin')
+    );
 
     return (
         <aside className={`fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 flex flex-col z-40
@@ -35,7 +42,7 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
             </button>
 
             <nav className="flex-1 px-4">
-                {menuItems.map((item) => (
+                {visibleMenuItems.map((item) => (
                     <button
                         key={item.id}
                         onClick={() => onPageChange(item.id)}

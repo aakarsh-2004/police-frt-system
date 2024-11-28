@@ -5,6 +5,8 @@ import personRouter from "./routes/person/personRoutes";
 import statsRouter from "./routes/stats/statsRoutes";
 import authRouter from "./routes/auth/authRoutes";
 import userRouter from "./routes/user/userRoutes";
+import requestRouter from "./routes/request/requestRoutes";
+import recognitionRouter from "./routes/recognition/recognitionRoutes";
 
 const app = express();
 app.use(express.json());
@@ -22,5 +24,7 @@ app.use('/api/persons', personRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
+app.use('/api/requests', requestRouter);
+app.use('/api/recognitions', recognitionRouter);
 
 export default app;

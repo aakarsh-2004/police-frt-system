@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createPerson, deletePerson, getAllPersons, getPersonById, updatePerson } from "../../controllers/person/personController";
 import path from "node:path";
 import multer from "multer";
+import { authMiddleware } from '../../middleware/auth';
 
 const upload = multer({
     dest: path.resolve(__dirname, '../../../public/uploads'),
@@ -13,6 +14,7 @@ const personRouter = Router();
 personRouter.get('/', getAllPersons);
 personRouter.get('/:id', getPersonById);
 personRouter.post('/', 
+    authMiddleware,
     upload.fields([
         { name: 'personImageUrl', maxCount: 1 }
     ]),

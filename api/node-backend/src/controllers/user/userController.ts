@@ -61,8 +61,7 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
         email,
         password,
         role,
-        designation,
-        policeId
+        designation
     } = req.body;
 
     if (!firstName || !lastName || !username || !email || !password || !role || !designation) {
@@ -70,49 +69,52 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
     }
 
     const files = req.files as { [key: string]: Express.Multer.File[] };
-    const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
-    const fileName = files.userImageUrl[0].filename;
-    const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
+    let imageUrl = null;
 
     try {
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Upload image if provided
+        if (files && files.userImageUrl) {
+            const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
+            const fileName = files.userImageUrl[0].filename;
+            const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
 
-        const result = await prisma.$transaction(async (prisma) => {
-            const imageUrl = await cloudinary.uploader.upload(filePath, {
+            const uploadResponse = await cloudinary.uploader.upload(filePath, {
                 filename_override: fileName,
                 folder: 'user-images',
                 format: userImageMimeType
             });
+            imageUrl = uploadResponse.secure_url;
 
-            const user = await prisma.user.create({
-                data: {
-                    firstName,
-                    lastName,
-                    username,
-                    email,
-                    password: hashedPassword, // Use hashed password
-                    role,
-                    designation,
-                    userImageUrl: imageUrl.secure_url,
-                    policeId,
-                }
-            });
+            // Clean up temp file
+            fs.unlinkSync(filePath);
+        }
 
-            // Don't send password in response
-            const { password: _, ...userWithoutPassword } = user;
-            return userWithoutPassword;
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user
+        const user = await prisma.user.create({
+            data: {
+                firstName,
+                lastName,
+                username,
+                email,
+                password: hashedPassword,
+                role,
+                designation,
+                userImageUrl: imageUrl
+            }
         });
 
-        res.status(201).json(result);
+        // Remove password from response
+        const { password: _, ...userWithoutPassword } = user;
+
+        res.status(201).json({
+            message: "User created successfully",
+            data: userWithoutPassword
+        });
     } catch (error) {
-        next(createHttpError(500, "Error while creating user " + error));
-    } finally {
-        try {
-            fs.unlinkSync(filePath);
-        } catch (error) {
-            next(createHttpError(500, "Error while deleting file " + error));
-        }
+        next(createHttpError(500, "Error creating user: " + error));
     }
 };
 

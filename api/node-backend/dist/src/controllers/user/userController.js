@@ -80,52 +80,51 @@ const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
 });
 exports.getUserById = getUserById;
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { firstName, lastName, username, email, password, role, designation, policeId } = req.body;
+    const { firstName, lastName, username, email, password, role, designation } = req.body;
     if (!firstName || !lastName || !username || !email || !password || !role || !designation) {
         return next((0, http_errors_1.default)(400, "Missing required fields"));
     }
     const files = req.files;
-    const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
-    const fileName = files.userImageUrl[0].filename;
-    const filePath = node_path_1.default.resolve(__dirname, `../../../public/uploads/${fileName}`);
+    let imageUrl = null;
     try {
-        // Hash password
-        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
-        const result = yield prisma_1.prisma.$transaction((prisma) => __awaiter(void 0, void 0, void 0, function* () {
-            const imageUrl = yield cloudinary_1.default.uploader.upload(filePath, {
+        // Upload image if provided
+        if (files && files.userImageUrl) {
+            const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
+            const fileName = files.userImageUrl[0].filename;
+            const filePath = node_path_1.default.resolve(__dirname, `../../../public/uploads/${fileName}`);
+            const uploadResponse = yield cloudinary_1.default.uploader.upload(filePath, {
                 filename_override: fileName,
                 folder: 'user-images',
                 format: userImageMimeType
             });
-            const user = yield prisma.user.create({
-                data: {
-                    firstName,
-                    lastName,
-                    username,
-                    email,
-                    password: hashedPassword, // Use hashed password
-                    role,
-                    designation,
-                    userImageUrl: imageUrl.secure_url,
-                    policeId,
-                }
-            });
-            // Don't send password in response
-            const { password: _ } = user, userWithoutPassword = __rest(user, ["password"]);
-            return userWithoutPassword;
-        }));
-        res.status(201).json(result);
-    }
-    catch (error) {
-        next((0, http_errors_1.default)(500, "Error while creating user " + error));
-    }
-    finally {
-        try {
+            imageUrl = uploadResponse.secure_url;
+            // Clean up temp file
             node_fs_1.default.unlinkSync(filePath);
         }
-        catch (error) {
-            next((0, http_errors_1.default)(500, "Error while deleting file " + error));
-        }
+        // Hash password
+        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+        // Create user
+        const user = yield prisma_1.prisma.user.create({
+            data: {
+                firstName,
+                lastName,
+                username,
+                email,
+                password: hashedPassword,
+                role,
+                designation,
+                userImageUrl: imageUrl
+            }
+        });
+        // Remove password from response
+        const { password: _ } = user, userWithoutPassword = __rest(user, ["password"]);
+        res.status(201).json({
+            message: "User created successfully",
+            data: userWithoutPassword
+        });
+    }
+    catch (error) {
+        next((0, http_errors_1.default)(500, "Error creating user: " + error));
     }
 });
 exports.createUser = createUser;

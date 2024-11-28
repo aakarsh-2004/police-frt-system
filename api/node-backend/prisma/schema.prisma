@@ -25,7 +25,7 @@ model Person {
   updatedAt        DateTime          @updatedAt
   suspect          Suspect?
   missingPerson    MissingPerson?
-  recognizedPerson RecognizedPerson?
+  recognizedPerson RecognizedPerson[]
 }
 
 model CrimeRecord {
@@ -71,7 +71,7 @@ model MissingPerson {
 
 model RecognizedPerson {
   id               String   @id @default(uuid())
-  personId         String   @unique
+  personId         String
   person           Person   @relation(fields: [personId], references: [id])
   capturedImageUrl String
   capturedLocation String
@@ -114,6 +114,8 @@ model Requests {
   approvedBy   String?
   approvedUser User?    @relation("ApprovedRequests", fields: [approvedBy], references: [id])
   status       String   @default("pending")
+  personData   String?
+  imageData    String?
   createdAt    DateTime @default(now())
   approvedAt   DateTime @updatedAt
 }
