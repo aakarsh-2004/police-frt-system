@@ -3,8 +3,8 @@ import Navbar from './components/layout/Navbar'
 import './App.css'
 import Sidebar from './components/layout/Sidebar';
 import { useState } from 'react';
-import Stats from './components/dashboard/stats';
-import LiveFeed from './components/dashboard/Livefeed';
+import Stats from './components/dashboard/Stats';
+import LiveFeed from './components/dashboard/LiveFeed';
 import AlertSystem from './components/dashboard/Alerts';
 import CrimeHeatmap from './components/dashboard/CrimeHeatmap';
 import LiveMonitoring from './components/monitoring/LiveMonitoring';

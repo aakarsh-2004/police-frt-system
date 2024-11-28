@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Camera, Settings, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Camera, Settings, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { cameras } from './cameras';
 
 

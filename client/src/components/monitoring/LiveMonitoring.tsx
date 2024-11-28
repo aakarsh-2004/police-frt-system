@@ -30,11 +30,6 @@ interface Person {
     };
 }
 
-interface PersonResponse {
-    data: Person[];
-    message: string;
-}
-
 const cameras: Camera[] = [
     {
         id: '1',
