@@ -15,7 +15,7 @@ const recognitionRoutes_1 = __importDefault(require("./routes/recognition/recogn
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", ""],
     credentials: true
 }));
 app.get('/api', (req, res, next) => {

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit false && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -14,8 +14,6 @@
     "axios": "^1.7.8",
     "date-fns": "^4.1.0",
     "face-api.js": "^0.22.2",
-    "jsmpeg": "^1.0.0",
-    "jsmpeg-player": "^3.0.3",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

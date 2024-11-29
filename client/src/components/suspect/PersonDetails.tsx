@@ -1,9 +1,11 @@
 import React from 'react';
-import { MapPin, Calendar, AlertTriangle, User, Info, Clock, FileText } from 'lucide-react';
+import { MapPin, Calendar, AlertTriangle, User, Info, Clock, FileText, Edit2 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import config from '../../config/config';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-hot-toast';
 
 interface Recognition {
     id: string;
@@ -54,6 +56,31 @@ export default function PersonDetails() {
     const navigate = useNavigate();
     const [person, setPerson] = useState<Person | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
+    const { user } = useAuth();
+
+    // Add form state
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        age: '',
+        dateOfBirth: '',
+        gender: '',
+        email: '',
+        phone: '',
+        address: '',
+        nationality: '',
+        nationalId: '',
+        // For suspects
+        riskLevel: '',
+        foundStatus: false,
+        // For missing persons
+        lastSeenDate: '',
+        lastSeenLocation: '',
+        missingSince: '',
+        reportBy: '',
+        status: ''
+    });
 
     useEffect(() => {
         const fetchPerson = async () => {
@@ -70,8 +97,169 @@ export default function PersonDetails() {
         fetchPerson();
     }, [id]);
 
+    useEffect(() => {
+        if (person) {
+            setFormData({
+                firstName: person.firstName,
+                lastName: person.lastName,
+                age: person.age.toString(),
+                dateOfBirth: new Date(person.dateOfBirth).toISOString().split('T')[0],
+                gender: person.gender,
+                email: person.email || '',
+                phone: person.phone || '',
+                address: person.address,
+                nationality: person.nationality || '',
+                nationalId: person.nationalId || '',
+                riskLevel: person.suspect?.riskLevel || '',
+                foundStatus: person.suspect?.foundStatus || person.missingPerson?.foundStatus || false,
+                lastSeenDate: person.missingPerson?.lastSeenDate ? new Date(person.missingPerson.lastSeenDate).toISOString().split('T')[0] : '',
+                lastSeenLocation: person.missingPerson?.lastSeenLocation || '',
+                missingSince: person.missingPerson?.missingSince ? new Date(person.missingPerson.missingSince).toISOString().split('T')[0] : '',
+                reportBy: person.missingPerson?.reportBy || '',
+                status: ''
+            });
+        }
+    }, [person]);
+
     const handleBack = () => {
         navigate(-1);
+    };
+
+    const handleUpdate = async () => {
+        try {
+            const response = await axios.put(`${config.apiUrl}/api/persons/${id}`, {
+                ...formData,
+                age: parseInt(formData.age),
+                type: person?.type
+            });
+            
+            setPerson(response.data.data);
+            setIsEditing(false);
+            toast.success('Details updated successfully');
+        } catch (error) {
+            console.error('Error updating person:', error);
+            toast.error('Failed to update details');
+        }
+    };
+
+    // Add this near the top of your JSX, after the Back button
+    const renderEditButton = () => {
+        if (user?.role === 'admin') {
+            return (
+                <button 
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="btn btn-secondary flex items-center"
+                >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    {isEditing ? 'Cancel Edit' : 'Edit Details'}
+                </button>
+            );
+        }
+        return null;
+    };
+
+    // Add this form in the Basic Information section
+    const renderEditForm = () => {
+        if (!isEditing) return null;
+
+        return (
+            <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">First Name</label>
+                        <input
+                            type="text"
+                            value={formData.firstName}
+                            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Last Name</label>
+                        <input
+                            type="text"
+                            value={formData.lastName}
+                            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Age</label>
+                        <input
+                            type="number"
+                            value={formData.age}
+                            onChange={(e) => setFormData({...formData, age: e.target.value})}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Date of Birth</label>
+                        <input
+                            type="date"
+                            value={formData.dateOfBirth}
+                            onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                            className="w-full p-2 border rounded"
+                        />
+                    </div>
+                </div>
+
+                {person?.type === 'suspect' && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Risk Level</label>
+                        <select
+                            value={formData.riskLevel}
+                            onChange={(e) => setFormData({...formData, riskLevel: e.target.value})}
+                            className="w-full p-2 border rounded"
+                        >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                )}
+
+                {person?.type === 'missing-person' && (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Last Seen Date</label>
+                            <input
+                                type="date"
+                                value={formData.lastSeenDate}
+                                onChange={(e) => setFormData({...formData, lastSeenDate: e.target.value})}
+                                className="w-full p-2 border rounded"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Last Seen Location</label>
+                            <input
+                                type="text"
+                                value={formData.lastSeenLocation}
+                                onChange={(e) => setFormData({...formData, lastSeenLocation: e.target.value})}
+                                className="w-full p-2 border rounded"
+                            />
+                        </div>
+                    </>
+                )}
+
+                <div className="flex justify-end space-x-2">
+                    <button
+                        onClick={() => setIsEditing(false)}
+                        className="btn btn-secondary"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleUpdate}
+                        className="btn btn-primary"
+                    >
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        );
     };
 
     if (loading) return <div>Loading...</div>;
@@ -79,12 +267,15 @@ export default function PersonDetails() {
 
     return (
         <div className="p-6">
-            <button 
-                onClick={handleBack}
-                className="mb-4 btn btn-secondary"
-            >
-                Back
-            </button>
+            <div className="flex justify-between items-center mb-4">
+                <button 
+                    onClick={handleBack}
+                    className="btn btn-secondary"
+                >
+                    Back
+                </button>
+                {renderEditButton()}
+            </div>
             <div className="max-w-[2000px] mx-auto">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Person Details */}
@@ -134,6 +325,7 @@ export default function PersonDetails() {
                                     </div>
                                 </div>
                             </div>
+                            {renderEditForm()}
                         </div>
 
                         {/* Suspect-specific Information */}
@@ -184,17 +376,18 @@ export default function PersonDetails() {
                         )}
                     </div>
 
-                    {/* Right Column - Detections */}
+                    {/* Right Column - Detections with fixed height */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-lg shadow-lg p-6">
                             <h2 className="text-xl font-bold mb-4">Recent Detections</h2>
-                            <div className="space-y-4">
+                            {/* Add max height and scrolling */}
+                            <div className="space-y-4 max-h-[600px] overflow-y-auto">
                                 {person.recognizedPerson.map((recognition) => (
                                     <div key={recognition.id} className="border rounded-lg p-4">
                                         <img 
                                             src={recognition.capturedImageUrl} 
                                             alt="Detection" 
-                                            className="w-full h-48 object-cover rounded-lg mb-3"
+                                            className="w-full h-32 object-cover rounded-lg mb-3"
                                         />
                                         <div className="space-y-2 text-sm">
                                             <p className="flex items-center">
