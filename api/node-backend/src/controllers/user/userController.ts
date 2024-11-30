@@ -72,7 +72,6 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
     let imageUrl = null;
 
     try {
-        // Upload image if provided
         if (files && files.userImageUrl) {
             const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
             const fileName = files.userImageUrl[0].filename;
@@ -85,14 +84,11 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
             });
             imageUrl = uploadResponse.secure_url;
 
-            // Clean up temp file
             fs.unlinkSync(filePath);
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create user
         const user = await prisma.user.create({
             data: {
                 firstName,
@@ -151,20 +147,17 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
                 policeId
             };
 
-            // Only hash and update password if it's provided
             if (password) {
                 const hashedPassword = await bcrypt.hash(password, 10);
                 updateData.password = hashedPassword;
             }
 
-            // Handle image update if provided
             if (req.files && 'userImageUrl' in req.files) {
                 const files = req.files as { [key: string]: Express.Multer.File[] };
                 const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
                 const fileName = files.userImageUrl[0].filename;
                 const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
 
-                // Delete old image from cloudinary if exists
                 if (user.userImageUrl) {
                     const userSplit = user.userImageUrl.split('/');
                     const lastTwo = userSplit.slice(-2);
@@ -174,7 +167,6 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
                     }
                 }
 
-                // Upload new image
                 const imageUrl = await cloudinary.uploader.upload(filePath, {
                     filename_override: fileName,
                     folder: 'user-images',
@@ -183,7 +175,6 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
 
                 updateData.userImageUrl = imageUrl.secure_url;
 
-                // Clean up uploaded file
                 try {
                     fs.unlinkSync(filePath);
                 } catch (error) {
@@ -196,7 +187,6 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
                 data: updateData
             });
 
-            // Don't send password in response
             const { password: _, ...userWithoutPassword } = updatedUser;
             return userWithoutPassword;
         });
@@ -233,7 +223,6 @@ const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
                 where: { id }
             });
 
-            // Don't send password in response
             const { password: _, ...userWithoutPassword } = deletedUser;
             return userWithoutPassword;
         });

@@ -17,6 +17,7 @@ const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
 const fs_1 = __importDefault(require("fs"));
+const date_fns_1 = require("date-fns");
 const getRecentRecognitions = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
@@ -46,7 +47,25 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         return next((0, http_errors_1.default)(400, "No image file provided"));
     }
     try {
-        // First verify the person exists
+        const recentDetection = yield prisma_1.prisma.recognizedPerson.findFirst({
+            where: {
+                personId,
+                cameraId,
+                capturedDateTime: {
+                    gte: (0, date_fns_1.subSeconds)(new Date(), 5)
+                }
+            },
+            orderBy: {
+                capturedDateTime: 'desc'
+            }
+        });
+        if (recentDetection) {
+            fs_1.default.unlinkSync(file.path);
+            return res.status(200).json({
+                message: "Recent detection exists, skipping duplicate",
+                data: recentDetection
+            });
+        }
         const person = yield prisma_1.prisma.person.findUnique({
             where: { id: personId },
             include: {
@@ -57,11 +76,9 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         if (!person) {
             throw (0, http_errors_1.default)(404, "Person not found");
         }
-        // Upload image to cloudinary
         const imageUrl = yield cloudinary_1.default.uploader.upload(file.path, {
             folder: 'recognitions'
         });
-        // Create recognition record
         const recognition = yield prisma_1.prisma.recognizedPerson.create({
             data: {
                 personId,
@@ -73,7 +90,6 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                 confidenceScore: confidenceScore.toString()
             }
         });
-        // Clean up temp file
         fs_1.default.unlinkSync(file.path);
         res.status(201).json({
             message: "Recognition saved successfully",
@@ -81,7 +97,6 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         });
     }
     catch (error) {
-        // Clean up temp file in case of error
         if (file && fs_1.default.existsSync(file.path)) {
             fs_1.default.unlinkSync(file.path);
         }

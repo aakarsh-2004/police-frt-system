@@ -87,7 +87,6 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     const files = req.files;
     let imageUrl = null;
     try {
-        // Upload image if provided
         if (files && files.userImageUrl) {
             const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
             const fileName = files.userImageUrl[0].filename;
@@ -98,12 +97,9 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
                 format: userImageMimeType
             });
             imageUrl = uploadResponse.secure_url;
-            // Clean up temp file
             node_fs_1.default.unlinkSync(filePath);
         }
-        // Hash password
         const hashedPassword = yield bcrypt_1.default.hash(password, 10);
-        // Create user
         const user = yield prisma_1.prisma.user.create({
             data: {
                 firstName,
@@ -148,18 +144,15 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
                 designation,
                 policeId
             };
-            // Only hash and update password if it's provided
             if (password) {
                 const hashedPassword = yield bcrypt_1.default.hash(password, 10);
                 updateData.password = hashedPassword;
             }
-            // Handle image update if provided
             if (req.files && 'userImageUrl' in req.files) {
                 const files = req.files;
                 const userImageMimeType = files.userImageUrl[0].mimetype.split('/').at(-1);
                 const fileName = files.userImageUrl[0].filename;
                 const filePath = node_path_1.default.resolve(__dirname, `../../../public/uploads/${fileName}`);
-                // Delete old image from cloudinary if exists
                 if (user.userImageUrl) {
                     const userSplit = user.userImageUrl.split('/');
                     const lastTwo = userSplit.slice(-2);
@@ -168,14 +161,12 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
                         yield cloudinary_1.default.uploader.destroy(userImageSplit);
                     }
                 }
-                // Upload new image
                 const imageUrl = yield cloudinary_1.default.uploader.upload(filePath, {
                     filename_override: fileName,
                     folder: 'user-images',
                     format: userImageMimeType
                 });
                 updateData.userImageUrl = imageUrl.secure_url;
-                // Clean up uploaded file
                 try {
                     node_fs_1.default.unlinkSync(filePath);
                 }
@@ -187,7 +178,6 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
                 where: { id },
                 data: updateData
             });
-            // Don't send password in response
             const { password: _ } = updatedUser, userWithoutPassword = __rest(updatedUser, ["password"]);
             return userWithoutPassword;
         }));
@@ -219,7 +209,6 @@ const deleteUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             const deletedUser = yield prisma.user.delete({
                 where: { id }
             });
-            // Don't send password in response
             const { password: _ } = deletedUser, userWithoutPassword = __rest(deletedUser, ["password"]);
             return userWithoutPassword;
         }));

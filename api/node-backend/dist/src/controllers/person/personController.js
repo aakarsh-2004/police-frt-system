@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletePerson = exports.updatePerson = exports.getPersonById = exports.getAllPersons = exports.createPerson = void 0;
+exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = void 0;
 const prisma_1 = require("../../lib/prisma");
 const node_path_1 = __importDefault(require("node:path"));
 const http_errors_1 = __importDefault(require("http-errors"));
@@ -256,7 +256,7 @@ const updatePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                         lastSeenDate: new Date(lastSeenDate),
                         lastSeenLocation,
                         missingSince: new Date(missingSince),
-                        status: status || 'active',
+                        foundStatus: (parseInt(status) === 1 ? true : false) || false,
                         reportBy
                     }
                 });
@@ -333,3 +333,52 @@ const deletePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.deletePerson = deletePerson;
+const searchPersons = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { query } = req.query;
+        console.log('Search query:', query);
+        // If no query, return all persons
+        if (!query || typeof query !== 'string' || query.trim() === '') {
+            const persons = yield prisma_1.prisma.person.findMany({
+                include: {
+                    suspect: true,
+                    missingPerson: true
+                },
+                orderBy: {
+                    firstName: 'asc'
+                }
+            });
+            return res.status(200).json({
+                message: "All persons fetched successfully",
+                data: persons
+            });
+        }
+        const searchQuery = query.trim().toLowerCase();
+        console.log('Processing search query:', searchQuery);
+        const persons = yield prisma_1.prisma.person.findMany({
+            where: {
+                OR: [
+                    { firstName: { contains: searchQuery, mode: 'insensitive' } },
+                    { lastName: { contains: searchQuery, mode: 'insensitive' } }
+                ]
+            },
+            include: {
+                suspect: true,
+                missingPerson: true
+            },
+            orderBy: {
+                firstName: 'asc'
+            }
+        });
+        console.log(`Found ${persons.length} matches`);
+        res.status(200).json({
+            message: "Search results fetched successfully",
+            data: persons
+        });
+    }
+    catch (error) {
+        console.error("Search error:", error);
+        next((0, http_errors_1.default)(500, "Error while searching persons " + error));
+    }
+});
+exports.searchPersons = searchPersons;

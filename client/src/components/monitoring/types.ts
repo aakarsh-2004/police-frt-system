@@ -1,5 +1,5 @@
 export interface Detection {
-    id: string;
+    id: number;
     timestamp: string;
     confidence: number;
     location: string;

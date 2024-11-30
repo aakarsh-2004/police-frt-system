@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Calendar, AlertTriangle, User, Info, Clock, FileText, Edit2 } from 'lucide-react';
+import { MapPin, Calendar, AlertTriangle, User, Info, Clock, FileText, Edit2, Trash2, Upload } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
 interface Recognition {
-    id: string;
+    id: number;
     capturedImageUrl: string;
     capturedLocation: string;
     capturedDateTime: string;
@@ -58,6 +58,7 @@ export default function PersonDetails() {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const { user } = useAuth();
+    const [newImage, setNewImage] = useState<File | null>(null);
 
     // Add form state
     const [formData, setFormData] = useState({
@@ -125,16 +126,42 @@ export default function PersonDetails() {
         navigate(-1);
     };
 
+    const handleDelete = async () => {
+        if (!window.confirm('Are you sure you want to delete this person? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            await axios.delete(`${config.apiUrl}/api/persons/${id}`);
+            toast.success('Person deleted successfully');
+            navigate('/suspects');
+        } catch (error) {
+            console.error('Error deleting person:', error);
+            toast.error('Failed to delete person');
+        }
+    };
+
     const handleUpdate = async () => {
         try {
-            const response = await axios.put(`${config.apiUrl}/api/persons/${id}`, {
-                ...formData,
-                age: parseInt(formData.age),
-                type: person?.type
+            const formData = new FormData();
+            
+            // Add all form fields
+            Object.keys(formData).forEach(key => {
+                formData.append(key, formData[key as keyof typeof formData]);
+            });
+
+            // Add the new image if selected
+            if (newImage) {
+                formData.append('personImageUrl', newImage);
+            }
+
+            const response = await axios.put(`${config.apiUrl}/api/persons/${id}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
             
             setPerson(response.data.data);
             setIsEditing(false);
+            setNewImage(null);
             toast.success('Details updated successfully');
         } catch (error) {
             console.error('Error updating person:', error);
@@ -146,13 +173,22 @@ export default function PersonDetails() {
     const renderEditButton = () => {
         if (user?.role === 'admin') {
             return (
-                <button 
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="btn btn-secondary flex items-center"
-                >
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    {isEditing ? 'Cancel Edit' : 'Edit Details'}
-                </button>
+                <div className="flex items-center space-x-2">
+                    <button 
+                        onClick={() => setIsEditing(!isEditing)}
+                        className="btn btn-secondary flex items-center"
+                    >
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        {isEditing ? 'Cancel Edit' : 'Edit Details'}
+                    </button>
+                    <button 
+                        onClick={handleDelete}
+                        className="btn bg-red-500 hover:bg-red-600 text-white flex items-center"
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Person
+                    </button>
+                </div>
             );
         }
         return null;
@@ -243,6 +279,37 @@ export default function PersonDetails() {
                         </div>
                     </>
                 )}
+
+                <div>
+                    <label className="block text-sm font-medium mb-1">Profile Image</label>
+                    <div className="flex items-center space-x-4">
+                        {(newImage || person?.personImageUrl) && (
+                            <img
+                                src={newImage ? URL.createObjectURL(newImage) : person?.personImageUrl}
+                                alt="Preview"
+                                className="w-24 h-24 rounded-lg object-cover"
+                            />
+                        )}
+                        <label className="btn btn-secondary cursor-pointer">
+                            <Upload className="w-4 h-4 mr-2" />
+                            Choose New Image
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => setNewImage(e.target.files?.[0] || null)}
+                            />
+                        </label>
+                        {newImage && (
+                            <button
+                                onClick={() => setNewImage(null)}
+                                className="text-sm text-red-600 hover:text-red-800"
+                            >
+                                Remove
+                            </button>
+                        )}
+                    </div>
+                </div>
 
                 <div className="flex justify-end space-x-2">
                     <button

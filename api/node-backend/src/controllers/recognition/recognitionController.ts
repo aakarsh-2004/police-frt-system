@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma";
 import createHttpError from "http-errors";
 import cloudinary from "../../config/cloudinary";
 import fs from "fs";
+import { subSeconds } from "date-fns";
 
 export const getRecentRecognitions = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -42,7 +43,28 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
     }
 
     try {
-        // First verify the person exists
+        const recentDetection = await prisma.recognizedPerson.findFirst({
+            where: {
+                personId,
+                cameraId,
+                capturedDateTime: {
+                    gte: subSeconds(new Date(), 5) 
+                }
+            },
+            orderBy: {
+                capturedDateTime: 'desc'
+            }
+        });
+
+        if (recentDetection) {
+            fs.unlinkSync(file.path);
+            
+            return res.status(200).json({
+                message: "Recent detection exists, skipping duplicate",
+                data: recentDetection
+            });
+        }
+
         const person = await prisma.person.findUnique({
             where: { id: personId },
             include: {
@@ -55,12 +77,10 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
             throw createHttpError(404, "Person not found");
         }
 
-        // Upload image to cloudinary
         const imageUrl = await cloudinary.uploader.upload(file.path, {
             folder: 'recognitions'
         });
 
-        // Create recognition record
         const recognition = await prisma.recognizedPerson.create({
             data: {
                 personId,
@@ -73,7 +93,6 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
             }
         });
 
-        // Clean up temp file
         fs.unlinkSync(file.path);
 
         res.status(201).json({
@@ -81,7 +100,6 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
             data: recognition
         });
     } catch (error) {
-        // Clean up temp file in case of error
         if (file && fs.existsSync(file.path)) {
             fs.unlinkSync(file.path);
         }

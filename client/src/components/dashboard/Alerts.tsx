@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, User, MapPin, Clock, ArrowRight, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, User, MapPin, Clock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import config from '../../config/config';
 
 interface Recognition {
-    id: string;
+    id: number;
     personId: string;
     capturedImageUrl: string;
     capturedLocation: string;
@@ -40,7 +40,7 @@ export default function AlertSystem() {
         };
 
         fetchRecognitions();
-        const interval = setInterval(fetchRecognitions, 10000); // Refresh every 10 seconds
+        const interval = setInterval(fetchRecognitions, 10000);
 
         return () => clearInterval(interval);
     }, []);

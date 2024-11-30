@@ -1,5 +1,5 @@
 const config = {
-    apiUrl: "https://frt-system-api.onrender.com"
+    apiUrl: "http://localhost:8080"
 }
 
 export default config;

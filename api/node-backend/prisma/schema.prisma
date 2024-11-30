@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Person {
-  id               String            @id @default(uuid())
+  id               String             @id @default(uuid())
   firstName        String
   lastName         String
   age              Int
@@ -18,11 +18,11 @@ model Person {
   phone            String?
   address          String
   personImageUrl   String?
-  type             String            @default("suspect")
+  type             String             @default("suspect")
   nationalId       String?
   nationality      String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   suspect          Suspect?
   missingPerson    MissingPerson?
   recognizedPerson RecognizedPerson[]
@@ -38,7 +38,7 @@ model CrimeRecord {
   convictionDate         DateTime?
   status                 String
   crimeLocation          String
-  investigationOfficerId String    
+  investigationOfficerId String
   user                   User      @relation(fields: [investigationOfficerId], references: [id])
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
@@ -70,7 +70,7 @@ model MissingPerson {
 }
 
 model RecognizedPerson {
-  id               String   @id @default(uuid())
+  id               Int      @id @default(autoincrement())
   personId         String
   person           Person   @relation(fields: [personId], references: [id])
   capturedImageUrl String

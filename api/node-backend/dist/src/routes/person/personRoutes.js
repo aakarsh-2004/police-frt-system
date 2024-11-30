@@ -10,14 +10,15 @@ const multer_1 = __importDefault(require("multer"));
 const auth_1 = require("../../middleware/auth");
 const upload = (0, multer_1.default)({
     dest: node_path_1.default.resolve(__dirname, '../../../public/uploads'),
-    limits: { fileSize: 3e7 } // 30mb
+    limits: { fileSize: 3e7 }
 });
 const personRouter = (0, express_1.Router)();
+personRouter.get('/search', personController_1.searchPersons);
 personRouter.get('/', personController_1.getAllPersons);
-personRouter.get('/:id', personController_1.getPersonById);
 personRouter.post('/', auth_1.authMiddleware, upload.fields([
     { name: 'personImageUrl', maxCount: 1 }
 ]), personController_1.createPerson);
+personRouter.get('/:id', personController_1.getPersonById);
 personRouter.put('/:id', upload.fields([
     { name: 'personImageUrl', maxCount: 1 }
 ]), personController_1.updatePerson);

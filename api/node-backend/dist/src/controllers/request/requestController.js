@@ -45,7 +45,6 @@ const createRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     const { requestedBy, personData } = req.body;
     const files = req.files;
     try {
-        // Store the request with the person data as JSON
         const request = yield prisma_1.prisma.requests.create({
             data: {
                 requestedBy,
@@ -74,16 +73,13 @@ const approveRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         if (!request) {
             return next((0, http_errors_1.default)(404, "Request not found"));
         }
-        // Parse the stored person data
         const personData = JSON.parse(request.personData);
         const imageData = request.imageData ? JSON.parse(request.imageData) : null;
         // Extract fields specific to person
         const { riskLevel, lastSeenDate, lastSeenLocation, missingSince, status, reportBy } = personData, personFields = __rest(personData, ["riskLevel", "lastSeenDate", "lastSeenLocation", "missingSince", "status", "reportBy"]);
-        // Create the person with proper type conversions
         const person = yield prisma_1.prisma.person.create({
             data: Object.assign(Object.assign({}, personFields), { age: parseInt(personFields.age), dateOfBirth: new Date(personFields.dateOfBirth) })
         });
-        // Create associated records based on type
         if (personData.type === 'suspect') {
             yield prisma_1.prisma.suspect.create({
                 data: {
@@ -105,7 +101,6 @@ const approveRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                 }
             });
         }
-        // Update request status
         yield prisma_1.prisma.requests.update({
             where: { id },
             data: {

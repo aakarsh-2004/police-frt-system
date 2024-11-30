@@ -55,7 +55,7 @@ const getPersonById = async (req: Request, res: Response, next: NextFunction) =>
     }
 }
 
-export const createPerson = async (req: Request, res: Response, next: NextFunction) => {
+const createPerson = async (req: Request, res: Response, next: NextFunction) => {
     const files = req.files as { [key: string]: Express.Multer.File[] };
     const { role } = req.user as { role: string };
 
@@ -299,7 +299,7 @@ const updatePerson = async (req: Request, res: Response, next: NextFunction) => 
                         lastSeenDate: new Date(lastSeenDate),
                         lastSeenLocation,
                         missingSince: new Date(missingSince),
-                        status: status || 'active',
+                        foundStatus: (parseInt(status) === 1 ? true : false) || false,
                         reportBy
                     }
                 });
@@ -380,8 +380,58 @@ const deletePerson = async (req: Request, res: Response, next: NextFunction) => 
     }
 }
 
+const searchPersons = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { query } = req.query;
+        console.log('Search query:', query);
 
+        // If no query, return all persons
+        if (!query || typeof query !== 'string' || query.trim() === '') {
+            const persons = await prisma.person.findMany({
+                include: {
+                    suspect: true,
+                    missingPerson: true
+                },
+                orderBy: {
+                    firstName: 'asc'
+                }
+            });
+            
+            return res.status(200).json({
+                message: "All persons fetched successfully",
+                data: persons
+            });
+        }
 
+        const searchQuery = query.trim().toLowerCase();
+        console.log('Processing search query:', searchQuery);
 
+        const persons = await prisma.person.findMany({
+            where: {
+                OR: [
+                    { firstName: { contains: searchQuery, mode: 'insensitive' } },
+                    { lastName: { contains: searchQuery, mode: 'insensitive' } }
+                ]
+            },
+            include: {
+                suspect: true,
+                missingPerson: true
+            },
+            orderBy: {
+                firstName: 'asc'
+            }
+        });
 
-export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson };
+        console.log(`Found ${persons.length} matches`);
+        
+        res.status(200).json({
+            message: "Search results fetched successfully",
+            data: persons
+        });
+    } catch (error) {
+        console.error("Search error:", error);
+        next(createHttpError(500, "Error while searching persons " + error));
+    }
+};
+
+export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, searchPersons };

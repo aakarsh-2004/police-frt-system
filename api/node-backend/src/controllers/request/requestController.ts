@@ -21,7 +21,6 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
     const files = req.files as { [key: string]: Express.Multer.File[] };
 
     try {
-        // Store the request with the person data as JSON
         const request = await prisma.requests.create({
             data: {
                 requestedBy,
@@ -53,7 +52,6 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             return next(createHttpError(404, "Request not found"));
         }
 
-        // Parse the stored person data
         const personData = JSON.parse(request.personData as string);
         const imageData = request.imageData ? JSON.parse(request.imageData) : null;
 
@@ -68,7 +66,6 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             ...personFields
         } = personData;
 
-        // Create the person with proper type conversions
         const person = await prisma.person.create({
             data: {
                 ...personFields,
@@ -77,7 +74,6 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             }
         });
 
-        // Create associated records based on type
         if (personData.type === 'suspect') {
             await prisma.suspect.create({
                 data: {
@@ -99,7 +95,6 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             });
         }
 
-        // Update request status
         await prisma.requests.update({
             where: { id },
             data: {
