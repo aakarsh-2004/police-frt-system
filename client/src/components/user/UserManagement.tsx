@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Shield } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import config from '../../config/config';
 import { useAuth } from '../../context/AuthContext';

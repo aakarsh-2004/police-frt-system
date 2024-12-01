@@ -98,6 +98,10 @@ model User {
   requests         Requests[]
   approvedRequests Requests[]    @relation("ApprovedRequests")
   crimeRecords     CrimeRecord[]
+  phone            String?       @unique
+  phoneVerified    Boolean       @default(false)
+  otpSecret        String?
+  otpExpiry        DateTime?
 }
 
 model Camera {

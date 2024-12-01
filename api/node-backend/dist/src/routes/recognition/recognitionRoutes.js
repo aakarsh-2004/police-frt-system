@@ -13,4 +13,6 @@ const upload = (0, multer_1.default)({
 const recognitionRouter = (0, express_1.Router)();
 recognitionRouter.get('/recent', recognitionController_1.getRecentRecognitions);
 recognitionRouter.post('/', upload.single('capturedImage'), recognitionController_1.addRecognition);
+recognitionRouter.get('/report', recognitionController_1.getAllRecognitionsForReport);
+recognitionRouter.get('/stats', recognitionController_1.getRecognitionStats);
 exports.default = recognitionRouter;

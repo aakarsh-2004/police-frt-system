@@ -26,6 +26,7 @@ interface AuthContextType {
     login: (username: string, password: string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
+    loginWithOTP: (phone: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,8 +77,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
     };
 
+    const loginWithOTP = async (phone: string, otp: string) => {
+        const response = await axios.post<AuthResponse>(`${config.apiUrl}/api/auth/verify-otp`, {
+            phone,
+            otp
+        });
+        const { token, user } = response.data;
+        localStorage.setItem('token', token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(user);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, login, logout, isLoading, loginWithOTP }}>
             {children}
         </AuthContext.Provider>
     );

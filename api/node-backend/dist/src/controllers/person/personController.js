@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = void 0;
+exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = exports.resolvePerson = void 0;
 const prisma_1 = require("../../lib/prisma");
 const node_path_1 = __importDefault(require("node:path"));
 const http_errors_1 = __importDefault(require("http-errors"));
@@ -337,7 +337,6 @@ const searchPersons = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     try {
         const { query } = req.query;
         console.log('Search query:', query);
-        // If no query, return all persons
         if (!query || typeof query !== 'string' || query.trim() === '') {
             const persons = yield prisma_1.prisma.person.findMany({
                 include: {
@@ -382,3 +381,28 @@ const searchPersons = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.searchPersons = searchPersons;
+const resolvePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { type } = req.body;
+    try {
+        if (type === 'suspect') {
+            yield prisma_1.prisma.suspect.update({
+                where: { personId: id },
+                data: { foundStatus: true }
+            });
+        }
+        else if (type === 'missing-person') {
+            yield prisma_1.prisma.missingPerson.update({
+                where: { personId: id },
+                data: { foundStatus: true }
+            });
+        }
+        res.json({
+            message: "Person status updated successfully"
+        });
+    }
+    catch (error) {
+        next((0, http_errors_1.default)(500, "Error updating person status: " + error));
+    }
+});
+exports.resolvePerson = resolvePerson;

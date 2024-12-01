@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getRecentRecognitions, addRecognition } from "../../controllers/recognition/recognitionController";
+import { getRecentRecognitions, addRecognition, getAllRecognitionsForReport, getRecognitionStats } from "../../controllers/recognition/recognitionController";
 import multer from 'multer';
 import path from 'path';
 
@@ -14,5 +14,7 @@ recognitionRouter.post('/',
     upload.single('capturedImage'),
     addRecognition
 );
+recognitionRouter.get('/report', getAllRecognitionsForReport);
+recognitionRouter.get('/stats', getRecognitionStats);
 
 export default recognitionRouter; 

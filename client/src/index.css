@@ -54,6 +54,26 @@
     .text-muted {
         @apply text-gray-500 dark:text-gray-400;
     }
+
+    .image-container {
+        @apply relative overflow-hidden bg-gray-100;
+    }
+
+    .image-square {
+        @apply aspect-square;
+    }
+
+    .image-standard {
+        @apply w-full h-full object-cover;
+    }
+
+    .image-rounded {
+        @apply rounded-lg;
+    }
+
+    .image-circle {
+        @apply rounded-full;
+    }
 }
 
 /* Video container styles */

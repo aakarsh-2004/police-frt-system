@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createPerson, deletePerson, getAllPersons, getPersonById, updatePerson, searchPersons } from "../../controllers/person/personController";
+import { createPerson, deletePerson, getAllPersons, getPersonById, updatePerson, searchPersons, resolvePerson } from "../../controllers/person/personController";
 import path from "node:path";
 import multer from "multer";
 import { authMiddleware } from '../../middleware/auth';
@@ -27,6 +27,7 @@ personRouter.put('/:id',
     ]),
     updatePerson
 );
+personRouter.put('/:id/resolve', resolvePerson);
 personRouter.delete('/:id', deletePerson);
 
 export default personRouter;

@@ -19,11 +19,17 @@ export default function SuspectGrid({ persons, onViewDetails }: SuspectGridProps
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {persons.map((person) => (
                 <div key={person.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                    <img 
-                        src={person.personImageUrl} 
-                        alt={`${person.firstName} ${person.lastName}`}
-                        className="w-full h-48 object-cover"
-                    />
+                    <div className="relative pt-[125%]">
+                        <img 
+                            src={person.personImageUrl} 
+                            alt={`${person.firstName} ${person.lastName}`}
+                            className="absolute inset-0 w-full h-full object-contain bg-gray-100"
+                            style={{ 
+                                objectPosition: 'center',
+                                transform: 'scale(0.95)'
+                            }}
+                        />
+                    </div>
                     <div className="p-4">
                         <h3 className="font-semibold">{person.firstName} {person.lastName}</h3>
                         <div className="flex items-center justify-between text-xs">

@@ -5,4 +5,7 @@ const authController_1 = require("../../controllers/auth/authController");
 const authRouter = (0, express_1.Router)();
 authRouter.post('/login', authController_1.login);
 authRouter.get('/verify', authController_1.verifyToken);
+authRouter.post('/send-otp', authController_1.sendOTP);
+authRouter.post('/verify-otp', authController_1.verifyOTP);
+authRouter.post('/login-with-otp', authController_1.loginWithOTP);
 exports.default = authRouter;

@@ -85,7 +85,6 @@ export default function SearchFilters() {
             </div>
 
             <div className="space-y-4">
-                {/* Date Range */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                         <Calendar className="w-4 h-4 mr-2" />
@@ -103,7 +102,6 @@ export default function SearchFilters() {
                     </div>
                 </div>
 
-                {/* Locations */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                         <MapPin className="w-4 h-4 mr-2" />
@@ -128,7 +126,6 @@ export default function SearchFilters() {
                     </div>
                 </div>
 
-                {/* Cameras */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                         <Camera className="w-4 h-4 mr-2" />
@@ -153,7 +150,6 @@ export default function SearchFilters() {
                     </div>
                 </div>
 
-                {/* Match Confidence */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                         <User className="w-4 h-4 mr-2" />
@@ -168,7 +164,6 @@ export default function SearchFilters() {
                         />
                         <span className="text-sm font-medium w-16">
                             80%
-                            {/* {filters.matchConfidence}% */}
                         </span>
                     </div>
                 </div>

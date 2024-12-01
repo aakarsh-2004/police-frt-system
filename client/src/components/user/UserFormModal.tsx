@@ -10,6 +10,7 @@ interface User {
     role: string;
     designation: string;
     userImageUrl?: string;
+    phone?: string;
 }
 
 interface UserFormModalProps {
@@ -26,7 +27,6 @@ export default function UserFormModal({ user, onSubmit, onClose }: UserFormModal
         const form = e.target as HTMLFormElement;
         const formData = new FormData();
 
-        // Add form fields to FormData
         const firstName = (form.elements.namedItem('firstName') as HTMLInputElement).value;
         const lastName = (form.elements.namedItem('lastName') as HTMLInputElement).value;
         const email = (form.elements.namedItem('email') as HTMLInputElement).value;
@@ -34,6 +34,7 @@ export default function UserFormModal({ user, onSubmit, onClose }: UserFormModal
         const password = (form.elements.namedItem('password') as HTMLInputElement).value;
         const role = (form.elements.namedItem('role') as HTMLSelectElement).value;
         const designation = (form.elements.namedItem('designation') as HTMLInputElement).value;
+        const phone = (form.elements.namedItem('phone') as HTMLInputElement).value;
 
         formData.append('firstName', firstName);
         formData.append('lastName', lastName);
@@ -42,8 +43,8 @@ export default function UserFormModal({ user, onSubmit, onClose }: UserFormModal
         formData.append('password', password);
         formData.append('role', role);
         formData.append('designation', designation);
+        formData.append('phone', phone);
 
-        // Add image if selected
         if (image) {
             formData.append('userImageUrl', image);
         }
@@ -148,14 +149,36 @@ export default function UserFormModal({ user, onSubmit, onClose }: UserFormModal
                     </div>
 
                     <div>
+                        <label className="block text-sm font-medium mb-1">Phone Number</label>
+                        <div className="flex">
+                            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                +91
+                            </span>
+                            <input
+                                type="tel"
+                                name="phone"
+                                defaultValue={user?.phone || ''}
+                                className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300"
+                                placeholder="Enter phone number"
+                                pattern="[0-9]{10}"
+                                title="Please enter a valid 10-digit phone number"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div>
                         <label className="block text-sm font-medium mb-1">Profile Image</label>
                         <div className="flex items-center space-x-4">
                             {(user?.userImageUrl || image) && (
-                                <img
-                                    src={image ? URL.createObjectURL(image) : user?.userImageUrl}
-                                    alt="Preview"
-                                    className="w-12 h-12 rounded-full object-cover"
-                                />
+                                <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200">
+                                    <img
+                                        src={image ? URL.createObjectURL(image) : user?.userImageUrl}
+                                        alt="Preview"
+                                        className="w-full h-full object-cover"
+                                        style={{ objectPosition: 'center' }}
+                                    />
+                                </div>
                             )}
                             <label className="btn btn-secondary cursor-pointer">
                                 <Upload className="w-4 h-4 mr-2" />

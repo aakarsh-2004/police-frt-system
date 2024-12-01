@@ -30,6 +30,7 @@ const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const node_fs_1 = __importDefault(require("node:fs"));
+const otpService_1 = require("../../services/otpService");
 const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const users = yield prisma_1.prisma.user.findMany({
@@ -80,8 +81,8 @@ const getUserById = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
 });
 exports.getUserById = getUserById;
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { firstName, lastName, username, email, password, role, designation } = req.body;
-    if (!firstName || !lastName || !username || !email || !password || !role || !designation) {
+    const { firstName, lastName, username, email, password, role, designation, phone } = req.body;
+    if (!firstName || !lastName || !username || !email || !password || !role || !designation || !phone) {
         return next((0, http_errors_1.default)(400, "Missing required fields"));
     }
     const files = req.files;
@@ -100,6 +101,10 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
             node_fs_1.default.unlinkSync(filePath);
         }
         const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+        if (!phone) {
+            return next((0, http_errors_1.default)(400, "Phone number is required"));
+        }
+        const formattedPhone = otpService_1.OTPService.formatPhoneNumber(phone);
         const user = yield prisma_1.prisma.user.create({
             data: {
                 firstName,
@@ -109,7 +114,8 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
                 password: hashedPassword,
                 role,
                 designation,
-                userImageUrl: imageUrl
+                userImageUrl: imageUrl,
+                phone: formattedPhone
             }
         });
         // Remove password from response

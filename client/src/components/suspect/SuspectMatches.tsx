@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Camera, MapPin, Clock, ArrowRight } from 'lucide-react';
 // import EnhancedImageViewer from '../image/EnhancedImageViewer';
 import { allMatches } from './matches';
+import ImageEnhancer from '../image/ImageEnhancer';
 
 interface SuspectMatchesProps {
     suspectId: string;
@@ -17,6 +18,7 @@ export default function SuspectMatches({ suspectId }: SuspectMatchesProps) {
         timestamp: string;
         cameraId: string;
     } | null>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     return (
         <div className="bg-white rounded-lg shadow-lg flex flex-col h-[calc(100vh-2rem)]">
@@ -33,29 +35,16 @@ export default function SuspectMatches({ suspectId }: SuspectMatchesProps) {
                             className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
                         >
                             <div className="grid grid-cols-2 gap-4">
-                                <div
-                                    className="aspect-video relative cursor-pointer"
-                                    onClick={() => setSelectedMatch({
-                                        imageUrl: match.capturedImage,
-                                        confidence: match.confidence,
-                                        location: match.location,
-                                        timestamp: match.timestamp,
-                                        cameraId: match.cameraId
-                                    })}
+                                <div 
+                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                                    onClick={() => setSelectedImage(match.capturedImageUrl)}
                                 >
                                     <img
-                                        src={match.capturedImage}
-                                        alt="Captured"
+                                        src={match.capturedImageUrl}
+                                        alt="Match"
                                         className="w-full h-full object-cover"
+                                        style={{ objectPosition: 'center' }}
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent">
-                                        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className="font-medium">Captured Image</span>
-                                                <span>{match.confidence}% Match</span>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <div className="p-3 space-y-2">
@@ -100,18 +89,13 @@ export default function SuspectMatches({ suspectId }: SuspectMatchesProps) {
                 </div>
             </div>
 
-            {/* {selectedMatch && (
-                <EnhancedImageViewer
-                    imageUrl={selectedMatch.imageUrl}
-                    matchInfo={{
-                        confidence: selectedMatch.confidence,
-                        location: selectedMatch.location,
-                        timestamp: selectedMatch.timestamp,
-                        cameraId: selectedMatch.cameraId
-                    }}
-                    onClose={() => setSelectedMatch(null)}
+            {/* Image Enhancer Modal */}
+            {selectedImage && (
+                <ImageEnhancer
+                    imageUrl={selectedImage}
+                    onClose={() => setSelectedImage(null)}
                 />
-            )} */}
+            )}
         </div>
     );
 }

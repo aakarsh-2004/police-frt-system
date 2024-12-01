@@ -4,6 +4,7 @@ import createHttpError from "http-errors";
 import cloudinary from "../../config/cloudinary";
 import fs from "fs";
 import { subSeconds } from "date-fns";
+import { Parser } from 'json2csv';
 
 export const getRecentRecognitions = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -13,7 +14,12 @@ export const getRecentRecognitions = async (req: Request, res: Response, next: N
                 capturedDateTime: 'desc'
             },
             include: {
-                person: true,
+                person: {
+                    include: {
+                        suspect: true,
+                        missingPerson: true
+                    }
+                },
                 camera: true
             }
         });
@@ -104,5 +110,101 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
             fs.unlinkSync(file.path);
         }
         next(createHttpError(500, "Error saving recognition: " + error));
+    }
+};
+
+export const getAllRecognitionsForReport = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const recognitions = await prisma.recognizedPerson.findMany({
+            include: {
+                person: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        type: true,
+                        suspect: {
+                            select: {
+                                riskLevel: true
+                            }
+                        }
+                    }
+                },
+                camera: {
+                    select: {
+                        location: true
+                    }
+                }
+            },
+            orderBy: {
+                capturedDateTime: 'desc'
+            }
+        });
+
+        // Format data for CSV
+        const fields = [
+            'Person Name',
+            'Person Type',
+            'Risk Level',
+            'Location',
+            'Detection Time',
+            'Confidence Score'
+        ];
+
+        const data = recognitions.map(rec => ({
+            'Person Name': `${rec.person.firstName} ${rec.person.lastName}`,
+            'Person Type': rec.person.type,
+            'Risk Level': rec.person.suspect?.riskLevel || 'N/A',
+            'Location': rec.camera.location,
+            'Detection Time': new Date(rec.capturedDateTime).toLocaleString(),
+            'Confidence Score': `${rec.confidenceScore}%`
+        }));
+
+        const json2csvParser = new Parser({ fields });
+        const csv = json2csvParser.parse(data);
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment('detections_report.csv');
+        res.send(csv);
+
+    } catch (error) {
+        next(createHttpError(500, "Error generating report: " + error));
+    }
+};
+
+export const getRecognitionStats = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Get total detections
+        const totalDetections = await prisma.recognizedPerson.count();
+
+        // Get successful matches (confidence > 75%)
+        const successfulMatches = await prisma.recognizedPerson.count({
+            where: {
+                confidenceScore: {
+                    gte: '50'
+                }
+            }
+        });
+
+        // Calculate average confidence
+        const allRecognitions = await prisma.recognizedPerson.findMany({
+            select: {
+                confidenceScore: true
+            }
+        });
+
+        const averageConfidence = allRecognitions.length > 0
+            ? allRecognitions.reduce((acc, curr) => acc + parseFloat(curr.confidenceScore), 0) / allRecognitions.length
+            : 0;
+
+        res.json({
+            message: "Stats fetched successfully",
+            data: {
+                totalDetections,
+                successfulMatches,
+                averageConfidence: parseFloat(averageConfidence.toFixed(1))
+            }
+        });
+    } catch (error) {
+        next(createHttpError(500, "Error fetching recognition stats: " + error));
     }
 }; 

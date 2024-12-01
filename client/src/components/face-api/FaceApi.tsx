@@ -38,8 +38,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
     const [rotation, setRotation] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     
-
-    // Load models
     useEffect(() => {
         const loadModels = async () => {
             try {
@@ -56,7 +54,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
                 await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
                 console.log("Face Landmark model loaded");
 
-                // Verify models are loaded
                 if (
                     faceapi.nets.ssdMobilenetv1.isLoaded &&
                     faceapi.nets.faceRecognitionNet.isLoaded &&
@@ -76,7 +73,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
         loadModels();
     }, []);
 
-    // Modify the loadImages function to handle multiple targets
     useEffect(() => {
         const loadImages = async () => {
             try {
@@ -140,7 +136,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
         }
     }, [modelsLoaded, targets]);
 
-    // Replace webcam-related functions with video functions
     const startVideo = async (): Promise<void> => {
         try {
             if (videoRef.current) {
@@ -153,7 +148,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
         }
     };
 
-    // Modify the recognition useEffect
     useEffect(() => {
         let recognitionInterval;
 
@@ -188,18 +182,15 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                     if (detections.length > 0) {
-                        // Get the display size based on the video element's dimensions
                         const displaySize = {
                             width: video.offsetWidth,
                             height: video.offsetHeight
                         };
 
-                        // Match canvas dimensions to video display size
                         if (canvas.width !== displaySize.width || canvas.height !== displaySize.height) {
                             faceapi.matchDimensions(canvas, displaySize);
                         }
 
-                        // Resize detections to match display size
                         const resizedDetections = faceapi.resizeResults(detections, displaySize);
 
                         const detectedNames = [];
@@ -232,7 +223,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
                                     const ctx = captureCanvas.getContext('2d');
                                     ctx?.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
                                     
-                                    // Get the frame as data URL
                                     const capturedFrame = captureCanvas.toDataURL('image/jpeg');
 
                                     onDetection(
@@ -247,7 +237,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
                             }
                         });
 
-                        // Update detected names and greeting
                         setDetectedName(detectedNames.join(', '));
                         setIsRecognized(detectedNames.some(name => name !== 'unknown'));
                     } else {
@@ -271,7 +260,6 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
         };
     }, [modelsLoaded, faceMatcher, videoPlaying, targets, onDetection]);
 
-    // Add this effect to start video after models are loaded
     useEffect(() => {
         if (modelsLoaded && videoRef.current) {
             console.log("Models loaded, starting video...");
@@ -286,7 +274,7 @@ const FaceApi: React.FC<FaceApiProps> = ({ videoUrl, targets, onDetection }) => 
             videoRef.current.addEventListener('pause', () => setIsPlaying(false));
             videoRef.current.addEventListener('ended', () => {
                 setIsPlaying(false);
-                videoRef.current.play();  // Automatically restart
+                videoRef.current.play();
             });
         }
     }, [modelsLoaded]);

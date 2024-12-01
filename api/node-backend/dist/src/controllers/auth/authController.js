@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyToken = exports.login = void 0;
+exports.loginWithOTP = exports.verifyOTP = exports.sendOTP = exports.verifyToken = exports.login = void 0;
 const prisma_1 = require("../../lib/prisma");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const http_errors_1 = __importDefault(require("http-errors"));
+const otpService_1 = require("../../services/otpService");
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -87,3 +88,103 @@ const verifyToken = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.verifyToken = verifyToken;
+const sendOTP = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { phone } = req.body;
+        const formattedPhone = otpService_1.OTPService.formatPhoneNumber(phone);
+        const user = yield prisma_1.prisma.user.findUnique({
+            where: { phone: formattedPhone }
+        });
+        if (!user) {
+            throw (0, http_errors_1.default)(404, "No user found with this phone number");
+        }
+        yield otpService_1.OTPService.sendOTP(formattedPhone);
+        res.json({ message: "OTP sent successfully" });
+    }
+    catch (error) {
+        console.error('Error in sendOTP:', error);
+        next(error);
+    }
+});
+exports.sendOTP = sendOTP;
+const verifyOTP = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { phone, otp } = req.body;
+        const formattedPhone = otpService_1.OTPService.formatPhoneNumber(phone);
+        const isValid = yield otpService_1.OTPService.verifyOTP(formattedPhone, otp);
+        if (!isValid) {
+            throw (0, http_errors_1.default)(400, "Invalid or expired OTP");
+        }
+        const user = yield prisma_1.prisma.user.findUnique({
+            where: { phone: formattedPhone }
+        });
+        if (!user) {
+            throw (0, http_errors_1.default)(404, "User not found");
+        }
+        const token = jsonwebtoken_1.default.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phone: user.phone,
+                userImageUrl: user.userImageUrl
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.verifyOTP = verifyOTP;
+const loginWithOTP = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        let { phone, otp } = req.body;
+        phone = phone.replace(/\D/g, '');
+        phone = phone.replace(/^91/, '');
+        phone = `+91${phone}`;
+        const user = yield prisma_1.prisma.user.findUnique({
+            where: { phone }
+        });
+        if (!user || !user.otpSecret || !user.otpExpiry) {
+            throw (0, http_errors_1.default)(400, "Invalid OTP request");
+        }
+        if (new Date() > user.otpExpiry) {
+            throw (0, http_errors_1.default)(400, "OTP has expired");
+        }
+        const isValidOTP = yield bcrypt_1.default.compare(otp, user.otpSecret);
+        if (!isValidOTP) {
+            throw (0, http_errors_1.default)(400, "Invalid OTP");
+        }
+        const token = jsonwebtoken_1.default.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
+        yield prisma_1.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                phoneVerified: true,
+                otpSecret: null,
+                otpExpiry: null
+            }
+        });
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phone: user.phone,
+                userImageUrl: user.userImageUrl
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.loginWithOTP = loginWithOTP;

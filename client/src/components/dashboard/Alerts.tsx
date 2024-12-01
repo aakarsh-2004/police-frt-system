@@ -40,7 +40,7 @@ export default function AlertSystem() {
         };
 
         fetchRecognitions();
-        const interval = setInterval(fetchRecognitions, 10000);
+        const interval = setInterval(fetchRecognitions, 5000);
 
         return () => clearInterval(interval);
     }, []);

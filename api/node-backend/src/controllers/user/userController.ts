@@ -5,6 +5,7 @@ import createHttpError from "http-errors";
 import cloudinary from "../../config/cloudinary";
 import bcrypt from 'bcrypt';
 import fs from "node:fs";
+import { OTPService } from "../../services/otpService";
 
 const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -61,10 +62,11 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
         email,
         password,
         role,
-        designation
+        designation,
+        phone
     } = req.body;
 
-    if (!firstName || !lastName || !username || !email || !password || !role || !designation) {
+    if (!firstName || !lastName || !username || !email || !password || !role || !designation || !phone) {
         return next(createHttpError(400, "Missing required fields"));
     }
 
@@ -89,6 +91,12 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        if (!phone) {
+            return next(createHttpError(400, "Phone number is required"));
+        }
+
+        const formattedPhone = OTPService.formatPhoneNumber(phone);
+
         const user = await prisma.user.create({
             data: {
                 firstName,
@@ -98,7 +106,8 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
                 password: hashedPassword,
                 role,
                 designation,
-                userImageUrl: imageUrl
+                userImageUrl: imageUrl,
+                phone: formattedPhone
             }
         });
 

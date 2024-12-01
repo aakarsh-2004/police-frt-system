@@ -385,7 +385,6 @@ const searchPersons = async (req: Request, res: Response, next: NextFunction) =>
         const { query } = req.query;
         console.log('Search query:', query);
 
-        // If no query, return all persons
         if (!query || typeof query !== 'string' || query.trim() === '') {
             const persons = await prisma.person.findMany({
                 include: {
@@ -431,6 +430,31 @@ const searchPersons = async (req: Request, res: Response, next: NextFunction) =>
     } catch (error) {
         console.error("Search error:", error);
         next(createHttpError(500, "Error while searching persons " + error));
+    }
+};
+
+export const resolvePerson = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { type } = req.body;
+
+    try {
+        if (type === 'suspect') {
+            await prisma.suspect.update({
+                where: { personId: id },
+                data: { foundStatus: true }
+            });
+        } else if (type === 'missing-person') {
+            await prisma.missingPerson.update({
+                where: { personId: id },
+                data: { foundStatus: true }
+            });
+        }
+
+        res.json({
+            message: "Person status updated successfully"
+        });
+    } catch (error) {
+        next(createHttpError(500, "Error updating person status: " + error));
     }
 };
 

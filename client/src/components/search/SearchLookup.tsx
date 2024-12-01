@@ -149,11 +149,15 @@ export default function SearchLookup() {
                                         className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
                                         onClick={() => navigate(`/person/${person.id}`)}
                                     >
-                                        <div className="aspect-video relative">
+                                        <div className="relative pt-[125%] bg-gray-100">
                                             <img
                                                 src={person.personImageUrl}
                                                 alt={`${person.firstName} ${person.lastName}`}
-                                                className="w-full h-full object-cover"
+                                                className="absolute inset-0 w-full h-full object-contain"
+                                                style={{ 
+                                                    objectPosition: 'center',
+                                                    transform: 'scale(0.95)'
+                                                }}
                                             />
                                             <div className="absolute top-2 right-2">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${

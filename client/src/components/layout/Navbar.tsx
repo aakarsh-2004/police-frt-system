@@ -4,10 +4,12 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/themeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useState } from 'react';
 
 export default function Navbar() {
     const { isDarkMode, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
+    const [showDropdown, setShowDropdown] = useState(false);
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 dark:from-gray-900 dark:to-gray-800 text-white shadow-lg">
@@ -70,32 +72,25 @@ export default function Navbar() {
 
                         <div className="relative group">
                             <button 
-                                onClick={logout}
+                                onClick={() => setShowDropdown(!showDropdown)}
                                 className="flex items-center space-x-3 hover:text-amber-400 transition-colors"
                             >
-                                {user?.userImageUrl ? (
-                                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-amber-400">
-                                        <img 
-                                            src={user.userImageUrl}
-                                            alt={`${user.firstName} ${user.lastName}`}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                                // Fallback to user icon if image fails to load
-                                                const target = e.target as HTMLImageElement;
-                                                target.onerror = null; // Prevent infinite loop
-                                                target.style.display = 'none';
-                                                target.parentElement?.classList.add('bg-amber-500', 'flex', 'items-center', 'justify-center');
-                                                const icon = document.createElement('div');
-                                                icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
-                                                target.parentElement?.appendChild(icon);
-                                            }}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center">
-                                        <User className="w-5 h-5 text-white" />
-                                    </div>
-                                )}
+                                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-amber-400 bg-amber-500">
+                                    <img 
+                                        src={user.userImageUrl}
+                                        alt={`${user.firstName} ${user.lastName}`}
+                                        className="w-full h-full object-cover"
+                                        style={{ objectPosition: 'center' }}
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                                            const icon = document.createElement('div');
+                                            icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+                                            target.parentElement?.appendChild(icon);
+                                        }}
+                                    />
+                                </div>
                                 <div className="text-left">
                                     <p className="text-sm font-medium text-primary text-white">
                                         {user?.firstName} {user?.lastName}
@@ -107,22 +102,34 @@ export default function Navbar() {
                                 <ChevronDown className="w-4 h-4" />
                             </button>
 
-                            <div className="absolute right-0 mt-2 w-48 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl opacity-0 invisible 
-                                group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                <a href="#profile" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    Profile
-                                </a>
-                                <a href="#settings" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    Settings
-                                </a>
-                                <hr className="my-2 border-gray-200 dark:border-gray-700" />
-                                <button 
-                                    onClick={logout}
-                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                >
-                                    Logout
-                                </button>
-                            </div>
+                            {showDropdown && (
+                                <div className="absolute right-0 mt-2 w-48 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+                                    <a 
+                                        href="/settings" 
+                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        onClick={() => setShowDropdown(false)}
+                                    >
+                                        Profile
+                                    </a>
+                                    <a 
+                                        href="/settings" 
+                                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        onClick={() => setShowDropdown(false)}
+                                    >
+                                        Settings
+                                    </a>
+                                    <hr className="my-2 border-gray-200 dark:border-gray-700" />
+                                    <button 
+                                        onClick={() => {
+                                            setShowDropdown(false);
+                                            logout();
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

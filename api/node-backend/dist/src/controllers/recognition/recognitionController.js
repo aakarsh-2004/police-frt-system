@@ -12,12 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addRecognition = exports.getRecentRecognitions = void 0;
+exports.getRecognitionStats = exports.getAllRecognitionsForReport = exports.addRecognition = exports.getRecentRecognitions = void 0;
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
 const fs_1 = __importDefault(require("fs"));
 const date_fns_1 = require("date-fns");
+const json2csv_1 = require("json2csv");
 const getRecentRecognitions = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
@@ -26,7 +27,12 @@ const getRecentRecognitions = (req, res, next) => __awaiter(void 0, void 0, void
                 capturedDateTime: 'desc'
             },
             include: {
-                person: true,
+                person: {
+                    include: {
+                        suspect: true,
+                        missingPerson: true
+                    }
+                },
                 camera: true
             }
         });
@@ -104,3 +110,95 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.addRecognition = addRecognition;
+const getAllRecognitionsForReport = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
+            include: {
+                person: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        type: true,
+                        suspect: {
+                            select: {
+                                riskLevel: true
+                            }
+                        }
+                    }
+                },
+                camera: {
+                    select: {
+                        location: true
+                    }
+                }
+            },
+            orderBy: {
+                capturedDateTime: 'desc'
+            }
+        });
+        // Format data for CSV
+        const fields = [
+            'Person Name',
+            'Person Type',
+            'Risk Level',
+            'Location',
+            'Detection Time',
+            'Confidence Score'
+        ];
+        const data = recognitions.map(rec => {
+            var _a;
+            return ({
+                'Person Name': `${rec.person.firstName} ${rec.person.lastName}`,
+                'Person Type': rec.person.type,
+                'Risk Level': ((_a = rec.person.suspect) === null || _a === void 0 ? void 0 : _a.riskLevel) || 'N/A',
+                'Location': rec.camera.location,
+                'Detection Time': new Date(rec.capturedDateTime).toLocaleString(),
+                'Confidence Score': `${rec.confidenceScore}%`
+            });
+        });
+        const json2csvParser = new json2csv_1.Parser({ fields });
+        const csv = json2csvParser.parse(data);
+        res.header('Content-Type', 'text/csv');
+        res.attachment('detections_report.csv');
+        res.send(csv);
+    }
+    catch (error) {
+        next((0, http_errors_1.default)(500, "Error generating report: " + error));
+    }
+});
+exports.getAllRecognitionsForReport = getAllRecognitionsForReport;
+const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Get total detections
+        const totalDetections = yield prisma_1.prisma.recognizedPerson.count();
+        // Get successful matches (confidence > 75%)
+        const successfulMatches = yield prisma_1.prisma.recognizedPerson.count({
+            where: {
+                confidenceScore: {
+                    gte: '50'
+                }
+            }
+        });
+        // Calculate average confidence
+        const allRecognitions = yield prisma_1.prisma.recognizedPerson.findMany({
+            select: {
+                confidenceScore: true
+            }
+        });
+        const averageConfidence = allRecognitions.length > 0
+            ? allRecognitions.reduce((acc, curr) => acc + parseFloat(curr.confidenceScore), 0) / allRecognitions.length
+            : 0;
+        res.json({
+            message: "Stats fetched successfully",
+            data: {
+                totalDetections,
+                successfulMatches,
+                averageConfidence: parseFloat(averageConfidence.toFixed(1))
+            }
+        });
+    }
+    catch (error) {
+        next((0, http_errors_1.default)(500, "Error fetching recognition stats: " + error));
+    }
+});
+exports.getRecognitionStats = getRecognitionStats;

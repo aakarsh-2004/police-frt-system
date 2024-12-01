@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Bell, Filter, ChevronDown, MapPin, Clock, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Bell, Filter, ChevronDown, MapPin, Clock, ArrowRight, Check } from 'lucide-react';
 import ImageEnhancer from '../image/ImageEnhancer';
 import axios from 'axios';
 import config from '../../config/config';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 interface Recognition {
     id: number;
@@ -21,12 +22,10 @@ interface Recognition {
         personImageUrl: string;
         type: string;
         suspect?: {
-            riskLevel: string;
             foundStatus: boolean;
+            riskLevel: string;
         };
         missingPerson?: {
-            lastSeenDate: string;
-            lastSeenLocation: string;
             foundStatus: boolean;
         };
     };
@@ -48,6 +47,7 @@ export default function AlertsPage() {
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const navigate = useNavigate();
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const [filters, setFilters] = useState<FilterState>({
         startDate: '',
@@ -98,6 +98,39 @@ export default function AlertsPage() {
             riskLevel: [],
             locations: []
         });
+    };
+
+    const handleResolve = async (personId: string, type: string) => {
+        try {
+            await axios.put(`${config.apiUrl}/api/persons/${personId}/resolve`, {
+                type
+            });
+            
+            setAlerts(prevAlerts => prevAlerts.map(alert => {
+                if (alert.person.id === personId) {
+                    return {
+                        ...alert,
+                        person: {
+                            ...alert.person,
+                            suspect: alert.person.suspect ? {
+                                ...alert.person.suspect,
+                                foundStatus: true
+                            } : undefined,
+                            missingPerson: alert.person.missingPerson ? {
+                                ...alert.person.missingPerson,
+                                foundStatus: true
+                            } : undefined
+                        }
+                    };
+                }
+                return alert;
+            }));
+            
+            toast.success('Case resolved successfully');
+        } catch (error) {
+            console.error('Error resolving case:', error);
+            toast.error('Failed to resolve case');
+        }
     };
 
     const FilterPanel = () => (
@@ -246,36 +279,28 @@ export default function AlertsPage() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-600">Database Image</span>
-                                    </div>
-                                    <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                                        <img
-                                            src={alert.person.personImageUrl}
-                                            alt="Database"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div 
+                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                                    onClick={() => setSelectedImage(alert.capturedImageUrl)}
+                                >
+                                    <img
+                                        src={alert.capturedImageUrl}
+                                        alt="Captured Frame"
+                                        className="w-full h-full object-cover"
+                                        style={{ objectPosition: 'center' }}
+                                    />
                                 </div>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-600">Captured Image</span>
-                                        <button
-                                            onClick={() => setEnhancingImage(alert.capturedImageUrl)}
-                                            className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                                        >
-                                            Enhance
-                                        </button>
-                                    </div>
-                                    <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                                        <img
-                                            src={alert.capturedImageUrl}
-                                            alt="Captured"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
+                                <div 
+                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                                    onClick={() => setSelectedImage(alert.person.personImageUrl)}
+                                >
+                                    <img
+                                        src={alert.person.personImageUrl}
+                                        alt="Person"
+                                        className="w-full h-full object-cover"
+                                        style={{ objectPosition: 'center' }}
+                                    />
                                 </div>
                             </div>
 
@@ -297,14 +322,54 @@ export default function AlertsPage() {
                                     <span className="flex items-center text-amber-600 font-medium">
                                         {parseFloat(alert.confidenceScore).toFixed(1)}% Match
                                     </span>
+                                    <div className="flex items-center space-x-4">
+                                        {alert.person.type === 'suspect' && alert.person.suspect?.riskLevel && (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                alert.person.suspect.riskLevel === 'high' 
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : alert.person.suspect.riskLevel === 'medium'
+                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                    : 'bg-green-100 text-green-800'
+                                            }`}>
+                                                {alert.person.suspect.riskLevel.toUpperCase()} RISK
+                                            </span>
+                                        )}
+                                        
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                            alert.person.type === 'suspect' 
+                                                ? alert.person.suspect?.foundStatus 
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                                : alert.person.missingPerson?.foundStatus
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {alert.person.type === 'suspect'
+                                                ? alert.person.suspect?.foundStatus ? 'CAUGHT' : 'AT LARGE'
+                                                : alert.person.missingPerson?.foundStatus ? 'FOUND' : 'MISSING'
+                                            }
+                                        </span>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={() => navigate(`/person/${alert.person.id}`)}
-                                    className="btn btn-primary text-sm flex items-center"
-                                >
-                                    View Full Profile
-                                    <ArrowRight className="w-4 h-4 ml-2" />
-                                </button>
+                                <div className="flex items-center space-x-2">
+                                    {(alert.person.type === 'suspect' && alert.person.suspect?.foundStatus === false) || 
+                                     (alert.person.type === 'missing-person' && alert.person.missingPerson?.foundStatus === false) ? (
+                                        <button
+                                            onClick={() => handleResolve(alert.person.id, alert.person.type)}
+                                            className="btn btn-secondary text-sm flex items-center"
+                                        >
+                                            <Check className="w-4 h-4 mr-2" />
+                                            {alert.person.type === 'suspect' ? 'Mark as Caught' : 'Mark as Found'}
+                                        </button>
+                                    ) : null}
+                                    <button
+                                        onClick={() => navigate(`/person/${alert.person.id}`)}
+                                        className="btn btn-primary text-sm flex items-center"
+                                    >
+                                        View Full Profile
+                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -317,10 +382,10 @@ export default function AlertsPage() {
                 </div>
             </div>
 
-            {enhancingImage && (
+            {selectedImage && (
                 <ImageEnhancer
-                    imageUrl={enhancingImage}
-                    onClose={() => setEnhancingImage(null)}
+                    imageUrl={selectedImage}
+                    onClose={() => setSelectedImage(null)}
                 />
             )}
         </div>

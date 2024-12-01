@@ -22,5 +22,6 @@ personRouter.get('/:id', personController_1.getPersonById);
 personRouter.put('/:id', upload.fields([
     { name: 'personImageUrl', maxCount: 1 }
 ]), personController_1.updatePerson);
+personRouter.put('/:id/resolve', personController_1.resolvePerson);
 personRouter.delete('/:id', personController_1.deletePerson);
 exports.default = personRouter;

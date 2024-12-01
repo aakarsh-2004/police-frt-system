@@ -1,11 +1,11 @@
-import React from 'react';
-import { MapPin, Calendar, AlertTriangle, User, Info, Clock, FileText, Edit2, Trash2, Upload } from 'lucide-react';
+import { MapPin, AlertTriangle, Clock, Edit2, Trash2, Upload } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import config from '../../config/config';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import ImageEnhancer from '../image/ImageEnhancer';
 
 interface Recognition {
     id: number;
@@ -59,6 +59,7 @@ export default function PersonDetails() {
     const [isEditing, setIsEditing] = useState(false);
     const { user } = useAuth();
     const [newImage, setNewImage] = useState<File | null>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     // Add form state
     const [formData, setFormData] = useState({
@@ -350,12 +351,21 @@ export default function PersonDetails() {
                         {/* Basic Information */}
                         <div className="bg-white rounded-lg shadow-lg p-6">
                             <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center space-x-4">
-                                    <img 
-                                        src={person.personImageUrl} 
-                                        alt={`${person.firstName} ${person.lastName}`}
-                                        className="w-24 h-24 rounded-full object-cover"
-                                    />
+                                <div className="flex items-center space-x-6">
+                                    <div 
+                                        className="w-48 h-64 relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+                                        onClick={() => setSelectedImage(person?.personImageUrl || null)}
+                                    >
+                                        <img
+                                            src={person?.personImageUrl}
+                                            alt={`${person?.firstName} ${person?.lastName}`}
+                                            className="w-full h-full object-contain"
+                                            style={{ 
+                                                objectPosition: 'center',
+                                                transform: 'scale(0.95)'
+                                            }}
+                                        />
+                                    </div>
                                     <div>
                                         <h1 className="text-2xl font-bold">
                                             {person.firstName} {person.lastName}
@@ -363,14 +373,37 @@ export default function PersonDetails() {
                                         <p className="text-gray-500">ID: {person.id}</p>
                                     </div>
                                 </div>
-                                {person.type === 'suspect' && (
-                                    <span className={`px-3 py-1 rounded-full text-sm font-medium
-                                        ${person.suspect?.riskLevel === 'high' ? 'bg-red-100 text-red-800' :
-                                        person.suspect?.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-green-100 text-green-800'}`}>
-                                        {person.suspect?.riskLevel.toUpperCase()} Risk
+                                {/* Status Badges */}
+                                <div className="flex flex-col space-y-2">
+                                    {/* Found Status Badge */}
+                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                        person.type === 'suspect'
+                                            ? person.suspect?.foundStatus
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-red-100 text-red-800'
+                                            : person.missingPerson?.foundStatus
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {person.type === 'suspect'
+                                            ? person.suspect?.foundStatus ? 'CAUGHT' : 'AT LARGE'
+                                            : person.missingPerson?.foundStatus ? 'FOUND' : 'MISSING'
+                                        }
                                     </span>
-                                )}
+                                    
+                                    {/* Risk Level Badge (for suspects only) */}
+                                    {person.type === 'suspect' && person.suspect?.riskLevel && (
+                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                            person.suspect.riskLevel === 'high' 
+                                                ? 'bg-red-100 text-red-800'
+                                                : person.suspect.riskLevel === 'medium' 
+                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                    : 'bg-green-100 text-green-800'
+                                        }`}>
+                                            {person.suspect.riskLevel.toUpperCase()} Risk
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -451,11 +484,21 @@ export default function PersonDetails() {
                             <div className="space-y-4 max-h-[600px] overflow-y-auto">
                                 {person.recognizedPerson.map((recognition) => (
                                     <div key={recognition.id} className="border rounded-lg p-4">
-                                        <img 
-                                            src={recognition.capturedImageUrl} 
-                                            alt="Detection" 
-                                            className="w-full h-32 object-cover rounded-lg mb-3"
-                                        />
+                                        {/* Modified image container */}
+                                        <div 
+                                            className="cursor-pointer relative pt-[75%] bg-gray-100 rounded-lg overflow-hidden mb-3"
+                                            onClick={() => setSelectedImage(recognition.capturedImageUrl)}
+                                        >
+                                            <img 
+                                                src={recognition.capturedImageUrl} 
+                                                alt="Detection" 
+                                                className="absolute inset-0 w-full h-full object-contain"
+                                                style={{ 
+                                                    objectPosition: 'center',
+                                                    transform: 'scale(0.95)'  // Slight padding
+                                                }}
+                                            />
+                                        </div>
                                         <div className="space-y-2 text-sm">
                                             <p className="flex items-center">
                                                 <MapPin className="w-4 h-4 mr-2" />
@@ -483,6 +526,14 @@ export default function PersonDetails() {
                     </div>
                 </div>
             </div>
+
+            {/* Image Enhancer Modal */}
+            {selectedImage && (
+                <ImageEnhancer
+                    imageUrl={selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
 } 

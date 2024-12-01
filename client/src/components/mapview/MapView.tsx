@@ -25,7 +25,6 @@ interface SuspectLocation {
 }
 
 export default function MapView() {
-    const [searchQuery, setSearchQuery] = useState('');
     const [filters, setFilters] = useState<LocationFilter>({
         city: '',
         area: '',
@@ -33,7 +32,6 @@ export default function MapView() {
     });
     const [selectedLocation, setSelectedLocation] = useState<SuspectLocation | null>(null);
 
-    // Enhanced mock suspect locations with more variety
     const suspectLocations: SuspectLocation[] = [
         {
             id: 'loc1',
