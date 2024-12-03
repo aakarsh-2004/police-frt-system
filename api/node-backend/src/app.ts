@@ -12,7 +12,7 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 app.use(express.json());
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "https://frt-system-client.vercel.app"],
+    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "https://frt-system-client.vercel.app", "https://frt-system-client-68fw0x2f7-sp4rtas-projects.vercel.app/"],
     credentials: true
 }));
 
