@@ -53,6 +53,22 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         return next((0, http_errors_1.default)(400, "No image file provided"));
     }
     try {
+        // Parse the date correctly
+        let parsedDateTime;
+        try {
+            // Assuming capturedDateTime is in format "YYYY-MM-DD HH:mm:ss"
+            const [datePart, timePart] = capturedDateTime.split(' ');
+            const [year, month, day] = datePart.split('-');
+            const [hours, minutes, seconds] = timePart.split(':');
+            parsedDateTime = new Date(parseInt(year), parseInt(month) - 1, // Month is 0-based
+            parseInt(day), parseInt(hours), parseInt(minutes), parseInt(seconds));
+            if (isNaN(parsedDateTime.getTime())) {
+                throw new Error('Invalid date');
+            }
+        }
+        catch (error) {
+            throw (0, http_errors_1.default)(400, "Invalid date format. Expected YYYY-MM-DD HH:mm:ss");
+        }
         const recentDetection = yield prisma_1.prisma.recognizedPerson.findFirst({
             where: {
                 personId,
@@ -90,10 +106,14 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                 personId,
                 capturedImageUrl: imageUrl.secure_url,
                 capturedLocation,
-                capturedDateTime: new Date(capturedDateTime),
+                capturedDateTime: parsedDateTime,
                 cameraId,
                 type: person.type,
                 confidenceScore: confidenceScore.toString()
+            },
+            include: {
+                person: true,
+                camera: true
             }
         });
         fs_1.default.unlinkSync(file.path);

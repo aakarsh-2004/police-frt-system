@@ -24,6 +24,19 @@ interface Recognition {
     };
 }
 
+// Add a utility function to format dates
+const formatDateTime = (dateString: string) => {
+    try {
+        // Split the date string into its components
+        const [date, time] = dateString.split('T');
+        // Return in a nicely formatted way but with same values
+        return `${date}, ${time.split('.')[0]}`;
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString;
+    }
+};
+
 export default function AlertSystem() {
     const [recognitions, setRecognitions] = useState<Recognition[]>([]);
     const [loading, setLoading] = useState(true);
@@ -110,9 +123,9 @@ export default function AlertSystem() {
                                         <MapPin className="w-3 h-3 mr-1" />
                                         {recognition.camera.location}
                                     </div>
-                                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                        <Clock className="w-3 h-3 mr-1" />
-                                        {new Date(recognition.capturedDateTime).toLocaleTimeString()}
+                                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                        <Clock className="w-4 h-4 mr-2 text-amber-600 dark:text-amber-400" />
+                                        <span>{formatDateTime(recognition.capturedDateTime)}</span>
                                     </div>
                                 </div>
                                 <button

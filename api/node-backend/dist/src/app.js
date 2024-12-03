@@ -12,6 +12,7 @@ const authRoutes_1 = __importDefault(require("./routes/auth/authRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/user/userRoutes"));
 const requestRoutes_1 = __importDefault(require("./routes/request/requestRoutes"));
 const recognitionRoutes_1 = __importDefault(require("./routes/recognition/recognitionRoutes"));
+const errorHandler_1 = require("./middleware/errorHandler");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
@@ -28,4 +29,5 @@ app.use('/api/auth', authRoutes_1.default);
 app.use('/api/users', userRoutes_1.default);
 app.use('/api/requests', requestRoutes_1.default);
 app.use('/api/recognitions', recognitionRoutes_1.default);
+app.use(errorHandler_1.errorHandler);
 exports.default = app;

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import config from '../config/config';
+import { toast } from 'react-hot-toast';
 
 interface User {
     id: string;
@@ -52,7 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(response.data.user);
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         } catch (error) {
-            console.error('Token verification failed:', error);
+            if (axios.isAxiosError(error)) {
+                const errorMessage = error.response?.data?.message || 'Session expired';
+                toast.error(errorMessage);
+            }
             localStorage.removeItem('token');
             delete axios.defaults.headers.common['Authorization'];
         } finally {
@@ -61,31 +65,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const login = async (username: string, password: string) => {
-        const response = await axios.post<AuthResponse>(`${config.apiUrl}/api/auth/login`, {
-            username,
-            password
-        });
-        const { token, user } = response.data;
-        localStorage.setItem('token', token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser(user);
+        try {
+            const response = await axios.post<AuthResponse>(
+                `${config.apiUrl}/api/auth/login`,
+                { username, password }
+            );
+            
+            const { token, user } = response.data;
+            localStorage.setItem('token', token);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            setUser(user);
+            toast.success('Successfully logged in!', {
+                position: "top-center",
+                duration: 3000,
+                style: {
+                    background: '#10B981', // green-500
+                    color: 'white',
+                    fontWeight: 'bold'
+                }
+            });
+        } catch (error) {
+            throw error;
+        }
     };
 
     const logout = () => {
         localStorage.removeItem('token');
         delete axios.defaults.headers.common['Authorization'];
         setUser(null);
+        toast.success('Logged out successfully');
     };
 
     const loginWithOTP = async (phone: string, otp: string) => {
-        const response = await axios.post<AuthResponse>(`${config.apiUrl}/api/auth/verify-otp`, {
-            phone,
-            otp
-        });
-        const { token, user } = response.data;
-        localStorage.setItem('token', token);
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser(user);
+        try {
+            const response = await axios.post<AuthResponse>(`${config.apiUrl}/api/auth/verify-otp`, {
+                phone,
+                otp
+            });
+            const { token, user } = response.data;
+            localStorage.setItem('token', token);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            setUser(user);
+            toast.success('Login successful');
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw error;
+            }
+            throw new Error('OTP verification failed');
+        }
     };
 
     return (

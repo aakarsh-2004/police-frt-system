@@ -20,6 +20,8 @@ import Login from './components/auth/Login';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RequestsPage from './components/requests/RequestsPage';
 import PersonDetails from './components/suspect/PersonDetails';
+import TutorialTraining from './components/tutorial-training/TutorialTraining';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -38,53 +40,60 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
-        <Navbar />
-        <div className="pt-16">
-          <div className="flex">
-            <Sidebar onPageChange={setCurrentPage} currentPage={currentPage} />
-            <main className={`flex-1 p-6 ml-64 transition-all duration-300`}>
-              <Routes>
-                <Route path="/" element={
-                  <div className="max-w-[2000px] mx-auto space-y-6">
-                    <Stats />
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <div className="lg:col-span-2">
-                        <LiveFeed />
+    <>
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+      />
+      <Router>
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+          <Navbar />
+          <div className="pt-16">
+            <div className="flex">
+              <Sidebar onPageChange={setCurrentPage} currentPage={currentPage} />
+              <main className={`flex-1 p-6 ml-64 transition-all duration-300`}>
+                <Routes>
+                  <Route path="/" element={
+                    <div className="max-w-[2000px] mx-auto space-y-6">
+                      <Stats />
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2">
+                          <LiveFeed />
+                        </div>
+                        <div className="lg:col-span-1">
+                          <AlertSystem />
+                        </div>
                       </div>
-                      <div className="lg:col-span-1">
-                        <AlertSystem />
-                      </div>
+                      <CrimeHeatmap />
                     </div>
-                    <CrimeHeatmap />
-                  </div>
-                } />
-                <Route path="/monitoring" element={<LiveMonitoring />} />
-                <Route path="/suspects" element={<SuspectPage />} />
-                <Route path="/search" element={<SearchLookup />} />
-                <Route path="/alerts" element={<AlertsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/mapview" element={<MapView />} />
-                <Route path="/users" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <UserManagement />
-                  </ProtectedRoute>
-                } />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/requests" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <RequestsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="/person/:id" element={<PersonDetails />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
+                  } />
+                  <Route path="/monitoring" element={<LiveMonitoring />} />
+                  <Route path="/suspects" element={<SuspectPage />} />
+                  <Route path="/search" element={<SearchLookup />} />
+                  <Route path="/alerts" element={<AlertsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/mapview" element={<MapView />} />
+                  <Route path="/users" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <UserManagement />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/requests" element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <RequestsPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/person/:id" element={<PersonDetails />} />
+                  <Route path="/tutorial" element={<TutorialTraining />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </main>
+            </div>
           </div>
         </div>
-      </div>
-    </Router>
+      </Router>
+    </>
   );
 }
 

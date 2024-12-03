@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     BarChart2, Camera, Search, Bell, FileText,
-    Users, Settings, ChevronLeft, User, MapPin, Clock
+    Users, Settings, ChevronLeft, User, MapPin, Clock, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -19,6 +19,7 @@ const menuItems = [
     { id: 'alerts', icon: Bell, label: 'Alerts', path: '/alerts' },
     { id: 'reports', icon: FileText, label: 'Reports', path: '/reports' },
     { id: 'mapview', icon: MapPin, label: 'Map View', path: '/mapview' },
+    { id: 'tutorial', icon: GraduationCap, label: 'Tutorial Training', path: '/tutorial' },
     { id: 'users', icon: Users, label: 'User Management', path: '/users' },
     { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },
     { id: 'requests', icon: Clock, label: 'Requests', path: '/requests', adminOnly: true }

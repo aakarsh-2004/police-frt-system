@@ -20,15 +20,13 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         });
 
         if (!user) {
-            console.log('User not found:', username);
-            throw createHttpError(401, "Invalid credentials");
+            throw createHttpError(401, "Invalid username or password");
         }
 
         const isValidPassword = await bcrypt.compare(password, user.password);
         
         if (!isValidPassword) {
-            console.log('Invalid password for user:', username);
-            throw createHttpError(401, "Invalid credentials");
+            throw createHttpError(401, "Invalid username or password");
         }
 
         const token = jwt.sign(
@@ -50,7 +48,6 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
         next(error);
     }
 };

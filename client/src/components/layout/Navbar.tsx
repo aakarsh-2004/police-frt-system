@@ -1,6 +1,7 @@
 import {
     Bell, ChevronDown, HelpCircle, Languages,
-    Moon, Plus, Search, Shield, Sun, User
+    Moon, Plus, Search, Shield, Sun, User,
+    GraduationCap
 } from 'lucide-react';
 import { useTheme } from '../../context/themeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -62,14 +63,31 @@ export default function Navbar() {
     }, [searchQuery]);
 
     const performSearch = async () => {
-        if (!searchQuery.trim()) return;
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            setShowResults(false);
+            return;
+        }
 
         setIsSearching(true);
         try {
             const response = await axios.get<{ data: SearchResult[] }>(
                 `${config.apiUrl}/api/persons/search?q=${encodeURIComponent(searchQuery)}`
             );
-            setSearchResults(response.data.data);
+            
+            // Filter results based on search query
+            const filteredResults = response.data.data.filter(person => {
+                const searchTerms = searchQuery.toLowerCase().split(' ');
+                const fullName = `${person.firstName} ${person.lastName}`.toLowerCase();
+                const address = person.address.toLowerCase();
+                
+                return searchTerms.every(term => 
+                    fullName.includes(term) || 
+                    address.includes(term)
+                );
+            });
+
+            setSearchResults(filteredResults);
             setShowResults(true);
         } catch (error) {
             console.error('Search error:', error);
@@ -156,7 +174,18 @@ export default function Navbar() {
                         </div>
                     </div>
 
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-4">
+                        <button
+                            onClick={() => navigate('/tutorial')}
+                            className="p-2 hover:bg-white/10 rounded-lg transition-colors flex items-center space-x-2"
+                            title={currentLanguage === 'en' ? 'Tutorial Training' : 'ट्यूटोरियल प्रशिक्षण'}
+                        >
+                            <GraduationCap className="w-5 h-5" />
+                            <span className="hidden md:inline">
+                                {currentLanguage === 'en' ? 'Tutorial' : 'ट्यूटोरियल'}
+                            </span>
+                        </button>
+
                         <button
                             onClick={toggleTheme}
                             className="hover:text-amber-400 transition-colors"

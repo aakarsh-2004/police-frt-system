@@ -41,6 +41,18 @@ interface FilterState {
     locations: string[];
 }
 
+const formatDateTime = (dateString: string) => {
+    try {
+        // Split the date string into its components
+        const [date, time] = dateString.split(' ');
+        // Return in a nicely formatted way but with same values
+        return `${date}, ${time}`;
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString;
+    }
+};
+
 export default function AlertsPage() {
     const [enhancingImage, setEnhancingImage] = useState<string | null>(null);
     const [alerts, setAlerts] = useState<Recognition[]>([]);
@@ -285,7 +297,7 @@ export default function AlertsPage() {
                                         </div>
                                         <div className="flex items-center text-gray-600 dark:text-gray-400">
                                             <Clock className="w-3 h-3 mr-1 dark:text-gray-400" />
-                                            {new Date(alert.capturedDateTime).toLocaleTimeString()}
+                                            {formatDateTime(alert.capturedDateTime)}
                                         </div>
                                     </div>
                                     <button

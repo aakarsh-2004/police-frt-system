@@ -29,13 +29,11 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
             where: { username }
         });
         if (!user) {
-            console.log('User not found:', username);
-            throw (0, http_errors_1.default)(401, "Invalid credentials");
+            throw (0, http_errors_1.default)(401, "Invalid username or password");
         }
         const isValidPassword = yield bcrypt_1.default.compare(password, user.password);
         if (!isValidPassword) {
-            console.log('Invalid password for user:', username);
-            throw (0, http_errors_1.default)(401, "Invalid credentials");
+            throw (0, http_errors_1.default)(401, "Invalid username or password");
         }
         const token = jsonwebtoken_1.default.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
         res.json({
@@ -52,7 +50,6 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
         });
     }
     catch (error) {
-        console.error('Login error:', error);
         next(error);
     }
 });

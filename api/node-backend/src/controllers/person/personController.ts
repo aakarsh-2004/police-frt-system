@@ -382,23 +382,13 @@ const deletePerson = async (req: Request, res: Response, next: NextFunction) => 
 
 const searchPersons = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { query } = req.query;
+        const { q: query } = req.query;
         console.log('Search query:', query);
 
         if (!query || typeof query !== 'string' || query.trim() === '') {
-            const persons = await prisma.person.findMany({
-                include: {
-                    suspect: true,
-                    missingPerson: true
-                },
-                orderBy: {
-                    firstName: 'asc'
-                }
-            });
-            
             return res.status(200).json({
-                message: "All persons fetched successfully",
-                data: persons
+                message: "No search query provided",
+                data: []
             });
         }
 
@@ -409,16 +399,16 @@ const searchPersons = async (req: Request, res: Response, next: NextFunction) =>
             where: {
                 OR: [
                     { firstName: { contains: searchQuery, mode: 'insensitive' } },
-                    { lastName: { contains: searchQuery, mode: 'insensitive' } }
+                    { lastName: { contains: searchQuery, mode: 'insensitive' } },
+                    { address: { contains: searchQuery, mode: 'insensitive' } },
+                    { nationalId: { contains: searchQuery, mode: 'insensitive' } }
                 ]
             },
             include: {
                 suspect: true,
                 missingPerson: true
             },
-            orderBy: {
-                firstName: 'asc'
-            }
+            take: 10 // Limit results to 10 for better performance
         });
 
         console.log(`Found ${persons.length} matches`);

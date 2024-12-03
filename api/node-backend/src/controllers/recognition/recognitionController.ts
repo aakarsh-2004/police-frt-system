@@ -49,6 +49,30 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
     }
 
     try {
+        // Parse the date correctly
+        let parsedDateTime;
+        try {
+            // Assuming capturedDateTime is in format "YYYY-MM-DD HH:mm:ss"
+            const [datePart, timePart] = capturedDateTime.split(' ');
+            const [year, month, day] = datePart.split('-');
+            const [hours, minutes, seconds] = timePart.split(':');
+            
+            parsedDateTime = new Date(
+                parseInt(year),
+                parseInt(month) - 1, // Month is 0-based
+                parseInt(day),
+                parseInt(hours),
+                parseInt(minutes),
+                parseInt(seconds)
+            );
+
+            if (isNaN(parsedDateTime.getTime())) {
+                throw new Error('Invalid date');
+            }
+        } catch (error) {
+            throw createHttpError(400, "Invalid date format. Expected YYYY-MM-DD HH:mm:ss");
+        }
+
         const recentDetection = await prisma.recognizedPerson.findFirst({
             where: {
                 personId,
@@ -92,10 +116,14 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
                 personId,
                 capturedImageUrl: imageUrl.secure_url,
                 capturedLocation,
-                capturedDateTime: new Date(capturedDateTime),
+                capturedDateTime: parsedDateTime,
                 cameraId,
                 type: person.type,
                 confidenceScore: confidenceScore.toString()
+            },
+            include: {
+                person: true,
+                camera: true
             }
         });
 

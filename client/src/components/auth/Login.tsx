@@ -12,14 +12,23 @@ export default function Login() {
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
     const [otpSent, setOtpSent] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const { login, loginWithOTP } = useAuth();
 
     const handleCredentialsSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
+
+        if (!username || !password) {
+            setError('Please enter both username and password');
+            return;
+        }
+
         try {
             await login(username, password);
-        } catch (err) {
-            toast.error('Invalid username or password');
+        } catch (error: any) {
+            const errorMessage = error?.response?.data?.message || 'Invalid credentials';
+            setError(errorMessage);
         }
     };
 
@@ -28,16 +37,16 @@ export default function Login() {
             await axios.post(`${config.apiUrl}/api/auth/send-otp`, { phone });
             setOtpSent(true);
             toast.success('OTP sent successfully');
-        } catch (err) {
-            toast.error('Failed to send OTP');
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to send OTP');
         }
     };
 
     const handleVerifyOTP = async () => {
         try {
             await loginWithOTP(phone, otp);
-        } catch (err) {
-            toast.error('Invalid OTP');
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Invalid OTP');
         }
     };
 
@@ -49,6 +58,12 @@ export default function Login() {
                     <h1 className="text-2xl font-bold text-gray-900">MP Police</h1>
                     <p className="text-gray-600">Face Recognition System</p>
                 </div>
+
+                {error && (
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                        {error}
+                    </div>
+                )}
 
                 <div className="flex justify-center mb-6">
                     <div className="flex space-x-2">
