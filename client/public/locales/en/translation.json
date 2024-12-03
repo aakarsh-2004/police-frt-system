@@ -1,0 +1,168 @@
+{
+  "nav": {
+    "frs": "Face Recognition System",
+    "searchPlaceholder": "Search suspects, cases, or matches...",
+    "newReport": "New Report",
+    "dashboard": "Dashboard",
+    "monitoring": "Live Monitoring",
+    "suspects": "Suspects",
+    "search": "Search & Lookup",
+    "alerts": "Alerts",
+    "reports": "Reports",
+    "mapview": "Map View",
+    "users": "User Management",
+    "settings": "Settings",
+    "requests": "Requests"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit"
+  },
+  "dashboard": {
+    "stats": {
+      "totalDetections": "Total Detections",
+      "successfulMatches": "Successful Matches",
+      "databaseEntries": "Database Entries",
+      "activeCameras": "Active Cameras",
+      "change": {
+        "increase": "+{{value}}%",
+        "decrease": "-{{value}}%"
+      }
+    },
+    "liveFeed": {
+      "title": "Live Surveillance Feed",
+      "singleView": "Single View",
+      "gridView": "Grid View",
+      "live": "Live",
+      "offline": "Offline",
+      "noFeed": "No Feed Available"
+    },
+    "recentDetections": {
+      "title": "Recent Detections",
+      "noDetections": "No Detections Found",
+      "database": "Database Image",
+      "captured": "Captured Image",
+      "match": "Match",
+      "pending": "Pending",
+      "verified": "Verified",
+      "view": "View"
+    }
+  },
+  "suspects": {
+    "title": "Suspects",
+    "search": {
+      "placeholder": "Search by name, ID, or location...",
+      "filterButton": "Filters",
+      "searchButton": "Search Database"
+    },
+    "addNew": {
+      "suspect": "Add New Suspect",
+      "missingPerson": "Add New Missing Person"
+    },
+    "tabs": {
+      "suspects": "Suspects",
+      "missingPersons": "Missing Persons"
+    },
+    "pageHeadings": {
+      "criminalSuspects": "Criminal Suspects",
+      "missingPersons": "Missing Persons"
+    }
+  },
+  "search": {
+    "title": "Search & Lookup",
+    "placeholder": "Search by name, ID, or location...",
+    "filters": {
+      "title": "Filters",
+      "type": "Type",
+      "status": "Status",
+      "date": "Date Range",
+      "location": "Location",
+      "apply": "Apply Filters",
+      "reset": "Reset"
+    },
+    "results": {
+      "noResults": "No results found",
+      "loading": "Searching...",
+      "error": "Error fetching results",
+      "viewDetails": "View Details",
+      "lastSeen": "Last Seen",
+      "location": "Location"
+    },
+    "types": {
+      "all": "All",
+      "suspects": "Suspects",
+      "missingPersons": "Missing Persons"
+    },
+    "status": {
+      "all": "All",
+      "active": "Active",
+      "resolved": "Resolved",
+      "pending": "Pending"
+    }
+  },
+  "person": {
+    "details": {
+      "title": "Person Details",
+      "basicInfo": "Basic Information",
+      "caseInfo": "Case Information",
+      "recentDetections": "Recent Detections"
+    },
+    "basicInfo": {
+      "title": "Basic Information",
+      "name": "Name",
+      "age": "Age",
+      "dob": "Date of Birth",
+      "gender": "Gender",
+      "nationality": "Nationality",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "years": "years"
+    },
+    "caseInfo": {
+      "title": "Case Information",
+      "status": "Status",
+      "riskLevel": "Risk Level",
+      "lastSeen": "Last Seen",
+      "lastLocation": "Last Location",
+      "reportedDate": "Reported Date",
+      "reportedBy": "Reported By"
+    },
+    "detections": {
+      "title": "Recent Detections",
+      "noDetections": "No recent detections",
+      "location": "Location",
+      "time": "Time",
+      "confidence": "Confidence"
+    },
+    "actions": {
+      "share": "Share",
+      "edit": "Edit",
+      "delete": "Delete",
+      "viewOnMap": "View on Map",
+      "confirmDelete": "Are you sure you want to delete this person?"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "resolved": "Resolved",
+      "pending": "Pending",
+      "found": "Found",
+      "missing": "Missing"
+    },
+    "riskLevel": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    }
+  }
+} 

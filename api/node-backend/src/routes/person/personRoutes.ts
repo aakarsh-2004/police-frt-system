@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createPerson, deletePerson, getAllPersons, getPersonById, updatePerson, searchPersons, resolvePerson } from "../../controllers/person/personController";
+import { createPerson, deletePerson, getAllPersons, getPersonById, updatePerson, searchPersons, getPersonStats } from "../../controllers/person/personController";
 import path from "node:path";
 import multer from "multer";
 import { authMiddleware } from '../../middleware/auth';
@@ -7,10 +7,11 @@ import { authMiddleware } from '../../middleware/auth';
 const upload = multer({
     dest: path.resolve(__dirname, '../../../public/uploads'),
     limits: { fileSize: 3e7 }
-})
+});
 
 const personRouter = Router();
 
+personRouter.get('/stats', getPersonStats);
 personRouter.get('/search', searchPersons);
 personRouter.get('/', getAllPersons);
 personRouter.post('/', 
@@ -27,7 +28,6 @@ personRouter.put('/:id',
     ]),
     updatePerson
 );
-personRouter.put('/:id/resolve', resolvePerson);
 personRouter.delete('/:id', deletePerson);
 
 export default personRouter;

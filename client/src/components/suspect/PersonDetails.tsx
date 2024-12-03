@@ -349,11 +349,11 @@ export default function PersonDetails() {
                     {/* Left Column - Person Details */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Basic Information */}
-                        <div className="bg-white rounded-lg shadow-lg p-6">
+                        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center space-x-6">
                                     <div 
-                                        className="w-48 h-64 relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer"
+                                        className="w-48 h-64 relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer dark:bg-gray-900 dark:border-gray-700"
                                         onClick={() => setSelectedImage(person?.personImageUrl || null)}
                                     >
                                         <img
@@ -478,15 +478,15 @@ export default function PersonDetails() {
 
                     {/* Right Column - Detections with fixed height */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white rounded-lg shadow-lg p-6">
+                        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
                             <h2 className="text-xl font-bold mb-4">Recent Detections</h2>
                             {/* Add max height and scrolling */}
                             <div className="space-y-4 max-h-[600px] overflow-y-auto">
                                 {person.recognizedPerson.map((recognition) => (
-                                    <div key={recognition.id} className="border rounded-lg p-4">
+                                    <div key={recognition.id} className="border rounded-lg p-4 dark:border-gray-700">
                                         {/* Modified image container */}
                                         <div 
-                                            className="cursor-pointer relative pt-[75%] bg-gray-100 rounded-lg overflow-hidden mb-3"
+                                            className="cursor-pointer relative pt-[75%] bg-gray-100 rounded-lg overflow-hidden mb-3 dark:bg-gray-900 dark:border-gray-700"
                                             onClick={() => setSelectedImage(recognition.capturedImageUrl)}
                                         >
                                             <img 

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Bell, Filter, ChevronDown, MapPin, Clock, ArrowRight, Check } from 'lucide-react';
-import ImageEnhancer from '../image/ImageEnhancer';
+import { AlertTriangle, Filter, Clock, MapPin, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../context/LanguageContext';
 import axios from 'axios';
 import config from '../../config/config';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
 
 interface Recognition {
     id: number;
@@ -57,6 +57,9 @@ export default function AlertsPage() {
     });
 
     const [availableLocations, setAvailableLocations] = useState<string[]>([]);
+
+    const { t } = useTranslation();
+    const { currentLanguage } = useLanguage();
 
     useEffect(() => {
         fetchAlerts();
@@ -133,73 +136,6 @@ export default function AlertsPage() {
         }
     };
 
-    const FilterPanel = () => (
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">Filter Detections</h3>
-                <button 
-                    onClick={clearFilters}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                    Clear Filters
-                </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label className="block text-sm font-medium mb-1">Start Date</label>
-                    <input
-                        type="datetime-local"
-                        value={filters.startDate}
-                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                        className="w-full p-2 border rounded"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium mb-1">End Date</label>
-                    <input
-                        type="datetime-local"
-                        value={filters.endDate}
-                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                        className="w-full p-2 border rounded"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium mb-1">Risk Level</label>
-                    <select
-                        multiple
-                        value={filters.riskLevel}
-                        onChange={(e) => handleFilterChange('riskLevel', 
-                            Array.from(e.target.selectedOptions, option => option.value)
-                        )}
-                        className="w-full p-2 border rounded"
-                    >
-                        <option value="high">High Risk</option>
-                        <option value="medium">Medium Risk</option>
-                        <option value="low">Low Risk</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium mb-1">Locations</label>
-                    <select
-                        multiple
-                        value={filters.locations}
-                        onChange={(e) => handleFilterChange('locations',
-                            Array.from(e.target.selectedOptions, option => option.value)
-                        )}
-                        className="w-full p-2 border rounded"
-                    >
-                        {availableLocations.map(location => (
-                            <option key={location} value={location}>{location}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-        </div>
-    );
-
     const getAlertSeverity = (recognition: Recognition) => {
         if (recognition.person.type === 'suspect' && recognition.person.suspect?.riskLevel === 'high') {
             return 'critical';
@@ -228,146 +164,136 @@ export default function AlertsPage() {
     return (
         <div className="p-6">
             <div className="max-w-[2000px] mx-auto">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                        <Bell className="w-6 h-6 text-red-600" />
-                        <h1 className="text-2xl font-bold">Recent Detections</h1>
-                    </div>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold">
+                        {currentLanguage === 'en' ? 'Alerts & Detections' : 'अलर्ट और पहचान'}
+                    </h1>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className="btn btn-secondary flex items-center"
                     >
                         <Filter className="w-4 h-4 mr-2" />
-                        {showFilters ? 'Hide Filters' : 'Show Filters'}
-                        <ChevronDown className={`w-4 h-4 ml-1 transform transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                        {currentLanguage === 'en' ? 'Filters' : 'फ़िल्टर'}
                     </button>
                 </div>
 
-                {showFilters && <FilterPanel />}
+                {showFilters && (
+                    <div className="mb-6 bg-white p-4 rounded-lg shadow dark:bg-gray-800">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    {currentLanguage === 'en' ? 'Start Date' : 'प्रारंभ तिथि'}
+                                </label>
+                                <input
+                                    type="date"
+                                    value={filters.startDate}
+                                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    {currentLanguage === 'en' ? 'End Date' : 'समाप्त तिथि'}
+                                </label>
+                                <input
+                                    type="date"
+                                    value={filters.endDate}
+                                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+                                />
+                            </div>
 
-                <div className="grid gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    {currentLanguage === 'en' ? 'Risk Level' : 'जोखा स्तर'}
+                                </label>
+                                <select
+                                    multiple
+                                    value={filters.riskLevel}
+                                    onChange={(e) => handleFilterChange('riskLevel', 
+                                        Array.from(e.target.selectedOptions, option => option.value)
+                                    )}
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+                                >
+                                    <option value="high">High Risk</option>
+                                    <option value="medium">Medium Risk</option>
+                                    <option value="low">Low Risk</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1 ">
+                                    {currentLanguage === 'en' ? 'Locations' : 'स्थान'}
+                                </label>
+                                <select
+                                    multiple
+                                    value={filters.locations}
+                                    onChange={(e) => handleFilterChange('locations',
+                                        Array.from(e.target.selectedOptions, option => option.value)
+                                    )}
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+                                >
+                                    {availableLocations.map(location => (
+                                        <option key={location} value={location}>{location}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {alerts.map((alert) => (
-                        <div
-                            key={alert.id}
-                            className="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow"
-                        >
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-3">
-                                    <AlertTriangle className={`w-5 h-5 ${
-                                        alert.person.type === 'suspect' ? 'text-red-600' : 'text-orange-600'
-                                    }`} />
-                                    <div>
-                                        <h3 className="font-medium">
+                        <div key={alert.id} className="bg-white rounded-lg shadow-lg overflow-hidden dark:bg-gray-800">
+                            <div className="p-4 border-b">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                        <h3 className="font-semibold">
                                             {alert.person.firstName} {alert.person.lastName}
                                         </h3>
-                                        <p className="text-sm text-gray-600">
-                                            {alert.person.type === 'suspect' ? 'Suspect Detection' : 'Missing Person Detection'}
-                                        </p>
                                     </div>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                        alert.person.type === 'suspect' && alert.person.suspect?.riskLevel === 'high'
-                                            ? 'bg-red-100 text-red-800'
-                                            : 'bg-orange-100 text-orange-800'
-                                    }`}>
-                                        {alert.person.type === 'suspect' 
-                                            ? `${alert.person.suspect?.riskLevel.toUpperCase()} Risk`
-                                            : 'MISSING PERSON'
-                                        }
+                                    <span className="text-amber-600 font-medium">
+                                        {parseFloat(alert.confidenceScore).toFixed(1)}%
                                     </span>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div 
-                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
-                                    onClick={() => setSelectedImage(alert.capturedImageUrl)}
-                                >
-                                    <img
-                                        src={alert.capturedImageUrl}
-                                        alt="Captured Frame"
-                                        className="w-full h-full object-cover"
-                                        style={{ objectPosition: 'center' }}
-                                    />
-                                </div>
-                                <div 
-                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
-                                    onClick={() => setSelectedImage(alert.person.personImageUrl)}
-                                >
+                            <div className="grid grid-cols-2 gap-2 p-4">
+                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
                                     <img
                                         src={alert.person.personImageUrl}
-                                        alt="Person"
+                                        alt={currentLanguage === 'en' ? 'Database Image' : 'डेटाबेस छवि'}
                                         className="w-full h-full object-cover"
-                                        style={{ objectPosition: 'center' }}
+                                    />
+                                </div>
+                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                    <img
+                                        src={alert.capturedImageUrl}
+                                        alt={currentLanguage === 'en' ? 'Captured Image' : 'कैप्चर की गई छवि'}
+                                        className="w-full h-full object-cover"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between text-sm mt-4">
-                                <div className="flex items-center space-x-4">
-                                    <span className="flex items-center text-gray-600">
-                                        <MapPin className="w-4 h-4 mr-1" />
-                                        {alert.camera.location}
-                                    </span>
-                                    <div className="flex flex-col">
-                                        <span className="flex items-center text-gray-600">
-                                            <Clock className="w-4 h-4 mr-1" />
-                                            Detected: {new Date(alert.capturedDateTime).toLocaleString()}
-                                        </span>
-                                        <span className="text-xs text-gray-500 mt-1">
-                                            Entry Added: {new Date(alert.createdAt).toLocaleString()}
-                                        </span>
+                            <div className="p-4 border-t">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1 text-sm">
+                                        <div className="flex items-center text-gray-600 dark:text-gray-400">
+                                            <MapPin className="w-3 h-3 mr-1 dark:text-gray-400" />
+                                            {alert.capturedLocation}
+                                        </div>
+                                        <div className="flex items-center text-gray-600 dark:text-gray-400">
+                                            <Clock className="w-3 h-3 mr-1 dark:text-gray-400" />
+                                            {new Date(alert.capturedDateTime).toLocaleTimeString()}
+                                        </div>
                                     </div>
-                                    <span className="flex items-center text-amber-600 font-medium">
-                                        {parseFloat(alert.confidenceScore).toFixed(1)}% Match
-                                    </span>
-                                    <div className="flex items-center space-x-4">
-                                        {alert.person.type === 'suspect' && alert.person.suspect?.riskLevel && (
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                alert.person.suspect.riskLevel === 'high' 
-                                                    ? 'bg-red-100 text-red-800'
-                                                    : alert.person.suspect.riskLevel === 'medium'
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-green-100 text-green-800'
-                                            }`}>
-                                                {alert.person.suspect.riskLevel.toUpperCase()} RISK
-                                            </span>
-                                        )}
-                                        
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                            alert.person.type === 'suspect' 
-                                                ? alert.person.suspect?.foundStatus 
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
-                                                : alert.person.missingPerson?.foundStatus
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
-                                        }`}>
-                                            {alert.person.type === 'suspect'
-                                                ? alert.person.suspect?.foundStatus ? 'CAUGHT' : 'AT LARGE'
-                                                : alert.person.missingPerson?.foundStatus ? 'FOUND' : 'MISSING'
-                                            }
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    {(alert.person.type === 'suspect' && alert.person.suspect?.foundStatus === false) || 
-                                     (alert.person.type === 'missing-person' && alert.person.missingPerson?.foundStatus === false) ? (
-                                        <button
-                                            onClick={() => handleResolve(alert.person.id, alert.person.type)}
-                                            className="btn btn-secondary text-sm flex items-center"
-                                        >
-                                            <Check className="w-4 h-4 mr-2" />
-                                            {alert.person.type === 'suspect' ? 'Mark as Caught' : 'Mark as Found'}
-                                        </button>
-                                    ) : null}
                                     <button
-                                        onClick={() => navigate(`/person/${alert.person.id}`)}
-                                        className="btn btn-primary text-sm flex items-center"
+                                        onClick={() => navigate(`/alerts/${alert.id}`)}
+                                        className="btn btn-primary text-xs py-1 px-2 flex items-center"
                                     >
-                                        View Full Profile
-                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                        {currentLanguage === 'en' ? 'View Details' : 'विवरण देखें'}
+                                        <ArrowRight className="w-3 h-3 ml-1" />
                                     </button>
                                 </div>
                             </div>
@@ -375,19 +301,14 @@ export default function AlertsPage() {
                     ))}
 
                     {alerts.length === 0 && (
-                        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-                            <p className="text-gray-500">No recent detections found.</p>
+                        <div className="col-span-2 text-center py-8 text-gray-500 dark:text-gray-400">
+                            {loading ? 
+                                (currentLanguage === 'en' ? 'Loading alerts...' : 'अलर्ट लोड हो रहे हैं...') :
+                                (currentLanguage === 'en' ? 'No alerts found' : 'कोई अलर्ट नहीं')}
                         </div>
                     )}
                 </div>
             </div>
-
-            {selectedImage && (
-                <ImageEnhancer
-                    imageUrl={selectedImage}
-                    onClose={() => setSelectedImage(null)}
-                />
-            )}
         </div>
     );
 }

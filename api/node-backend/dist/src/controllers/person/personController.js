@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = exports.resolvePerson = void 0;
+exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = exports.getPersonStats = exports.resolvePerson = void 0;
 const prisma_1 = require("../../lib/prisma");
 const node_path_1 = __importDefault(require("node:path"));
 const http_errors_1 = __importDefault(require("http-errors"));
@@ -406,3 +406,19 @@ const resolvePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, func
     }
 });
 exports.resolvePerson = resolvePerson;
+const getPersonStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const total = yield prisma_1.prisma.person.count();
+        res.status(200).json({
+            message: "Person stats retrieved successfully",
+            data: {
+                total
+            }
+        });
+    }
+    catch (error) {
+        console.error('Error getting person stats:', error);
+        next((0, http_errors_1.default)(500, "Error getting person stats: " + error));
+    }
+});
+exports.getPersonStats = getPersonStats;

@@ -1,0 +1,319 @@
+{
+  "nav": {
+    "frs": "चेहरा पहचान प्रणाली",
+    "searchPlaceholder": "संदिग्धों, मामलों या मैचों की खोज करें...",
+    "newReport": "नई रिपोर्ट",
+    "dashboard": "डैशबोर्ड",
+    "monitoring": "लाइव निगरानी",
+    "suspects": "संदिग्ध",
+    "search": "खोज और लुकअप",
+    "alerts": "अलर्ट",
+    "reports": "रिपोर्ट",
+    "mapview": "मैप व्यू",
+    "users": "उपयोगकर्ता प्रबंधन",
+    "settings": "सेटिंग्स",
+    "requests": "अनुरोध"
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "success": "सफल",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "view": "देखें",
+    "back": "वापस",
+    "next": "अगला",
+    "submit": "जमा करें"
+  },
+  "alerts": {
+    "title": "हाल की पहचान",
+    "noAlerts": "कोई अलर्ट नहीं",
+    "confidence": "विश्वास स्तर",
+    "location": "स्थान",
+    "time": "समय",
+    "viewDetails": "विवरण देखें",
+    "markAsResolved": "हल किया गया चिह्नित करें",
+    "viewProfile": "प्रोफ़ाइल देखें",
+    "detectedAt": "पहचाना गया",
+    "entryAdded": "प्रविष्टि जोड़ी गई",
+    "pageTitle": "अलर्ट और पहचान",
+    "filters": {
+      "title": "फ़िल्टर",
+      "dateRange": "तिथि सीमा",
+      "startDate": "प्रारंभ तिथि",
+      "endDate": "समाप्ति तिथि",
+      "type": "प्रकार",
+      "status": "स्थिति",
+      "location": "स्थान",
+      "apply": "लागू करें",
+      "reset": "रीसेट करें",
+      "all": "सभी",
+      "suspects": "संदिग्ध",
+      "missingPersons": "लापता व्यक्ति",
+      "active": "सक्रिय",
+      "resolved": "हल किया गया",
+      "pending": "लंबित"
+    },
+    "alerts": {
+      "noAlerts": "कोई अलर्ट नहीं",
+      "loading": "अलर्ट लोड हो रहे हैं...",
+      "error": "अलर्ट लोड करने में त्रुटि",
+      "recentDetections": "हाल की पहचान",
+      "confidence": "विश्वास स्तर",
+      "location": "स्थान",
+      "time": "समय",
+      "viewDetails": "विवरण देखें",
+      "markAsResolved": "हल किया गया चिह्नित करें",
+      "viewProfile": "प्रोफ़ाइल देखें",
+      "detectedAt": "पहचाना गया",
+      "entryAdded": "प्रविष्टि जोड़ी गई",
+      "databaseImage": "डेटाबेस छवि",
+      "capturedImage": "कैप्चर की गई छवि",
+      "enhanceImage": "छवि बढ़ाएं",
+      "severity": {
+        "critical": "गंभीर",
+        "high": "उच्च",
+        "medium": "मध्यम",
+        "low": "कम"
+      }
+    }
+  },
+  "suspects": {
+    "title": "संदिग्ध व्यक्ति",
+    "search": {
+      "placeholder": "नाम, आईडी या स्थान से खोजें...",
+      "filterButton": "फ़िल्टर",
+      "searchButton": "डेटाबेस खोजें"
+    },
+    "addNew": {
+      "suspect": "नया संदिग्ध जोड़ें",
+      "missingPerson": "नया लापता व्यक्ति जोड़ें"
+    },
+    "tabs": {
+      "suspects": "संदिग्ध",
+      "missingPersons": "लापता व्यक्ति"
+    },
+    "pageHeadings": {
+      "criminalSuspects": "आपराधिक संदिग्ध",
+      "missingPersons": "लापता व्यक्ति"
+    }
+  },
+  "search": {
+    "title": "खोज और लुकअप",
+    "placeholder": "नाम, आईडी या स्थान से खोजें...",
+    "filters": {
+      "title": "फ़िल्टर",
+      "type": "प्रकार",
+      "status": "स्थिति",
+      "date": "तिथि सीमा",
+      "location": "स्थान",
+      "apply": "फ़िल्टर लागू करें",
+      "reset": "रीसेट करें"
+    },
+    "results": {
+      "noResults": "कोई परिणाम नहीं मिला",
+      "loading": "खोज रहा है...",
+      "error": "परिणाम प्राप्त करने में त्रुटि",
+      "viewDetails": "विवरण देखें",
+      "lastSeen": "आखिरी बार देखा गया",
+      "location": "स्थान"
+    },
+    "types": {
+      "all": "सभी",
+      "suspects": "संदिग्ध",
+      "missingPersons": "लापता व्यक्ति"
+    },
+    "status": {
+      "all": "सभी",
+      "active": "सक्रिय",
+      "resolved": "हल किया गया",
+      "pending": "लंबित"
+    }
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "profile": {
+      "title": "प्रोफ़ाइल सेटिंग्स",
+      "updateProfile": "प्रोफ़ाइल अपडेट करें",
+      "firstName": "पहला नाम",
+      "lastName": "अंतिम नाम",
+      "email": "ईमेल",
+      "phone": "फ़ोन",
+      "designation": "पद",
+      "username": "उपयोगकर्ता नाम",
+      "profileImage": "प्रोफ़ाइल छवि",
+      "chooseImage": "छवि चुनें",
+      "newImageSelected": "नई छवि चुनी गई",
+      "saveChanges": "परिवर्तन सहेजें",
+      "cancel": "रद्द करें"
+    },
+    "security": {
+      "title": "सुरक्षा",
+      "changePassword": "पासवर्ड बदलें",
+      "notificationSettings": "सूचना सेटिंग्स"
+    },
+    "preferences": {
+      "title": "प्राथमिकताएं",
+      "darkMode": "डार्क मोड",
+      "language": "भाषा",
+      "helpSupport": "सहायता और समर्थन"
+    },
+    "logout": {
+      "button": "लॉग आउट",
+      "confirmMessage": "क्या आप लॉग आउट करना चाहते हैं?"
+    },
+    "messages": {
+      "updateSuccess": "प्रोफ़ाइल सफलतापूर्वक अपडेट की गई",
+      "updateError": "प्रोफ़ाइल अपडेट करने में त्रुटि"
+    }
+  },
+  "monitoring": {
+    "title": "लाइव निगरानी",
+    "cameras": "कैमरे",
+    "addCamera": "कैमरा जोड़ें",
+    "status": {
+      "active": "सक्रिय",
+      "inactive": "निष्क्रिय",
+      "offline": "ऑफ़लाइन"
+    },
+    "lastMotion": "अंतिम गतिविधि",
+    "noDetections": "कोई पहचान नहीं"
+  },
+  "reports": {
+    "title": "रिपोर्ट्स",
+    "summary": {
+      "title": "रिपोर्ट सारांश",
+      "description": "पिछले 30 दिनों का विश्लेषण",
+      "totalDetections": "कुल पहचान",
+      "successfulMatches": "सफल मिलान",
+      "averageConfidence": "औसत विश्वास स्तर"
+    },
+    "filters": {
+      "title": "फ़िल्टर",
+      "dateRange": "तिथि सीमा",
+      "startDate": "प्रारंभ तिथि",
+      "endDate": "समाप्ति तिथि",
+      "type": "प्रकार",
+      "location": "स्थान",
+      "apply": "लागू करें",
+      "reset": "रीसेट करें"
+    },
+    "actions": {
+      "download": "डाउनलोड करें",
+      "generate": "रिपोर्ट बनाएं",
+      "share": "साझा करें",
+      "print": "प्रिंट करें"
+    },
+    "table": {
+      "date": "तिथि",
+      "time": "समय",
+      "name": "नाम",
+      "location": "स्थान",
+      "type": "प्रकार",
+      "confidence": "विश्वास स्तर",
+      "status": "स्थिति",
+      "actions": "कार्रवाई",
+      "noData": "कोई डेटा उपलब्ध नहीं है",
+      "loading": "डेटा लोड हो रहा है..."
+    },
+    "types": {
+      "all": "सभी",
+      "suspects": "संदिग्ध",
+      "missingPersons": "लापता व्यक्ति"
+    },
+    "status": {
+      "all": "सभी",
+      "active": "सक्रिय",
+      "resolved": "हल किया गया",
+      "pending": "लंबित"
+    }
+  },
+  "person": {
+    "details": {
+      "title": "व्यक्ति विवरण",
+      "basicInfo": "मूल जानकारी",
+      "caseInfo": "मामले की जानकारी",
+      "recentDetections": "हाल की पहचान"
+    },
+    "basicInfo": {
+      "title": "मूल जानकारी",
+      "name": "नाम",
+      "age": "उम्र",
+      "dob": "जन्म तिथि",
+      "gender": "लिंग",
+      "nationality": "राष्ट्रीयता",
+      "address": "पता",
+      "phone": "फ़ोन",
+      "email": "ईमेल",
+      "years": "वर्ष"
+    },
+    "caseInfo": {
+      "title": "मामले की जानकारी",
+      "status": "स्थिति",
+      "riskLevel": "जोखिम स्तर",
+      "lastSeen": "आखिरी बार देखा गया",
+      "lastLocation": "आखिरी स्थान",
+      "reportedDate": "रिपोर्ट की तिथि",
+      "reportedBy": "रिपोर्ट करने वाला"
+    },
+    "detections": {
+      "title": "हाल की पहचान",
+      "noDetections": "कोई हाल की पहचान नहीं",
+      "location": "स्थान",
+      "time": "समय",
+      "confidence": "विश्वास स्तर"
+    },
+    "actions": {
+      "share": "साझा करें",
+      "edit": "संपादित करें",
+      "delete": "हटाएं",
+      "viewOnMap": "मैप पर देखें",
+      "confirmDelete": "क्या आप वाकई इस व्यक्ति को हटाना चाहते हैं?"
+    },
+    "status": {
+      "active": "सक्रिय",
+      "inactive": "निष्क्रिय",
+      "resolved": "हल किया गया",
+      "pending": "लंबित",
+      "found": "मिल गया",
+      "missing": "लापता"
+    },
+    "riskLevel": {
+      "high": "उच्च",
+      "medium": "मध्यम",
+      "low": "कम"
+    }
+  },
+  "dashboard": {
+    "stats": {
+      "totalDetections": "कुल पहचान",
+      "successfulMatches": "सफल मिलान",
+      "databaseEntries": "डेटाबेस प्रविष्टियां",
+      "activeCameras": "सक्रिय कैमरे",
+      "change": {
+        "increase": "+{{value}}%",
+        "decrease": "-{{value}}%"
+      }
+    },
+    "liveFeed": {
+      "title": "लाइव निगरानी फ़ीड",
+      "singleView": "एकल दृश्य",
+      "gridView": "ग्रिड दृश्य",
+      "live": "लाइव",
+      "offline": "ऑफ़लाइन",
+      "noFeed": "कोई फ़ीड उपलब्ध नहीं"
+    },
+    "recentDetections": {
+      "title": "हाल की पहचान",
+      "noDetections": "कोई पहचान नहीं मिली",
+      "database": "डेटाबेस छवि",
+      "captured": "कैप्चर की गई छवि",
+      "match": "मैच",
+      "pending": "लंबित",
+      "verified": "सत्यापित",
+      "view": "देखें"
+    }
+  }
+} 

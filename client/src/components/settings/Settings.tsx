@@ -5,6 +5,7 @@ import { useTheme } from '../../context/themeContext';
 import axios from 'axios';
 import config from '../../config/config';
 import { toast } from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function Settings() {
     const { user, logout } = useAuth();
@@ -19,6 +20,7 @@ export default function Settings() {
         designation: user?.designation || '',
         username: user?.username || ''
     });
+    const { currentLanguage } = useLanguage();
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -66,7 +68,9 @@ export default function Settings() {
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">First Name</label>
+                    <label className="block text-sm font-medium mb-1">
+                        {currentLanguage === 'en' ? 'First Name' : 'पहला नाम'}
+                    </label>
                     <input
                         type="text"
                         name="firstName"
@@ -77,7 +81,9 @@ export default function Settings() {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">Last Name</label>
+                    <label className="block text-sm font-medium mb-1">
+                        {currentLanguage === 'en' ? 'Last Name' : 'अंतिम नाम'}
+                    </label>
                     <input
                         type="text"
                         name="lastName"
@@ -138,11 +144,13 @@ export default function Settings() {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Profile Image</label>
+                <label className="block text-sm font-medium mb-1">
+                    {currentLanguage === 'en' ? 'Profile Image' : 'प्रोफ़ाइल छवि'}
+                </label>
                 <div className="flex items-center space-x-4">
                     <label className="btn btn-secondary cursor-pointer">
                         <Upload className="w-4 h-4 mr-2" />
-                        Choose Image
+                        {currentLanguage === 'en' ? 'Choose Image' : 'छवि चुनें'}
                         <input
                             type="file"
                             accept="image/*"
@@ -150,39 +158,45 @@ export default function Settings() {
                             onChange={handleImageChange}
                         />
                     </label>
-                    {newImage && <span className="text-sm text-gray-600">New image selected</span>}
+                    {newImage && (
+                        <span className="text-sm text-gray-600">
+                            {currentLanguage === 'en' ? 'New image selected' : 'नई छवि चुनी गई'}
+                        </span>
+                    )}
                 </div>
             </div>
 
             <div className="flex space-x-4">
                 <button type="submit" className="btn btn-primary">
-                    Save Changes
+                    {currentLanguage === 'en' ? 'Save Changes' : 'परिवर्तन सहेजें'}
                 </button>
                 <button 
                     type="button" 
                     onClick={() => setIsEditing(false)}
                     className="btn btn-secondary"
                 >
-                    Cancel
+                    {currentLanguage === 'en' ? 'Cancel' : 'रद्द करें'}
                 </button>
             </div>
         </form>
     );
 
     const handleLogout = () => {
-        if (window.confirm('Are you sure you want to logout?')) {
+        if (window.confirm(currentLanguage === 'en' ? 'Are you sure you want to logout?' : 'क्या आप लॉग आउट करना चाहते हैं?')) {
             logout();
         }
     };
 
     return (
         <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold mb-8">Settings</h1>
+            <h1 className="text-2xl font-bold mb-8">
+                {currentLanguage === 'en' ? 'Settings' : 'सेटिंग्स'}
+            </h1>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center">
                     <User className="w-5 h-5 mr-2" />
-                    Profile Settings
+                    {currentLanguage === 'en' ? 'Profile Settings' : 'प्रोफ़ाइल सेटिंग्स'}
                 </h2>
                 <div className="flex items-center space-x-4 mb-4">
                     {user?.userImageUrl ? (
@@ -207,7 +221,7 @@ export default function Settings() {
                         className="btn btn-secondary text-sm"
                         onClick={() => setIsEditing(true)}
                     >
-                        Update Profile
+                        {currentLanguage === 'en' ? 'Update Profile' : 'प्रोफ़ाइल अपडेट करें'}
                     </button>
                 ) : renderUpdateForm()}
             </div>
@@ -216,26 +230,28 @@ export default function Settings() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                     <h2 className="text-lg font-semibold mb-4 flex items-center">
                         <Shield className="w-5 h-5 mr-2" />
-                        Security
+                        {currentLanguage === 'en' ? 'Security' : 'सुरक्षा'}
                     </h2>
                     <div className="space-y-4">
                         <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between">
                             <div className="flex items-center">
                                 <Lock className="w-5 h-5 mr-3 text-gray-400" />
-                                <span>Change Password</span>
+                                <span>{currentLanguage === 'en' ? 'Change Password' : 'पासवर्ड बदलें'}</span>
                             </div>
                         </button>
                         <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between">
                             <div className="flex items-center">
                                 <Bell className="w-5 h-5 mr-3 text-gray-400" />
-                                <span>Notification Settings</span>
+                                <span>{currentLanguage === 'en' ? 'Notification Settings' : 'सूचना सेटिंग्स'}</span>
                             </div>
                         </button>
                     </div>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <h2 className="text-lg font-semibold mb-4">Preferences</h2>
+                    <h2 className="text-lg font-semibold mb-4">
+                        {currentLanguage === 'en' ? 'Preferences' : 'प्राथमिकताएं'}
+                    </h2>
                     <div className="space-y-4">
                         <button 
                             onClick={toggleTheme}
@@ -243,7 +259,7 @@ export default function Settings() {
                         >
                             <div className="flex items-center">
                                 <Moon className="w-5 h-5 mr-3 text-gray-400" />
-                                <span>Dark Mode</span>
+                                <span>{currentLanguage === 'en' ? 'Dark Mode' : 'डार्क मोड'}</span>
                             </div>
                             <div className={`w-11 h-6 rounded-full transition-colors ${isDarkMode ? 'bg-amber-500' : 'bg-gray-200'} relative`}>
                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${isDarkMode ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -252,14 +268,16 @@ export default function Settings() {
                         <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between">
                             <div className="flex items-center">
                                 <Globe className="w-5 h-5 mr-3 text-gray-400" />
-                                <span>Language</span>
+                                <span>{currentLanguage === 'en' ? 'Language' : 'भाषा'}</span>
                             </div>
-                            <span className="text-sm text-gray-500">English</span>
+                            <span className="text-sm text-gray-500">
+                                {currentLanguage === 'en' ? 'English' : 'हिंदी'}
+                            </span>
                         </button>
                         <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between">
                             <div className="flex items-center">
                                 <HelpCircle className="w-5 h-5 mr-3 text-gray-400" />
-                                <span>Help & Support</span>
+                                <span>{currentLanguage === 'en' ? 'Help & Support' : 'सहायता और समर्थन'}</span>
                             </div>
                         </button>
                     </div>
@@ -272,7 +290,7 @@ export default function Settings() {
                     className="w-full md:w-auto btn bg-red-500 hover:bg-red-600 text-white flex items-center justify-center space-x-2 px-6"
                 >
                     <LogOut className="w-4 h-4" />
-                    <span>Logout</span>
+                    <span>{currentLanguage === 'en' ? 'Logout' : 'लॉग आउट'}</span>
                 </button>
             </div>
         </div>

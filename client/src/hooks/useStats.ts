@@ -2,22 +2,17 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import config from '../config/config';
 
-interface StatsResponse {
-    total: number;
-    recentAlerts?: number;
-}
-
 interface Stats {
-    totalRecognitions: number;
-    highPriorityAlerts: number;
+    totalDetections: number;
+    successfulMatches: number;
     databaseEntries: number;
     activeCameras: number;
 }
 
 const useStats = () => {
     const [stats, setStats] = useState<Stats>({
-        totalRecognitions: 0,
-        highPriorityAlerts: 0,
+        totalDetections: 0,
+        successfulMatches: 0,
         databaseEntries: 0,
         activeCameras: 6
     });
@@ -28,27 +23,35 @@ const useStats = () => {
         const fetchStats = async () => {
             try {
                 const [recognitionsRes, personsRes] = await Promise.all([
-                    axios.get<StatsResponse>(`${config.apiUrl}/api/stats/recognitions`),
-                    axios.get<StatsResponse>(`${config.apiUrl}/api/stats/persons`)
+                    axios.get(`${config.apiUrl}/api/recognitions/stats`),
+                    axios.get(`${config.apiUrl}/api/persons/stats`)
                 ]);
 
+                console.log('Recognition stats:', recognitionsRes.data);
+                console.log('Person stats:', personsRes.data);
+
                 setStats({
-                    totalRecognitions: recognitionsRes.data.total,
-                    highPriorityAlerts: recognitionsRes.data.recentAlerts || 0,
-                    databaseEntries: personsRes.data.total,
+                    totalDetections: recognitionsRes.data?.data?.totalDetections || 0,
+                    successfulMatches: recognitionsRes.data?.data?.successfulMatches || 0,
+                    databaseEntries: personsRes.data?.data?.total || 0,
                     activeCameras: 6
                 });
                 setError(null);
             } catch (err) {
-                setError('Failed to fetch stats');
                 console.error('Error fetching stats:', err);
+                setError('Failed to fetch stats');
+                setStats({
+                    totalDetections: 0,
+                    successfulMatches: 0,
+                    databaseEntries: 0,
+                    activeCameras: 6
+                });
             } finally {
                 setLoading(false);
             }
         };
 
         fetchStats();
-        
         const interval = setInterval(fetchStats, 60000);
         return () => clearInterval(interval);
     }, []);

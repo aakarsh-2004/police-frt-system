@@ -458,4 +458,20 @@ export const resolvePerson = async (req: Request, res: Response, next: NextFunct
     }
 };
 
-export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, searchPersons };
+export const getPersonStats = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const total = await prisma.person.count();
+        
+        res.status(200).json({
+            message: "Person stats retrieved successfully",
+            data: {
+                total
+            }
+        });
+    } catch (error) {
+        console.error('Error getting person stats:', error);
+        next(createHttpError(500, "Error getting person stats: " + error));
+    }
+};
+
+export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, searchPersons, getPersonStats };

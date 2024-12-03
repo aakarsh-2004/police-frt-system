@@ -13,6 +13,7 @@ const upload = (0, multer_1.default)({
     limits: { fileSize: 3e7 }
 });
 const personRouter = (0, express_1.Router)();
+personRouter.get('/stats', personController_1.getPersonStats);
 personRouter.get('/search', personController_1.searchPersons);
 personRouter.get('/', personController_1.getAllPersons);
 personRouter.post('/', auth_1.authMiddleware, upload.fields([
@@ -22,6 +23,5 @@ personRouter.get('/:id', personController_1.getPersonById);
 personRouter.put('/:id', upload.fields([
     { name: 'personImageUrl', maxCount: 1 }
 ]), personController_1.updatePerson);
-personRouter.put('/:id/resolve', personController_1.resolvePerson);
 personRouter.delete('/:id', personController_1.deletePerson);
 exports.default = personRouter;

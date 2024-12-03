@@ -1,42 +1,44 @@
 import { UserCheck, AlertTriangle, Database, Camera } from 'lucide-react';
 import useStats from '../../hooks/useStats';
+import { useTranslation } from 'react-i18next';
 
 export default function Stats() {
     const { stats, loading, error } = useStats();
+    const { t } = useTranslation();
 
     const statsData = [
         {
-            label: 'Total Recognitions',
-            value: loading ? '...' : stats.totalRecognitions.toLocaleString(),
-            change: '+12.5%',
+            label: t('dashboard.stats.totalDetections'),
+            value: loading ? '...' : stats.totalDetections.toLocaleString(),
+            change: t('dashboard.stats.change.increase', { value: 12.5 }),
             icon: UserCheck,
             color: 'blue'
         },
         {
-            label: 'High Priority Alerts',
-            value: loading ? '...' : stats.highPriorityAlerts.toLocaleString(),
-            change: '-5%',
+            label: t('dashboard.stats.successfulMatches'),
+            value: loading ? '...' : stats.successfulMatches.toLocaleString(),
+            change: t('dashboard.stats.change.decrease', { value: 5 }),
             icon: AlertTriangle,
             color: 'red'
         },
         {
-            label: 'Database Entries',
+            label: t('dashboard.stats.databaseEntries'),
             value: loading ? '...' : stats.databaseEntries.toLocaleString(),
-            change: '+235',
+            change: t('dashboard.stats.change.increase', { value: 235 }),
             icon: Database,
             color: 'green'
         },
         {
-            label: 'Active Cameras',
+            label: t('dashboard.stats.activeCameras'),
             value: loading ? '...' : stats.activeCameras.toLocaleString(),
-            change: '+3',
+            change: t('dashboard.stats.change.increase', { value: 3 }),
             icon: Camera,
             color: 'amber'
         }
     ];
 
     if (error) {
-        return <div className="text-red-500">Error loading stats</div>;
+        return <div className="text-red-500">{t('common.error')}</div>;
     }
 
     return (

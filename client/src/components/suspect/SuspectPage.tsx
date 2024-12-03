@@ -10,6 +10,8 @@ import CreatePersonModal from './CreatePersonModal';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../context/LanguageContext';
 type ViewType = 'suspects' | 'missing';
 
 interface Person {
@@ -46,6 +48,8 @@ export default function SuspectsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const { t } = useTranslation();
+    const { currentLanguage } = useLanguage();
 
     const fetchPersons = useCallback(async () => {
         try {
@@ -111,6 +115,11 @@ export default function SuspectsPage() {
         navigate(`/person/${personId}`);
     };
 
+    const getTranslatedText = (key: string) => {
+        if (!t) return '';
+        return currentLanguage === 'en' ? t(key) : t(key);
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-200px)]">
@@ -120,45 +129,37 @@ export default function SuspectsPage() {
     }
 
     return (
-        <div className="p-6">
+        <div className="p-6 dark:bg-gray-900">
             <div className="max-w-[2000px] mx-auto">
-                <div className="flex justify-between items-center mb-6">
-                    <form onSubmit={handleSearch} className="flex items-center space-x-4 flex-1">
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-4">
+                        <h1 className="text-2xl font-bold dark:text-white">
+                            {currentView === 'suspects' ? 'Suspects' : 'Missing Persons'}
+                        </h1>
+                        <div className="relative">
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search by name, ID, or location..."
-                                className="w-full pl-12 pr-4 py-3 bg-white border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Search..."
+                                className="px-4 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
-                        <button className="btn btn-secondary flex items-center px-4 py-3">
-                            <Filter className="w-4 h-4 mr-2" />
-                            Filters
+                    </div>
+
+                    {user?.role === 'admin' && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="btn btn-primary flex items-center"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add New {currentView === 'suspects' ? 'Suspect' : 'Missing Person'}
                         </button>
-                        <button className="btn btn-primary px-4 py-3">
-                            Search Database
-                        </button>
-                    </form>
-                    <button 
-                        onClick={() => setShowCreateModal(true)}
-                        className="btn btn-primary ml-4 flex items-center"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add New {currentView === 'suspects' ? 'Suspect' : 'Missing Person'}
-                    </button>
+                    )}
                 </div>
 
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-                        {error}
-                    </div>
-                )}
-
                 <div className="mb-6">
-                    <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1 shadow-sm">
+                    <div className="flex space-x-4">
                         <button
                             onClick={() => setCurrentView('suspects')}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
@@ -167,7 +168,7 @@ export default function SuspectsPage() {
                                     : 'text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white'
                                 }`}
                         >
-                            Suspects
+                            {getTranslatedText('suspects.tabs.suspects')}
                         </button>
                         <button
                             onClick={() => setCurrentView('missing')}
@@ -177,7 +178,7 @@ export default function SuspectsPage() {
                                     : 'text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white'
                                 }`}
                         >
-                            Missing Persons
+                            {getTranslatedText('suspects.tabs.missingPersons')}
                         </button>
                     </div>
                 </div>
@@ -196,12 +197,14 @@ export default function SuspectsPage() {
                 ) : (
                     <>
                         <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
-                            {currentView === 'suspects' ? 'Criminal Suspects' : 'Missing Persons'}
+                            {t(`suspects.pageHeadings.${currentView === 'suspects' ? 'criminalSuspects' : 'missingPersons'}`)}
                         </h2>
-                        <SuspectGrid
-                            persons={persons}
-                            onViewDetails={handleViewDetails}
-                        />
+                        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-6">
+                            <SuspectGrid
+                                persons={persons}
+                                onViewDetails={handleViewDetails}
+                            />
+                        </div>
                     </>
                 )}
             </div>

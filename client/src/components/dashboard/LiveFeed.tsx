@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Camera, ChevronLeft, ChevronRight, User, MapPin, Clock, Shield } from 'lucide-react';
-import config from '../../config/config';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface VideoFeed {
     id: string;
@@ -75,21 +76,28 @@ const videoFeeds: VideoFeed[] = [
 ];
 
 export default function LiveFeed() {
-    const [selectedFeed, setSelectedFeed] = useState<VideoFeed>(videoFeeds[0]);
+    const [selectedFeed, setSelectedFeed] = useState(videoFeeds[0]);
     const [showGrid, setShowGrid] = useState(true);
+    const { t } = useTranslation();
+    const { currentLanguage } = useLanguage();
 
     return (
         <div className="card">
-            <div className="p-4 border-b flex items-center justify-between">
+            <div className="p-4 border-b flex items-center justify-between dark:border-gray-700">
                 <div className="flex items-center space-x-2">
                     <Camera className="w-5 h-5 text-blue-900" />
-                    <h2 className="text-lg font-semibold">Live Surveillance Feed</h2>
+                    <h2 className="text-lg font-semibold">
+                        {currentLanguage === 'en' ? 'Live Surveillance Feed' : t('dashboard.liveFeed.title')}
+                    </h2>
                 </div>
                 <button
                     onClick={() => setShowGrid(!showGrid)}
                     className="btn btn-secondary text-sm"
                 >
-                    {showGrid ? 'Single View' : 'Grid View'}
+                    {showGrid ? 
+                        (currentLanguage === 'en' ? 'Single View' : t('dashboard.liveFeed.singleView')) : 
+                        (currentLanguage === 'en' ? 'Grid View' : t('dashboard.liveFeed.gridView'))
+                    }
                 </button>
             </div>
 
@@ -119,7 +127,7 @@ export default function LiveFeed() {
                                             <p className="text-xs opacity-75">{feed.location}</p>
                                         </div>
                                         <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full">
-                                            Live
+                                            {t('dashboard.liveFeed.live')}
                                         </span>
                                     </div>
                                 </div>
@@ -156,7 +164,7 @@ export default function LiveFeed() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
-                                        Live
+                                        {t('dashboard.liveFeed.live')}
                                     </span>
                                     <span className="text-white/80 text-sm flex items-center">
                                         <Clock className="w-4 h-4 mr-1" />

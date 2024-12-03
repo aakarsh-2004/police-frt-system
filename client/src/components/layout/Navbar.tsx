@@ -4,40 +4,155 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/themeContext';
 import { useAuth } from '../../context/AuthContext';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import config from '../../config/config';
+
+interface SearchResult {
+    id: string;
+    firstName: string;
+    lastName: string;
+    personImageUrl: string;
+    type: string;
+    address: string;
+}
 
 export default function Navbar() {
     const { isDarkMode, toggleTheme } = useTheme();
     const { user, logout } = useAuth();
     const [showDropdown, setShowDropdown] = useState(false);
+    const { currentLanguage, changeLanguage } = useLanguage();
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [showResults, setShowResults] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const searchRef = useRef<HTMLDivElement>(null);
+
+    // Close search results when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setShowResults(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Debounced search function
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchQuery) {
+                performSearch();
+            } else {
+                setSearchResults([]);
+                setShowResults(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    const performSearch = async () => {
+        if (!searchQuery.trim()) return;
+
+        setIsSearching(true);
+        try {
+            const response = await axios.get<{ data: SearchResult[] }>(
+                `${config.apiUrl}/api/persons/search?q=${encodeURIComponent(searchQuery)}`
+            );
+            setSearchResults(response.data.data);
+            setShowResults(true);
+        } catch (error) {
+            console.error('Search error:', error);
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleResultClick = (id: string) => {
+        navigate(`/person/${id}`);
+        setSearchQuery('');
+        setShowResults(false);
+    };
+
+    const toggleLanguage = () => {
+        changeLanguage(currentLanguage === 'en' ? 'hi' : 'en');
+    };
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 dark:from-gray-900 dark:to-gray-800 text-white shadow-lg">
             <div className="max-w-[2000px] mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center space-x-4">
-                        {/* <img
-                            src="https://images.unsplash.com/photo-1592845697809-7b7b8c2e0b1f"
-                            alt="MP Police Logo"
-                            className="w-10 h-10 object-contain"
-                        /> */}
                         <Shield className="w-8 h-8 text-amber-400" />
                         <div>
                             <h1 className="text-lg font-bold">MP Police</h1>
-                            <p className="text-xs text-amber-400">Face Recognition System</p>
+                            <p className="text-xs text-amber-400">{t('nav.frs')}</p>
                         </div>
                     </div>
 
-                    <div className="flex-1 max-w-2xl mx-8">
+                    <div className="flex-1 max-w-2xl mx-8" ref={searchRef}>
                         <div className="relative">
                             <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                             <input
                                 type="text"
-                                placeholder="Search suspects, cases, or matches..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder={t('nav.searchPlaceholder')}
                                 className="w-full pl-10 pr-4 py-2 bg-blue-800/50 dark:bg-gray-800/50 border border-blue-700 dark:border-gray-700 rounded-lg 
-                                focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent
-                                placeholder-gray-400 text-sm"
+                                    text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
+
+                            {/* Search Results Dropdown */}
+                            {showResults && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-96 overflow-y-auto">
+                                    {isSearching ? (
+                                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                            Searching...
+                                        </div>
+                                    ) : searchResults.length > 0 ? (
+                                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                            {searchResults.map((result) => (
+                                                <div
+                                                    key={result.id}
+                                                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                                                    onClick={() => handleResultClick(result.id)}
+                                                >
+                                                    <div className="flex items-center space-x-3">
+                                                        <img
+                                                            src={result.personImageUrl}
+                                                            alt={`${result.firstName} ${result.lastName}`}
+                                                            className="w-10 h-10 rounded-full object-cover"
+                                                        />
+                                                        <div>
+                                                            <p className="font-medium text-gray-900 dark:text-white">
+                                                                {result.firstName} {result.lastName}
+                                                            </p>
+                                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                                {result.type.toUpperCase()} • {result.address}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                            No results found
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -51,7 +166,7 @@ export default function Navbar() {
                         <button className="flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 
                             rounded-lg text-sm font-medium transition-colors">
                             <Plus className="w-4 h-4 mr-2" />
-                            New Report
+                            {t('nav.newReport')}
                         </button>
 
                         <button className="hover:text-amber-400 transition-colors">
@@ -66,7 +181,11 @@ export default function Navbar() {
                             </button>
                         </div>
 
-                        <button className="hover:text-amber-400 transition-colors">
+                        <button 
+                            onClick={toggleLanguage}
+                            className="hover:text-amber-400 transition-colors"
+                            title={currentLanguage === 'en' ? 'हिंदी में बदलें' : 'Switch to English'}
+                        >
                             <Languages className="w-6 h-6" />
                         </button>
 

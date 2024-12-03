@@ -201,8 +201,8 @@ export default function LiveMonitoring() {
             <div className="max-w-[2000px] mx-auto">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
-                        <Camera className="w-6 h-6 text-blue-900" />
-                        <h1 className="text-2xl font-bold">Live Monitoring</h1>
+                        <Camera className="w-6 h-6 text-blue-900 dark:text-blue-500" />
+                        <h1 className="text-2xl font-bold dark:text-white">Live Monitoring</h1>
                     </div>
 
                     <button className="btn btn-primary flex items-center gap-1">
@@ -216,22 +216,22 @@ export default function LiveMonitoring() {
                         {cameras.map((camera) => (
                             <div 
                                 key={camera.id} 
-                                className="bg-white rounded-lg shadow-lg overflow-hidden"
+                                className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden"
                             >
-                                <div className="p-3 border-b">
+                                <div className="p-3 border-b dark:border-gray-700">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="font-medium">{camera.name}</h3>
+                                        <h3 className="font-medium dark:text-white">{camera.name}</h3>
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium
                                             ${camera.status === 'Active' 
-                                                ? 'bg-green-100 text-green-800' 
-                                                : 'bg-red-100 text-red-800'}`}>
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                                                : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'}`}>
                                             {camera.status}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-gray-500">Last motion: {camera.lastMotion}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Last motion: {camera.lastMotion}</p>
                                 </div>
                                 
-                                <div className="aspect-video relative">
+                                <div className="aspect-video relative bg-gray-900">
                                     <FaceApi 
                                         videoUrl={camera.streamUrl}
                                         targets={targets}
