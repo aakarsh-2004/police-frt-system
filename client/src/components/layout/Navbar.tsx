@@ -1,7 +1,7 @@
 import {
     Bell, ChevronDown, HelpCircle, Languages,
     Moon, Plus, Search, Shield, Sun, User,
-    GraduationCap
+    GraduationCap, User as UserIcon
 } from 'lucide-react';
 import { useTheme } from '../../context/themeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -107,11 +107,18 @@ export default function Navbar() {
         changeLanguage(currentLanguage === 'en' ? 'hi' : 'en');
     };
 
+    const handleNewPerson = () => {
+        navigate('/suspects/new');
+    };
+
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 dark:from-gray-900 dark:to-gray-800 text-white shadow-lg">
             <div className="max-w-[2000px] mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
-                    <div className="flex items-center space-x-4">
+                    <div 
+                        className="flex items-center space-x-4 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => navigate('/')}
+                    >
                         <Shield className="w-8 h-8 text-amber-400" />
                         <div>
                             <h1 className="text-lg font-bold">MP Police</h1>
@@ -192,13 +199,18 @@ export default function Navbar() {
                         >
                             {isDarkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
                         </button>
-                        <button className="flex items-center px-4 py-2 bg-amber-500 hover:bg-amber-600 
-                            rounded-lg text-sm font-medium transition-colors">
+                        <button
+                            onClick={handleNewPerson}
+                            className="btn btn-primary flex items-center"
+                        >
                             <Plus className="w-4 h-4 mr-2" />
-                            {t('nav.newReport')}
+                            New Person
                         </button>
 
-                        <button className="hover:text-amber-400 transition-colors">
+                        <button 
+                            onClick={() => navigate('/help')} 
+                            className="hover:text-amber-400 transition-colors"
+                        >
                             <HelpCircle className="w-6 h-6" />
                         </button>
 
@@ -223,21 +235,25 @@ export default function Navbar() {
                                 onClick={() => setShowDropdown(!showDropdown)}
                                 className="flex items-center space-x-3 hover:text-amber-400 transition-colors"
                             >
-                                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-amber-400 bg-amber-500">
-                                    <img 
-                                        src={user.userImageUrl}
-                                        alt={`${user.firstName} ${user.lastName}`}
-                                        className="w-full h-full object-cover"
-                                        style={{ objectPosition: 'center' }}
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.style.display = 'none';
-                                            target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                                            const icon = document.createElement('div');
-                                            icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
-                                            target.parentElement?.appendChild(icon);
-                                        }}
-                                    />
+                                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-amber-400 bg-amber-500 flex items-center justify-center">
+                                    {user?.userImageUrl ? (
+                                        <img 
+                                            src={user.userImageUrl}
+                                            alt={`${user.firstName} ${user.lastName}`}
+                                            className="w-full h-full object-cover"
+                                            style={{ objectPosition: 'center' }}
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                                                const icon = document.createElement('div');
+                                                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+                                                target.parentElement?.appendChild(icon);
+                                            }}
+                                        />
+                                    ) : (
+                                        <UserIcon className="w-5 h-5 text-white" />
+                                    )}
                                 </div>
                                 <div className="text-left">
                                     <p className="text-sm font-medium text-primary text-white">

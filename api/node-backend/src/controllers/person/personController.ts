@@ -56,289 +56,90 @@ const getPersonById = async (req: Request, res: Response, next: NextFunction) =>
 }
 
 const createPerson = async (req: Request, res: Response, next: NextFunction) => {
-    const files = req.files as { [key: string]: Express.Multer.File[] };
-    const { role } = req.user as { role: string };
-
     try {
-        if (role === 'admin') {
-            const {
-                firstName,
-                lastName,
-                age,
-                dateOfBirth,
-                gender,
-                email,
-                phone,
-                address,
-                type,
-                nationalId,
-                nationality,
-                // Files for missing or suspect
-                riskLevel,       
-                lastSeenDate,    
-                lastSeenLocation,
-                missingSince,    
-                status,          
-                reportBy         
-            } = req.body
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        const data = req.body;
+        
+        console.log('Received data:', data);
+        console.log('Received files:', files);
 
-            if (!firstName || !lastName || !age || !gender || !email || !phone || !address || !type || !nationality) {
-                res.status(400).json({
-                    message: 'Missing required fields'
-                });
-                return;
-            }
-
-            if (!req.files || !('personImageUrl' in req.files)) {
-                res.status(400).json({
-                    message: 'User image is required'
-                });
-                return;
-            }
-
-            const personImageMimeType = files.personImageUrl[0].mimetype.split('/').at(-1);
-            const fileName = files.personImageUrl[0].filename;
-            const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
-
-            const result = await prisma.$transaction(async (prisma) => {
-                const imageUrl = await cloudinary.uploader.upload(filePath, {
-                    filename_override: fileName,
-                    folder: 'person-images',
-                    format: personImageMimeType
-                })
-                const person = await prisma.person.create({
-                    data: {
-                        firstName,
-                        lastName,
-                        age: parseInt(age),
-                        dateOfBirth: new Date(dateOfBirth),
-                        gender,
-                        email,
-                        phone,
-                        address,
-                        personImageUrl: imageUrl.secure_url,
-                        type,
-                        nationalId,
-                        nationality
-                    }
-                });
-
-                if (type === 'suspect') {
-                    const fullName = `${firstName} ${lastName}`;
-                    const crimeRecord = await prisma.crimeRecord.findFirst({
-                        where: {
-                            personName: {
-                                equals: fullName
-                            }
-                        }
-                    });
-
-                    await prisma.suspect.create({
-                        data: {
-                            personId: person.id,
-                            riskLevel: riskLevel || 'low',
-                            foundStatus: false,
-                            criminalId: crimeRecord?.id || null
-                        }
-                    });
-                } else if (type === 'missing-person') {
-                    await prisma.missingPerson.create({
-                        data: {
-                            personId: person.id,
-                            lastSeenDate: new Date(lastSeenDate),
-                            lastSeenLocation,
-                            missingSince: new Date(missingSince),
-                            foundStatus: false,
-                            reportBy
-                        }
-                    });
-                }
-
-                return person
-            })
-
-            res.status(201).json({
-                message: `${type} created successfully`,
-                person: result
-            })
-        } else {
-            const requestData = {
-                requestedBy: (req.user as { id: string }).id,
-                status: 'pending',
-                personData: JSON.stringify({
-                    ...req.body,
-                    personImageUrl: null
-                })
-            };
-
-            if (files?.personImageUrl) {
-                const fileName = files.personImageUrl[0].filename;
-                const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
-                
-                const imageUrl = await cloudinary.uploader.upload(filePath, {
-                    filename_override: fileName,
-                    folder: 'temp-requests'
-                });
-
-                requestData.personData = JSON.stringify({
-                    ...JSON.parse(requestData.personData),
-                    personImageUrl: imageUrl.secure_url
-                });
-
-                fs.unlinkSync(filePath);
-            }
-
-            const request = await prisma.requests.create({
-                data: requestData,
-                include: {
-                    user: true
-                }
-            });
-
-            res.status(201).json({
-                message: "Request created successfully. Waiting for admin approval.",
-                data: request
-            });
+        // Validate required fields
+        if (!data.firstName || !data.lastName || !data.age || !data.dateOfBirth || !data.type) {
+            throw createHttpError(400, "Missing required fields");
         }
+
+        let imageUrl = null;
+        if (files?.personImageUrl) {
+            const result = await cloudinary.uploader.upload(files.personImageUrl[0].path, {
+                folder: 'person-images'
+            });
+            imageUrl = result.secure_url;
+            fs.unlinkSync(files.personImageUrl[0].path);
+        }
+
+        // Parse the nested objects if they were stringified
+        const suspectData = data.suspect ? JSON.parse(data.suspect) : null;
+        const missingPersonData = data.missingPerson ? JSON.parse(data.missingPerson) : null;
+
+        const person = await prisma.person.create({
+            data: {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                age: parseInt(data.age),
+                dateOfBirth: new Date(data.dateOfBirth),
+                address: data.address,
+                type: data.type,
+                status: data.status || 'active',
+                personImageUrl: imageUrl,
+                ...(data.type === 'suspect' && {
+                    suspect: {
+                        create: suspectData
+                    }
+                }),
+                ...(data.type === 'missing-person' && {
+                    missingPerson: {
+                        create: missingPersonData
+                    }
+                })
+            },
+            include: {
+                suspect: true,
+                missingPerson: true
+            }
+        });
+
+        res.status(201).json({
+            message: `${data.type} created successfully`,
+            person
+        });
     } catch (error) {
-        next(createHttpError(500, "Error while creating person/request " + error));
+        console.error('Create person error:', error);
+        next(createHttpError(500, "Error creating person: " + error));
     }
 };
 
 const updatePerson = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
-    const {
-        firstName,
-        lastName,
-        age,
-        dateOfBirth,
-        gender,
-        email,
-        phone,
-        address,
-        type,
-        nationalId,
-        nationality,
-        // Files for missing or suspect
-        riskLevel,
-        foundStatus,       
-        lastSeenDate,    
-        lastSeenLocation,
-        missingSince,    
-        status,          
-        reportBy         
-    } = req.body
-
-    const files = req.files as { [key: string]: Express.Multer.File[] };
-    const personImageMimeType = files.personImageUrl[0].mimetype.split('/').at(-1);
-    const fileName = files.personImageUrl[0].filename;
-    const filePath = path.resolve(__dirname, `../../../public/uploads/${fileName}`);
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const updates = req.body;
 
     try {
-        const result = await prisma.$transaction(async (prisma) => {
-            const person = await prisma.person.findUnique({
-                where: {
-                    id: id
-                }
-            });
-
-            if (!person) {
-                next(createHttpError(404, "Person not found"));
-                return;
+        const person = await prisma.person.findUnique({
+            where: { id },
+            include: {
+                suspect: true,
+                missingPerson: true
             }
-            let imageUrl;
-            if(files.personImageUrl && person && person.personImageUrl) {
-                try {
-                    const personSplit = person.personImageUrl.split('/');
-                    const lastTwo = personSplit.slice(-2);
-                    if (lastTwo.length === 2) {
-                        const personImageSplit = `${lastTwo[0]}/${lastTwo[1].split('.')[0]}`;
-                        await cloudinary.uploader.destroy(personImageSplit);
-                    }
-                } catch (error) {
-                    return res.status(500).json({
-                        message: 'Error deleting target picture ' + error
-                    })
-                }
-                imageUrl = await cloudinary.uploader.upload(filePath, {
-                    filename_override: fileName,
-                    folder: 'person-images',
-                    format: personImageMimeType
-                })
-            }
-
-            const updatedPerson = await prisma.person.update({
-                where: { id },
-                data: { 
-                    firstName,
-                    lastName,
-                    age: parseInt(age),
-                    dateOfBirth: new Date(dateOfBirth),
-                    gender,
-                    email,
-                    phone,
-                    address,
-                    personImageUrl: imageUrl?.secure_url || person.personImageUrl,
-                    nationality,
-                    nationalId
-                }
-            })
-
-            if (type === 'suspect') {
-                await prisma.suspect.update({
-                    where: { personId: updatedPerson.id },
-                    data: {
-                        riskLevel: riskLevel || 'low',
-                        foundStatus: (parseInt(foundStatus) === 1 ? true : false) || false
-                    }
-                });
-            } else if (type === 'missing-person') {
-                await prisma.missingPerson.update({
-                    where: { personId: updatedPerson.id },
-                    data: {
-                        lastSeenDate: new Date(lastSeenDate),
-                        lastSeenLocation,
-                        missingSince: new Date(missingSince),
-                        foundStatus: (parseInt(status) === 1 ? true : false) || false,
-                        reportBy
-                    }
-                });
-            }
-
-            return updatedPerson;
-        })
-
-        res.status(200).json({
-            message: `${type} updated successfully`,
-            person: result
         });
 
-    } catch (error) {
-        next(createHttpError(500, "Error while updating person " + error));
-    } finally {
-        try {
-            fs.unlinkSync(filePath);
-            console.log('File deleted successfully');
-        } catch (error) {
-            next(createHttpError(500, "Error while deleting file " + error));
+        if (!person) {
+            throw createHttpError(404, "Person not found");
         }
-    }
-}
 
-const deletePerson = async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-
-    try {
-        const result = await prisma.$transaction(async (prisma) => {
-            const person = await prisma.person.findUnique({
-                where: { id }
-            });
-
-            if (!person) {
-                next(createHttpError(404, "Person not found"));
-                return;
-            }
-
+        let imageUrl = person.personImageUrl;
+        if (files && files.personImageUrl && files.personImageUrl[0]) {
+            console.log('Updating person image');
+            
             if (person.personImageUrl) {
                 try {
                     const personSplit = person.personImageUrl.split('/');
@@ -348,37 +149,120 @@ const deletePerson = async (req: Request, res: Response, next: NextFunction) => 
                         await cloudinary.uploader.destroy(personImageSplit);
                     }
                 } catch (error) {
-                    return res.status(500).json({
-                        message: 'Error deleting image ' + error
-                    });
+                    console.error('Error deleting old image:', error);
                 }
             }
 
-            if (person.type === 'suspect') {
-                await prisma.suspect.delete({
+            // Upload new image
+            const personImageMimeType = files.personImageUrl[0].mimetype.split('/').at(-1);
+            const result = await cloudinary.uploader.upload(files.personImageUrl[0].path, {
+                folder: 'persons',
+                format: personImageMimeType
+            });
+            imageUrl = result.secure_url;
+
+            // Clean up uploaded file
+            fs.unlinkSync(files.personImageUrl[0].path);
+        }
+
+        // Ensure date is in correct format
+        const dateOfBirth = new Date(updates.dateOfBirth).toISOString();
+
+        // Prepare the update data
+        const updateData = {
+            firstName: updates.firstName,
+            lastName: updates.lastName,
+            age: parseInt(updates.age),
+            dateOfBirth, // Use formatted date
+            address: updates.address,
+            ...(imageUrl && { personImageUrl: imageUrl }),
+        };
+
+        // Update person details
+        const updatedPerson = await prisma.person.update({
+            where: { id },
+            data: {
+                ...updateData,
+                ...(person.type === 'suspect' && updates.riskLevel && {
+                    suspect: {
+                        update: {
+                            where: { personId: id },
+                            data: {
+                                riskLevel: updates.riskLevel
+                            }
+                        }
+                    }
+                })
+            },
+            include: {
+                suspect: true,
+                missingPerson: true
+            }
+        });
+
+        res.json({
+            message: "Person updated successfully",
+            data: updatedPerson
+        });
+    } catch (error) {
+        // Clean up uploaded file if exists
+        if (files?.personImageUrl?.[0]?.path) {
+            fs.unlinkSync(files.personImageUrl[0].path);
+        }
+        next(createHttpError(500, "Error updating person: " + error));
+    }
+};
+
+const deletePerson = async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+
+    try {
+        // Get the person to check their type
+        const person = await prisma.person.findUnique({
+            where: { id },
+            include: {
+                suspect: true,
+                missingPerson: true
+            }
+        });
+
+        if (!person) {
+            throw createHttpError(404, "Person not found");
+        }
+
+        // Delete in the correct order to handle foreign key constraints
+        await prisma.$transaction(async (tx) => {
+            // 1. Delete suspect or missing person record first
+            if (person.type === 'suspect' && person.suspect) {
+                await tx.suspect.delete({
                     where: { personId: id }
                 });
-            } else if (person.type === 'missing-person') {
-                await prisma.missingPerson.delete({
+            } else if (person.type === 'missing-person' && person.missingPerson) {
+                await tx.missingPerson.delete({
                     where: { personId: id }
                 });
             }
 
-            await prisma.person.delete({
-                where: { id }
+            // 2. Delete all recognitions for this person
+            await tx.recognizedPerson.deleteMany({
+                where: { personId: id }
             });
 
-            return person;
+            // 3. Delete the person record
+            await tx.person.delete({
+                where: { id }
+            });
         });
 
-        res.status(200).json({
+        res.json({
             message: "Person deleted successfully",
-            person: result
+            data: person
         });
     } catch (error) {
-        next(createHttpError(500, "Error while deleting person " + error));
+        console.error('Delete error:', error);
+        next(createHttpError(500, "Error deleting person: " + error));
     }
-}
+};
 
 const searchPersons = async (req: Request, res: Response, next: NextFunction) => {
     try {

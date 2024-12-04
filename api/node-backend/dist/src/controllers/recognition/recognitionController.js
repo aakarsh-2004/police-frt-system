@@ -22,7 +22,7 @@ const json2csv_1 = require("json2csv");
 const getRecentRecognitions = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
-            take: 5,
+            take: 20,
             orderBy: {
                 capturedDateTime: 'desc'
             },

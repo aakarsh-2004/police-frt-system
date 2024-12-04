@@ -1,6 +1,9 @@
-import { useState } from 'react';
-import { MapPin, Search, Filter, Clock, User, ArrowRight, Shield, AlertTriangle, Camera } from 'lucide-react';
-import { suspects } from '../suspect/suspects';
+import { useEffect, useRef, useState } from 'react';
+import { MapPin, Search, Filter } from 'lucide-react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import axios from 'axios';
+import config from '../../config/config';
 
 interface LocationFilter {
     city: string;
@@ -24,6 +27,65 @@ interface SuspectLocation {
     incidentType?: string;
 }
 
+interface CameraStats {
+    totalDetections: number;
+    suspects: number;
+    missingPersons: number;
+    recentDetections: {
+        id: number;
+        personName: string;
+        personType: string;
+        capturedImageUrl: string;
+        capturedDateTime: string;
+        confidenceScore: string;
+    }[];
+}
+
+interface CameraDetails {
+    id: string;
+    name: string;
+    location: string;
+    latitude: string;
+    longitude: string;
+    status: string;
+    streamUrl: string;
+    nearestPoliceStation?: string;
+    stats?: CameraStats;
+}
+
+const BHOPAL_BOUNDS = {
+    north: 23.3300, 
+    south: 23.1600, 
+    east: 77.5200, 
+    west: 77.3500 
+};
+
+const BHOPAL_CENTER: [number, number] = [
+    (BHOPAL_BOUNDS.east + BHOPAL_BOUNDS.west) / 2,
+    (BHOPAL_BOUNDS.north + BHOPAL_BOUNDS.south) / 2
+];
+
+const generateRandomLocation = () => {
+    const lat = BHOPAL_BOUNDS.south + (Math.random() * (BHOPAL_BOUNDS.north - BHOPAL_BOUNDS.south));
+    const lng = BHOPAL_BOUNDS.west + (Math.random() * (BHOPAL_BOUNDS.east - BHOPAL_BOUNDS.west));
+    return [lng, lat] as [number, number];
+};
+
+const locations = [
+    { name: "MP Nagar", coordinates: [77.4353, 23.2315] as [number, number] },
+    { name: "New Market", coordinates: [77.4006, 23.2330] as [number, number] },
+    { name: "Habibganj Railway Station", coordinates: [77.4349, 23.2337] as [number, number] },
+    { name: "DB Mall", coordinates: [77.4173, 23.2332] as [number, number] },
+    { name: "BHEL", coordinates: generateRandomLocation() },
+    { name: "Bittan Market", coordinates: generateRandomLocation() },
+    { name: "Arera Colony", coordinates: generateRandomLocation() },
+    { name: "TT Nagar", coordinates: generateRandomLocation() },
+    { name: "Shahpura", coordinates: generateRandomLocation() },
+    { name: "Kolar", coordinates: generateRandomLocation() }
+];
+
+console.log(locations);
+
 export default function MapView() {
     const [filters, setFilters] = useState<LocationFilter>({
         city: '',
@@ -31,132 +93,161 @@ export default function MapView() {
         place: ''
     });
     const [selectedLocation, setSelectedLocation] = useState<SuspectLocation | null>(null);
+    const [cameras, setCameras] = useState<CameraDetails[]>([]);
+    const [loading, setLoading] = useState(true);
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<mapboxgl.Map | null>(null);
+    const [selectedCamera, setSelectedCamera] = useState<CameraDetails | null>(null);
 
-    const suspectLocations: SuspectLocation[] = [
-        {
-            id: 'loc1',
-            suspectId: 'SUSP001',
-            lat: 23.2599,
-            lng: 77.4126,
-            timestamp: '2024-03-14 10:45:23',
-            location: 'MP Nagar Zone 1, Bhopal',
-            details: 'High priority suspect spotted near main market',
-            type: 'suspect',
-            confidence: 98.5,
-            lastSeen: '5 minutes ago',
-            status: 'active'
-        },
-        {
-            id: 'loc2',
-            suspectId: 'CAM001',
-            lat: 23.2584,
-            lng: 77.4009,
-            timestamp: '2024-03-14 11:30:00',
-            location: 'New Market, Bhopal',
-            details: 'Active surveillance camera monitoring shopping complex',
-            type: 'camera',
-            status: 'active',
-            cameraId: 'CAM-001'
-        },
-        {
-            id: 'loc3',
-            suspectId: 'ALERT001',
-            lat: 23.2550,
-            lng: 77.4150,
-            timestamp: '2024-03-14 11:15:00',
-            location: 'Habibganj Railway Station',
-            details: 'Suspicious activity detected near platform 1',
-            type: 'alert',
-            incidentType: 'Suspicious Behavior',
-            confidence: 85.2
-        },
-        {
-            id: 'loc4',
-            suspectId: 'SUSP002',
-            lat: 23.2630,
-            lng: 77.4200,
-            timestamp: '2024-03-14 11:00:00',
-            location: 'Arera Colony, Bhopal',
-            details: 'Suspect last seen entering residential area',
-            type: 'suspect',
-            confidence: 92.1,
-            lastSeen: '30 minutes ago',
-            status: 'active'
-        },
-        {
-            id: 'loc5',
-            suspectId: 'CAM002',
-            lat: 23.2520,
-            lng: 77.4180,
-            timestamp: '2024-03-14 10:55:00',
-            location: 'DB Mall, Bhopal',
-            details: 'High-resolution camera monitoring mall entrance',
-            type: 'camera',
-            status: 'active',
-            cameraId: 'CAM-002'
-        },
-        {
-            id: 'loc6',
-            suspectId: 'ALERT002',
-            lat: 23.2570,
-            lng: 77.4090,
-            timestamp: '2024-03-14 10:50:00',
-            location: 'TT Nagar Stadium',
-            details: 'Unauthorized access attempt detected',
-            type: 'alert',
-            incidentType: 'Security Breach',
-            confidence: 78.9
-        },
-        {
-            id: 'loc7',
-            suspectId: 'SUSP003',
-            lat: 23.2610,
-            lng: 77.4160,
-            timestamp: '2024-03-14 10:40:00',
-            location: 'Bittan Market, Bhopal',
-            details: 'Suspect identified through facial recognition',
-            type: 'suspect',
-            confidence: 95.3,
-            lastSeen: '1 hour ago',
-            status: 'active'
-        },
-        {
-            id: 'loc8',
-            suspectId: 'CAM003',
-            lat: 23.2540,
-            lng: 77.4220,
-            timestamp: '2024-03-14 10:35:00',
-            location: 'BHEL Gate, Bhopal',
-            details: 'Industrial area surveillance camera',
-            type: 'camera',
-            status: 'active',
-            cameraId: 'CAM-003'
-        }
-    ];
+    // Fetch cameras from the database
+    useEffect(() => {
+        const fetchCameras = async () => {
+            try {
+                const response = await axios.get(`${config.apiUrl}/api/cameras`);
+                if (response.data && Array.isArray(response.data)) {
+                    setCameras(response.data);
+                }
+            } catch (error) {
+                console.error('Error fetching cameras:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const getMarkerStyle = (type: string) => {
-        switch (type) {
-            case 'suspect':
-                return 'bg-red-500 animate-pulse';
-            case 'camera':
-                return 'bg-blue-500';
-            case 'alert':
-                return 'bg-amber-500 animate-pulse';
-            default:
-                return 'bg-gray-500';
-        }
+        fetchCameras();
+    }, []);
+
+    useEffect(() => {
+        if (!mapContainerRef.current || cameras.length === 0) return;
+
+        mapboxgl.accessToken = "pk.eyJ1IjoiYWFrYXJzaC0yMDA0IiwiYSI6ImNtNDhrdXhycjAwb2gycXMyZjljdTl0MnIifQ.6L9i8t_eW3gubSsF7HmXwg";
+
+        const map = new mapboxgl.Map({
+            container: mapContainerRef.current,
+            style: "mapbox://styles/mapbox/streets-v11",
+            center: BHOPAL_CENTER,
+            zoom: 12.5,
+            scrollZoom: true,
+            boxZoom: true,
+            dragRotate: true,
+            dragPan: true,
+            keyboard: true,
+            doubleClickZoom: true,
+            touchZoomRotate: true,
+            renderWorldCopies: false,
+            maxBounds: [
+                [BHOPAL_BOUNDS.west - 0.1, BHOPAL_BOUNDS.south - 0.1],
+                [BHOPAL_BOUNDS.east + 0.1, BHOPAL_BOUNDS.north + 0.1]
+            ],
+            dragPanOptions: {
+                smoothScroll: true,
+                inertia: true,
+                linearImpulse: 0.3,
+                maxSpeed: 1400,
+                deceleration: 2500
+            },
+            interactive: true,
+            antialias: true
+        });
+
+        mapRef.current = map;
+
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+        map.on('dragstart', () => {
+            map.getCanvas().style.cursor = 'grabbing';
+        });
+
+        map.on('dragend', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
+        map.on('movestart', () => {
+            map.getCanvas().style.imageRendering = 'auto';
+        });
+
+        map.on('moveend', () => {
+            map.getCanvas().style.imageRendering = 'auto';
+        });
+
+        map.on('load', () => {
+            map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+
+            cameras.forEach(camera => {
+                const coordinates: [number, number] = [
+                    parseFloat(camera.longitude),
+                    parseFloat(camera.latitude)
+                ];
+
+                const el = document.createElement('div');
+                el.className = 'custom-marker';
+                el.style.backgroundColor = camera.status === 'active' ? '#4CAF50' : '#9E9E9E';
+
+                el.addEventListener('click', () => {
+                    fetchCameraDetails(camera.id);
+                });
+
+                const marker = new mapboxgl.Marker({
+                    element: el,
+                    anchor: 'bottom',
+                    offset: [0, -10]
+                })
+                    .setLngLat(coordinates)
+                    .setPopup(
+                        new mapboxgl.Popup({ 
+                            offset: 25,
+                            closeButton: false,
+                            closeOnClick: false
+                        })
+                        .setHTML(`
+                            <div class="p-2">
+                                <h3 class="font-bold">${camera.name}</h3>
+                                <p class="text-sm text-gray-600">${camera.location}</p>
+                                <p class="text-xs mt-1">
+                                    <span class="px-2 py-1 rounded-full ${
+                                        camera.status === 'active' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-gray-100 text-gray-800'
+                                    }">
+                                        ${camera.status.toUpperCase()}
+                                    </span>
+                                </p>
+                            </div>
+                        `)
+                    )
+                    .addTo(map);
+
+                if (marker && marker.getPopup()) {
+                    el.addEventListener('mouseenter', () => marker.getPopup()?.addTo(map));
+                    el.addEventListener('mouseleave', () => marker.getPopup()?.remove());
+                }
+            });
+        });
+
+        return () => {
+            map.remove();
+        };
+    }, [cameras]);
+
+    const createCustomMarker = () => {
+        const el = document.createElement('div');
+        el.className = 'custom-marker';
+        el.style.width = '24px';
+        el.style.height = '24px';
+        el.style.backgroundImage = 'url(/marker-icon.png)';
+        el.style.backgroundSize = 'cover';
+        el.style.cursor = 'pointer';
+        return el;
     };
 
-    const getMarkerIcon = (type: string) => {
-        switch (type) {
-            case 'suspect':
-                return <User className="w-4 h-4" />;
-            case 'camera':
-                return <Camera className="w-4 h-4" />;
-            case 'alert':
-                return <AlertTriangle className="w-4 h-4" />;
-            default:
-                return <MapPin className="w-4 h-4" />;
+    const fetchCameraDetails = async (cameraId: string) => {
+        try {
+            const response = await axios.get(`${config.apiUrl}/api/cameras/${cameraId}`);
+            if (response.data) {
+                setSelectedCamera(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching camera details:', error);
         }
     };
 
@@ -261,119 +352,125 @@ export default function MapView() {
 
                     <div className="lg:col-span-3">
                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
-                            <div className="relative aspect-[16/9] bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                                <img
-                                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b"
-                                    alt="Map View"
-                                    className="w-full h-full object-cover"
+                            <div className="relative w-full h-[500px] overflow-hidden rounded-lg">
+                                <div 
+                                    ref={mapContainerRef} 
+                                    className="absolute inset-0"
+                                    style={{ 
+                                        width: '100%', 
+                                        height: '100%'
+                                    }} 
                                 />
-
-                                {suspectLocations.map((loc) => (
-                                    <button
-                                        key={loc.id}
-                                        className="absolute group"
-                                        style={{
-                                            left: `${(loc.lng - 77.4) * 1000}%`,
-                                            top: `${(loc.lat - 23.25) * 1000}%`
-                                        }}
-                                        onClick={() => setSelectedLocation(loc)}
-                                    >
-                                        <div className="relative">
-                                            <div className={`p-2 rounded-full text-white ${getMarkerStyle(loc.type)}`}>
-                                                {getMarkerIcon(loc.type)}
-                                            </div>
-
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 text-sm opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="font-medium dark:text-white">
-                                                            {loc.type === 'suspect' ? suspects.find(s => s.id === loc.suspectId)?.name :
-                                                                loc.type === 'camera' ? `Camera ${loc.cameraId}` :
-                                                                    'Alert'}
-                                                        </span>
-                                                        {loc.confidence && (
-                                                            <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                                                                {loc.confidence}% Match
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                                        <Clock className="w-4 h-4 mr-1" />
-                                                        {loc.timestamp}
-                                                    </div>
-                                                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                                        <MapPin className="w-4 h-4 mr-1" />
-                                                        {loc.location}
-                                                    </div>
-                                                    {loc.status && (
-                                                        <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                                            <Shield className="w-4 h-4 mr-1" />
-                                                            Status: {loc.status.toUpperCase()}
-                                                        </div>
-                                                    )}
-                                                    <p className="text-gray-600 dark:text-gray-400">
-                                                        {loc.details}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
                             </div>
 
-                            {selectedLocation && (
+                            {selectedCamera && (
                                 <div className="mt-4 p-4 border dark:border-gray-700 rounded-lg">
-                                    <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-lg font-medium dark:text-white">
-                                            Location Details
+                                            Camera Details
                                         </h3>
                                         <button
-                                            onClick={() => setSelectedLocation(null)}
+                                            onClick={() => setSelectedCamera(null)}
                                             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                                         >
                                             ✕
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
+
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                         <div>
-                                            <span className="text-sm text-gray-500 dark:text-gray-400">Type</span>
-                                            <p className="font-medium dark:text-white capitalize">{selectedLocation.type}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-sm text-gray-500 dark:text-gray-400">ID</span>
-                                            <p className="font-medium dark:text-white">{selectedLocation.suspectId}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-sm text-gray-500 dark:text-gray-400">Time</span>
-                                            <p className="font-medium dark:text-white">{selectedLocation.timestamp}</p>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Camera Name</span>
+                                            <p className="font-medium dark:text-white">{selectedCamera.name}</p>
                                         </div>
                                         <div>
                                             <span className="text-sm text-gray-500 dark:text-gray-400">Location</span>
-                                            <p className="font-medium dark:text-white">{selectedLocation.location}</p>
+                                            <p className="font-medium dark:text-white">{selectedCamera.location}</p>
                                         </div>
-                                        {selectedLocation.confidence && (
+                                        <div>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Status</span>
+                                            <p className={`font-medium ${
+                                                selectedCamera.status === 'active' 
+                                                    ? 'text-green-600 dark:text-green-400' 
+                                                    : 'text-gray-600 dark:text-gray-400'
+                                            }`}>
+                                                {selectedCamera.status.toUpperCase()}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Coordinates</span>
+                                            <p className="font-medium dark:text-white">
+                                                {selectedCamera.latitude}, {selectedCamera.longitude}
+                                            </p>
+                                        </div>
+                                        {selectedCamera.nearestPoliceStation && (
                                             <div>
-                                                <span className="text-sm text-gray-500 dark:text-gray-400">Confidence</span>
-                                                <p className="font-medium text-green-600">{selectedLocation.confidence}%</p>
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">Nearest Police Station</span>
+                                                <p className="font-medium dark:text-white">{selectedCamera.nearestPoliceStation}</p>
                                             </div>
                                         )}
-                                        {selectedLocation.status && (
-                                            <div>
-                                                <span className="text-sm text-gray-500 dark:text-gray-400">Status</span>
-                                                <p className="font-medium dark:text-white capitalize">{selectedLocation.status}</p>
+                                        <div>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Stream URL</span>
+                                            <p className="font-medium dark:text-white truncate">{selectedCamera.streamUrl}</p>
+                                        </div>
+                                    </div>
+
+                                    {selectedCamera.stats && (
+                                        <>
+                                            <div className="mt-6 border-t pt-4">
+                                                <h4 className="text-lg font-medium mb-4 dark:text-white">Detection Statistics</h4>
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                                                        <span className="text-sm text-blue-600 dark:text-blue-400">Total Detections</span>
+                                                        <p className="text-2xl font-bold text-blue-700 dark:text-blue-500">
+                                                            {selectedCamera.stats.totalDetections}
+                                                        </p>
+                                                    </div>
+                                                    <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                                                        <span className="text-sm text-red-600 dark:text-red-400">Suspects</span>
+                                                        <p className="text-2xl font-bold text-red-700 dark:text-red-500">
+                                                            {selectedCamera.stats.suspects}
+                                                        </p>
+                                                    </div>
+                                                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+                                                        <span className="text-sm text-amber-600 dark:text-amber-400">Missing Persons</span>
+                                                        <p className="text-2xl font-bold text-amber-700 dark:text-amber-500">
+                                                            {selectedCamera.stats.missingPersons}
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="mt-4">
-                                        <span className="text-sm text-gray-500 dark:text-gray-400">Details</span>
-                                        <p className="font-medium dark:text-white">{selectedLocation.details}</p>
-                                    </div>
-                                    <div className="mt-4 flex justify-end">
-                                        <button className="btn btn-primary text-sm">
-                                            View Full Profile
-                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                        </button>
-                                    </div>
+
+                                            <div className="mt-6 border-t pt-4">
+                                                <h4 className="text-lg font-medium mb-4 dark:text-white">Recent Detections</h4>
+                                                <div className="grid grid-cols-5 gap-4">
+                                                    {selectedCamera.stats.recentDetections.map((detection) => (
+                                                        <div key={detection.id} className="space-y-2">
+                                                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                                                <img
+                                                                    src={detection.capturedImageUrl}
+                                                                    alt={detection.personName}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            </div>
+                                                            <div className="text-xs">
+                                                                <p className="font-medium dark:text-white">{detection.personName}</p>
+                                                                <p className="text-gray-500 dark:text-gray-400">
+                                                                    {new Date(detection.capturedDateTime).toLocaleString()}
+                                                                </p>
+                                                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                                                    detection.personType === 'suspect'
+                                                                        ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
+                                                                }`}>
+                                                                    {detection.personType.toUpperCase()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>

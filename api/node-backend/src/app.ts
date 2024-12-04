@@ -7,6 +7,7 @@ import authRouter from "./routes/auth/authRoutes";
 import userRouter from "./routes/user/userRoutes";
 import requestRouter from "./routes/request/requestRoutes";
 import recognitionRouter from "./routes/recognition/recognitionRoutes";
+import cameraRouter from "./routes/camera/cameraRoutes";
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/requests', requestRouter);
 app.use('/api/recognitions', recognitionRouter);
+app.use('/api/cameras', cameraRouter);
 
 app.use(errorHandler);
 

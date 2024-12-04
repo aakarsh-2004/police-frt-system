@@ -1,163 +1,336 @@
-import { useState } from 'react';
-import { MapPin, AlertTriangle, TrendingUp, Calendar } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MapPin, TrendingUp } from 'lucide-react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import axios from 'axios';
+import config from '../../config/config';
 
-interface CrimeHotspot {
+interface CameraDetails {
     id: string;
-    area: string;
+    name: string;
     location: string;
-    crimeRate: number;
-    trend: 'increasing' | 'decreasing' | 'stable';
-    recentIncidents: number;
-    coordinates: {
-        x: number;
-        y: number;
+    latitude: string;
+    longitude: string;
+    status: string;
+    streamUrl: string;
+    stats?: {
+        totalDetections: number;
     };
 }
 
-const hotspots: CrimeHotspot[] = [
-    {
-        id: '1',
-        area: 'MP Nagar',
-        location: 'Zone 1, Bhopal',
-        crimeRate: 85,
-        trend: 'increasing',
-        recentIncidents: 12,
-        coordinates: { x: 45, y: 35 }
-    },
-    {
-        id: '2',
-        area: 'New Market',
-        location: 'TT Nagar, Bhopal',
-        crimeRate: 65,
-        trend: 'stable',
-        recentIncidents: 8,
-        coordinates: { x: 30, y: 45 }
-    },
-    {
-        id: '3',
-        area: 'Habibganj',
-        location: 'Maharana Pratap Nagar, Bhopal',
-        crimeRate: 45,
-        trend: 'decreasing',
-        recentIncidents: 5,
-        coordinates: { x: 60, y: 55 }
-    },
-    {
-        id: '4',
-        area: 'Arera Colony',
-        location: 'Near DB Mall, Bhopal',
-        crimeRate: 55,
-        trend: 'increasing',
-        recentIncidents: 7,
-        coordinates: { x: 40, y: 60 }
-    }
-];
-
-const trendColors = {
-    increasing: 'text-red-500',
-    decreasing: 'text-green-500',
-    stable: 'text-blue-500'
+const BHOPAL_BOUNDS = {
+    north: 23.3300,
+    south: 23.1600,
+    east: 77.5200,
+    west: 77.3500
 };
 
+const BHOPAL_CENTER: [number, number] = [
+    (BHOPAL_BOUNDS.east + BHOPAL_BOUNDS.west) / 2,
+    (BHOPAL_BOUNDS.north + BHOPAL_BOUNDS.south) / 2
+];
+
 export default function CrimeHeatmap() {
-    const [selectedHotspot, setSelectedHotspot] = useState<CrimeHotspot | null>(null);
+    const [cameras, setCameras] = useState<CameraDetails[]>([]);
+    const [selectedCamera, setSelectedCamera] = useState<CameraDetails | null>(null);
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<mapboxgl.Map | null>(null);
+
+    useEffect(() => {
+        const fetchCameras = async () => {
+            try {
+                const response = await axios.get(`${config.apiUrl}/api/cameras`);
+                if (response.data) {
+                    // Fetch stats for each camera
+                    const camerasWithStats = await Promise.all(
+                        response.data.map(async (camera: CameraDetails) => {
+                            const statsResponse = await axios.get(`${config.apiUrl}/api/cameras/${camera.id}`);
+                            return {
+                                ...camera,
+                                stats: statsResponse.data.stats
+                            };
+                        })
+                    );
+                    setCameras(camerasWithStats);
+                }
+            } catch (error) {
+                console.error('Error fetching cameras:', error);
+            }
+        };
+
+        fetchCameras();
+    }, []);
+
+    useEffect(() => {
+        if (!mapContainerRef.current || cameras.length === 0) return;
+
+        mapboxgl.accessToken = "pk.eyJ1IjoiYWFrYXJzaC0yMDA0IiwiYSI6ImNtNDhrdXhycjAwb2gycXMyZjljdTl0MnIifQ.6L9i8t_eW3gubSsF7HmXwg";
+
+        const map = new mapboxgl.Map({
+            container: mapContainerRef.current,
+            style: "mapbox://styles/mapbox/light-v11",
+            center: BHOPAL_CENTER,
+            zoom: 12
+        });
+
+        map.on('load', () => {
+            // Add the heatmap source
+            map.addSource('cameras', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'FeatureCollection',
+                    'features': cameras.map(camera => ({
+                        'type': 'Feature',
+                        'geometry': {
+                            'type': 'Point',
+                            'coordinates': [parseFloat(camera.longitude), parseFloat(camera.latitude)]
+                        },
+                        'properties': {
+                            'weight': camera.stats?.totalDetections || 0
+                        }
+                    }))
+                }
+            });
+
+            // Add the heatmap layer
+            map.addLayer(
+                {
+                    'id': 'camera-heat',
+                    'type': 'heatmap',
+                    'source': 'cameras',
+                    'maxzoom': 15,
+                    'paint': {
+                        // Weight paint property based on the detection count
+                        'heatmap-weight': [
+                            'interpolate',
+                            ['linear'],
+                            ['get', 'weight'],
+                            0, 0,
+                            100, 1
+                        ],
+                        // Heatmap intensity
+                        'heatmap-intensity': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            0, 1,
+                            9, 3
+                        ],
+                        // Heatmap radius
+                        'heatmap-radius': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            0, 30,
+                            9, 50
+                        ],
+                        // Heatmap opacity
+                        'heatmap-opacity': 0.8,
+                        // Color gradient
+                        'heatmap-color': [
+                            'interpolate',
+                            ['linear'],
+                            ['heatmap-density'],
+                            0, 'rgba(33,102,172,0)',
+                            0.2, '#fca5a5',
+                            0.4, '#f87171',
+                            0.6, '#ef4444',
+                            0.8, '#dc2626',
+                            1.0, '#991b1b'
+                        ]
+                    }
+                },
+                'waterway-label'
+            );
+
+            // Add circle layer for high zoom levels
+            map.addLayer(
+                {
+                    'id': 'camera-point',
+                    'type': 'circle',
+                    'source': 'cameras',
+                    'minzoom': 14,
+                    'paint': {
+                        'circle-radius': 8,
+                        'circle-color': '#ef4444',
+                        'circle-opacity': 0.5,
+                        'circle-stroke-width': 2,
+                        'circle-stroke-color': '#ffffff'
+                    }
+                },
+                'waterway-label'
+            );
+
+            // Add markers last
+            cameras.forEach(camera => {
+                const el = document.createElement('div');
+                el.className = 'custom-marker';
+                el.style.backgroundColor = camera.status === 'active' ? '#4CAF50' : '#9E9E9E';
+
+                // Add click handler
+                el.addEventListener('click', () => {
+                    setSelectedCamera(camera);
+                });
+
+                const marker = new mapboxgl.Marker({
+                    element: el,
+                    anchor: 'bottom'
+                })
+                    .setLngLat([parseFloat(camera.longitude), parseFloat(camera.latitude)])
+                    .setPopup(
+                        new mapboxgl.Popup({
+                            offset: 25,
+                            closeButton: false,
+                            closeOnClick: false
+                        })
+                            .setHTML(`
+                                <div class="p-2">
+                                    <h3 class="font-bold">${camera.name}</h3>
+                                    <p class="text-sm text-gray-600">${camera.location}</p>
+                                    <p class="text-sm font-medium mt-1">
+                                        Total Detections: ${camera.stats?.totalDetections || 0}
+                                    </p>
+                                </div>
+                            `)
+                    )
+                    .addTo(map);
+
+                el.addEventListener('mouseenter', () => marker.getPopup()?.addTo(map));
+                el.addEventListener('mouseleave', () => marker.getPopup()?.remove());
+            });
+        });
+
+        return () => {
+            map.remove();
+        };
+    }, [cameras]);
+
+    // Get hotspots sorted by detection count
+    const hotspots = cameras
+        .map(camera => ({
+            area: camera.name,
+            location: camera.location,
+            detections: camera.stats?.totalDetections || 0,
+            trend: getTrend(camera.stats?.totalDetections || 0)
+        }))
+        .sort((a, b) => b.detections - a.detections)
+        .slice(0, 5);
+
+    function getTrend(detections: number): 'increasing' | 'stable' | 'decreasing' {
+        if (detections > 50) return 'increasing';
+        if (detections > 20) return 'stable';
+        return 'decreasing';
+    }
+
+    const trendColors = {
+        increasing: 'text-red-500',
+        stable: 'text-blue-500',
+        decreasing: 'text-green-500'
+    };
 
     return (
-        <div className="grid grid-cols-2 gap-6">
-            {/* Heatmap */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
-                <h2 className="text-lg font-semibold flex items-center mb-4 dark:text-white">
-                    <MapPin className="w-5 h-5 mr-2 text-blue-900 dark:text-blue-500" />
-                    Crime Heatmap - Bhopal
-                </h2>
-
-                <div className="relative aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                    <img
-                        src="https://images.unsplash.com/photo-1524661135-423995f22d0b"
-                        alt="Bhopal Map"
-                        className="w-full h-full object-cover opacity-50 dark:opacity-30"
-                    />
-
-                    {/* Hotspots */}
-                    {hotspots.map((hotspot) => (
-                        <button
-                            key={hotspot.id}
-                            onClick={() => setSelectedHotspot(hotspot)}
-                            className={`absolute w-8 h-8 -ml-4 -mt-4 rounded-full 
-                            ${selectedHotspot?.id === hotspot.id
-                                ? 'ring-4 ring-blue-500 ring-opacity-50'
-                                : ''}`}
-                            style={{
-                                left: `${hotspot.coordinates.x}%`,
-                                top: `${hotspot.coordinates.y}%`,
-                                background: `radial-gradient(circle, rgba(239, 68, 68, ${hotspot.crimeRate / 100}) 0%, transparent 70%)`
-                            }}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-3">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold flex items-center dark:text-white">
+                            <MapPin className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                            Crime Heatmap
+                        </h2>
+                    </div>
+                    <div className="relative w-full h-[400px] rounded-lg overflow-hidden">
+                        <div
+                            ref={mapContainerRef}
+                            className="absolute inset-0"
                         />
-                    ))}
+                    </div>
                 </div>
             </div>
 
-            {/* Details Panel */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
-                <h2 className="text-lg font-semibold flex items-center mb-4 dark:text-white">
-                    <AlertTriangle className="w-5 h-5 mr-2 text-blue-900 dark:text-blue-500" />
-                    Hotspot Analysis
-                </h2>
-
-                {selectedHotspot ? (
-                    <div className="space-y-4">
-                        <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <h3 className="text-xl font-semibold mb-2 dark:text-white">{selectedHotspot.area}</h3>
-                            <p className="text-gray-600 dark:text-gray-400">{selectedHotspot.location}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                <span className="text-sm text-red-600 dark:text-red-400">Crime Rate</span>
-                                <p className="text-2xl font-bold text-red-700 dark:text-red-500">{selectedHotspot.crimeRate}%</p>
+            <div className="lg:col-span-2">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
+                    {selectedCamera ? (
+                        <>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-medium dark:text-white">Camera Details</h3>
+                                <button
+                                    onClick={() => setSelectedCamera(null)}
+                                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                                >
+                                    ✕
+                                </button>
                             </div>
+                            <div className="space-y-4">
+                                <div className="p-4 border dark:border-gray-700 rounded-lg">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Camera Name</span>
+                                            <p className="font-medium dark:text-white">{selectedCamera.name}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Location</span>
+                                            <p className="font-medium dark:text-white">{selectedCamera.location}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Status</span>
+                                            <p className={`font-medium ${
+                                                selectedCamera.status === 'active' 
+                                                    ? 'text-green-600 dark:text-green-400' 
+                                                    : 'text-gray-600 dark:text-gray-400'
+                                            }`}>
+                                                {selectedCamera.status.toUpperCase()}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Total Detections</span>
+                                            <p className="font-medium dark:text-white">
+                                                {selectedCamera.stats?.totalDetections || 0}
+                                            </p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">Coordinates</span>
+                                            <p className="font-medium dark:text-white">
+                                                {selectedCamera.latitude}, {selectedCamera.longitude}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
 
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <span className="text-sm text-blue-600 dark:text-blue-400">Recent Incidents</span>
-                                <p className="text-2xl font-bold text-blue-700 dark:text-blue-500">{selectedHotspot.recentIncidents}</p>
+                                <div className="p-4 border dark:border-gray-700 rounded-lg">
+                                    <h4 className="font-medium mb-3 dark:text-white">Detection Trend</h4>
+                                    <div className={`flex items-center ${trendColors[getTrend(selectedCamera.stats?.totalDetections || 0)]}`}>
+                                        <TrendingUp className="w-4 h-4 mr-1" />
+                                        {getTrend(selectedCamera.stats?.totalDetections || 0).charAt(0).toUpperCase() + 
+                                         getTrend(selectedCamera.stats?.totalDetections || 0).slice(1)}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <div className="p-4 border dark:border-gray-700 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="font-medium dark:text-white">Trend Analysis</span>
-                                <span className={`flex items-center ${trendColors[selectedHotspot.trend]} dark:text-${selectedHotspot.trend === 'increasing' ? 'red' : selectedHotspot.trend === 'decreasing' ? 'green' : 'blue'}-400`}>
-                                    <TrendingUp className="w-4 h-4 mr-1" />
-                                    {selectedHotspot.trend.charAt(0).toUpperCase() + selectedHotspot.trend.slice(1)}
-                                </span>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-lg font-medium mb-4 dark:text-white">Crime Hotspots</h3>
+                            <div className="space-y-4">
+                                {hotspots.map((hotspot, index) => (
+                                    <div key={index} className="p-4 border dark:border-gray-700 rounded-lg">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-medium dark:text-white">{hotspot.area}</span>
+                                            <span className={`flex items-center ${trendColors[hotspot.trend]}`}>
+                                                <TrendingUp className="w-4 h-4 mr-1" />
+                                                {hotspot.trend.charAt(0).toUpperCase() + hotspot.trend.slice(1)}
+                                            </span>
+                                        </div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                            <p>{hotspot.location}</p>
+                                            <p className="mt-1">
+                                                <span className="font-medium">{hotspot.detections}</span> detections
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <div className="h-20 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                {/* Placeholder for trend graph */}
-                            </div>
-                        </div>
-
-                        <div className="p-4 border dark:border-gray-700 rounded-lg">
-                            <div className="flex items-center mb-2">
-                                <Calendar className="w-4 h-4 mr-2" />
-                                <span className="font-medium dark:text-white">Recent Activity</span>
-                            </div>
-                            <ul className="space-y-2 text-sm">
-                                <li className="flex items-center justify-between dark:text-gray-300">
-                                    <span>Last 24 hours</span>
-                                    <span className="font-medium">{Math.floor(selectedHotspot.recentIncidents * 0.3)} incidents</span>
-                                </li>
-                                <li className="flex items-center justify-between dark:text-gray-300">
-                                    <span>Last 7 days</span>
-                                    <span className="font-medium">{selectedHotspot.recentIncidents} incidents</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-                        Select a hotspot on the map to view details
-                    </div>
-                )}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

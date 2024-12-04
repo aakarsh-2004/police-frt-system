@@ -70,15 +70,13 @@ model MissingPerson {
 }
 
 model RecognizedPerson {
-  id               Int      @id @default(autoincrement())
-  personId         String
+  id               String   @id @default(uuid())
   person           Person   @relation(fields: [personId], references: [id])
-  capturedImageUrl String
-  capturedLocation String
-  capturedDateTime DateTime
-  cameraId         String
+  personId         String
   camera           Camera   @relation(fields: [cameraId], references: [id])
-  type             String
+  cameraId         String
+  capturedDateTime DateTime @default(now())
+  capturedImageUrl String
   confidenceScore  String
 }
 
@@ -105,10 +103,15 @@ model User {
 }
 
 model Camera {
-  id                String             @id @default(uuid())
-  location          String
-  cameraUrl         String
-  recognizedPersons RecognizedPerson[]
+  id                   String             @id @default(uuid())
+  name                 String
+  location             String
+  latitude             String
+  longitude            String
+  nearestPoliceStation String?
+  status               String             @default("active")
+  streamUrl            String
+  recognizedPersons    RecognizedPerson[]
 }
 
 model Requests {

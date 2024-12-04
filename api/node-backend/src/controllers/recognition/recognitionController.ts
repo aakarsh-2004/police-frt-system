@@ -9,7 +9,7 @@ import { Parser } from 'json2csv';
 export const getRecentRecognitions = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const recognitions = await prisma.recognizedPerson.findMany({
-            take: 5,
+            take: 20,
             orderBy: {
                 capturedDateTime: 'desc'
             },

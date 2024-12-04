@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
 import axios from 'axios';
 import config from '../../config/config';
+import ImageEnhancer from '../../components/image/ImageEnhancer';
 
 interface Recognition {
     id: number;
@@ -81,7 +82,7 @@ export default function AlertsPage() {
 
     const fetchAlerts = async () => {
         try {
-            let url = `${config.apiUrl}/api/recognitions/recent`;
+            const url = `${config.apiUrl}/api/recognitions/recent`;
             const params = new URLSearchParams();
 
             if (filters.startDate) params.append('startDate', filters.startDate);
@@ -91,6 +92,7 @@ export default function AlertsPage() {
 
             const response = await axios.get<{data: Recognition[]}>(`${url}?${params.toString()}`);
             setAlerts(response.data.data);
+            
             
             const locations = new Set(response.data.data.map(alert => alert.camera.location));
             setAvailableLocations(Array.from(locations));
@@ -272,14 +274,20 @@ export default function AlertsPage() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 p-4">
-                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                <div 
+                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                                    onClick={() => setSelectedImage(alert.person.personImageUrl)}
+                                >
                                     <img
                                         src={alert.person.personImageUrl}
                                         alt={currentLanguage === 'en' ? 'Database Image' : 'डेटाबेस छवि'}
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                <div 
+                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                                    onClick={() => setSelectedImage(alert.capturedImageUrl)}
+                                >
                                     <img
                                         src={alert.capturedImageUrl}
                                         alt={currentLanguage === 'en' ? 'Captured Image' : 'कैप्चर की गई छवि'}
@@ -297,7 +305,7 @@ export default function AlertsPage() {
                                         </div>
                                         <div className="flex items-center text-gray-600 dark:text-gray-400">
                                             <Clock className="w-3 h-3 mr-1 dark:text-gray-400" />
-                                            {formatDateTime(alert.capturedDateTime)}
+                                            {alert.capturedDateTime.split('T')[0] + ', ' + alert.capturedDateTime.split('T')[1].split('.')[0]}
                                         </div>
                                     </div>
                                     <button
@@ -321,6 +329,14 @@ export default function AlertsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Image Enhancer Modal */}
+            {selectedImage && (
+                <ImageEnhancer
+                    imageUrl={selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
 }

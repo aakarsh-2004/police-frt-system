@@ -36,7 +36,6 @@ export default function SuspectDetail({ suspectId, onClose, onShare }: SuspectDe
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Main Image and Basic Info */}
                 <div className="space-y-4">
                     <div className="aspect-square rounded-lg overflow-hidden max-w-sm mx-auto">
                         <img
@@ -52,7 +51,6 @@ export default function SuspectDetail({ suspectId, onClose, onShare }: SuspectDe
                     </div>
                 </div>
 
-                {/* Status and Alert Level */}
                 <div className="flex items-center space-x-4">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium
                         ${suspect.status === 'active'

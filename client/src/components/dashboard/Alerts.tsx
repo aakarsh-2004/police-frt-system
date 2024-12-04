@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
 import axios from 'axios';
 import config from '../../config/config';
+import ImageEnhancer from '../image/ImageEnhancer';
 
 interface Recognition {
     id: number;
@@ -40,6 +41,7 @@ const formatDateTime = (dateString: string) => {
 export default function AlertSystem() {
     const [recognitions, setRecognitions] = useState<Recognition[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
@@ -68,7 +70,7 @@ export default function AlertSystem() {
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg h-[calc(100vh-24rem)]">
-            <div className="p-3 border-b bg-blue-900 text-white dark:border-gray-700" >
+            <div className="p-3 border-b bg-blue-900 text-white dark:border-gray-700">
                 <div className="flex items-center space-x-2">
                     <AlertTriangle className="w-4 h-4 text-amber-400" />
                     <h2 className="font-semibold">
@@ -88,32 +90,34 @@ export default function AlertSystem() {
                         <div key={recognition.id} 
                             className="p-3 border-b hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors dark:border-gray-700"
                         >
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center space-x-2">
-                                    <User className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                                    <span className="font-medium text-sm dark:text-gray-200">
-                                        {recognition.person.firstName} {recognition.person.lastName}
-                                    </span>
-                                </div>
-                                <span className="text-amber-600 dark:text-amber-500 font-medium text-sm">
-                                    {parseFloat(recognition.confidenceScore).toFixed(1)}%
-                                </span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 mb-2">
-                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                            <div className="flex items-center space-x-3 mb-3">
+                                <div 
+                                    className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                                    onClick={() => setSelectedImage(recognition.person.personImageUrl)}
+                                >
                                     <img
                                         src={recognition.person.personImageUrl}
-                                        alt="Database"
+                                        alt={`${recognition.person.firstName} ${recognition.person.lastName}`}
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                <div 
+                                    className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
+                                    onClick={() => setSelectedImage(recognition.capturedImageUrl)}
+                                >
                                     <img
                                         src={recognition.capturedImageUrl}
                                         alt="Captured"
                                         className="w-full h-full object-cover"
                                     />
+                                </div>
+                                <div>
+                                    <h3 className="font-medium dark:text-white">
+                                        {recognition.person.firstName} {recognition.person.lastName}
+                                    </h3>
+                                    <span className="text-xs text-amber-600 dark:text-amber-400">
+                                        {parseFloat(recognition.confidenceScore).toFixed(1)}% match
+                                    </span>
                                 </div>
                             </div>
 
@@ -125,7 +129,7 @@ export default function AlertSystem() {
                                     </div>
                                     <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                         <Clock className="w-4 h-4 mr-2 text-amber-600 dark:text-amber-400" />
-                                        <span>{formatDateTime(recognition.capturedDateTime)}</span>
+                                        <span>{recognition.capturedDateTime.split('T')[0] + ', ' + recognition.capturedDateTime.split('T')[1].split('.')[0]}</span>
                                     </div>
                                 </div>
                                 <button
@@ -140,6 +144,14 @@ export default function AlertSystem() {
                     ))
                 )}
             </div>
+
+            {/* Image Enhancer Modal */}
+            {selectedImage && (
+                <ImageEnhancer
+                    imageUrl={selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
 }

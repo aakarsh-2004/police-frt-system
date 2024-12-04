@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Camera, Plus } from 'lucide-react';
 import FaceApi from '../face-api/FaceApi';
 import DetectionList from './DetectionList';
@@ -6,6 +6,7 @@ import axios from 'axios';
 import config from '../../config/config';
 import { v4 as uuidv4 } from 'uuid';
 import { Detection } from './types';
+import RTSPStream from './RTSPStream';
 
 interface Camera {
     id: string;
@@ -80,6 +81,190 @@ export default function LiveMonitoring() {
     const [detections, setDetections] = useState<Detection[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // MSE refs for video 1
+    const videoRef1 = useRef<HTMLVideoElement>(null);
+    const mseQueue1 = useRef<ArrayBuffer[]>([]);
+    const mseSourceBuffer1 = useRef<SourceBuffer | null>(null);
+    const mseStreamingStarted1 = useRef<boolean>(false);
+
+    // MSE refs for video 2
+    const videoRef2 = useRef<HTMLVideoElement>(null);
+    const mseQueue2 = useRef<ArrayBuffer[]>([]);
+    const mseSourceBuffer2 = useRef<SourceBuffer | null>(null);
+    const mseStreamingStarted2 = useRef<boolean>(false);
+
+    // Add WebSocket refs to maintain connection
+    const ws1Ref = useRef<WebSocket | null>(null);
+    const ws2Ref = useRef<WebSocket | null>(null);
+    const mseRef1 = useRef<MediaSource | null>(null);
+    const mseRef2 = useRef<MediaSource | null>(null);
+
+    const pushPacket = (
+        mseQueue: React.MutableRefObject<ArrayBuffer[]>,
+        mseSourceBuffer: React.MutableRefObject<SourceBuffer | null>,
+        mseStreamingStarted: React.MutableRefObject<boolean>
+    ) => {
+        if (!mseSourceBuffer.current) return;
+
+        if (!mseSourceBuffer.current.updating) {
+            if (mseQueue.current.length > 0) {
+                const packet = mseQueue.current.shift();
+                if (packet) {
+                    mseSourceBuffer.current.appendBuffer(packet);
+                }
+            } else {
+                mseStreamingStarted.current = false;
+            }
+        }
+    };
+
+    const readPacket = (
+        packet: ArrayBuffer,
+        mseQueue: React.MutableRefObject<ArrayBuffer[]>,
+        mseSourceBuffer: React.MutableRefObject<SourceBuffer | null>,
+        mseStreamingStarted: React.MutableRefObject<boolean>
+    ) => {
+        if (!mseSourceBuffer.current) return;
+
+        if (!mseStreamingStarted.current) {
+            mseSourceBuffer.current.appendBuffer(packet);
+            mseStreamingStarted.current = true;
+            return;
+        }
+
+        mseQueue.current.push(packet);
+        if (!mseSourceBuffer.current.updating) {
+            pushPacket(mseQueue, mseSourceBuffer, mseStreamingStarted);
+        }
+    };
+
+    const startPlay = (
+        videoEl: HTMLVideoElement,
+        url: string,
+        mseQueue: React.MutableRefObject<ArrayBuffer[]>,
+        mseSourceBuffer: React.MutableRefObject<SourceBuffer | null>,
+        mseStreamingStarted: React.MutableRefObject<boolean>,
+        wsRef: React.MutableRefObject<WebSocket | null>,
+        mseRef: React.MutableRefObject<MediaSource | null>
+    ) => {
+        try {
+            // Create MediaSource
+            const mse = new MediaSource();
+            mseRef.current = mse;
+            videoEl.src = URL.createObjectURL(mse);
+
+            mse.addEventListener('sourceopen', () => {
+                console.log('MediaSource opened');
+                
+                // Create WebSocket connection
+                const ws = new WebSocket(url);
+                wsRef.current = ws;
+                ws.binaryType = 'arraybuffer';
+
+                ws.onopen = () => {
+                    console.log('WebSocket connected to:', url);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket closed for:', url);
+                    // Attempt to reconnect after a delay
+                    setTimeout(() => {
+                        if (videoEl) {
+                            startPlay(videoEl, url, mseQueue, mseSourceBuffer, mseStreamingStarted, wsRef, mseRef);
+                        }
+                    }, 5000);
+                };
+
+                ws.onmessage = (event) => {
+                    const data = new Uint8Array(event.data);
+                    if (data[0] === 9) {
+                        let mimeCodec;
+                        const decodedArr = data.slice(1);
+                        mimeCodec = new TextDecoder('utf-8').decode(decodedArr);
+                        console.log('Mime codec:', mimeCodec);
+
+                        try {
+                            mseSourceBuffer.current = mse.addSourceBuffer('video/mp4; codecs="' + mimeCodec + '"');
+                            mseSourceBuffer.current.mode = 'segments';
+                            mseSourceBuffer.current.addEventListener('updateend', () => {
+                                pushPacket(mseQueue, mseSourceBuffer, mseStreamingStarted);
+                            });
+                        } catch (e) {
+                            console.error('Error adding source buffer:', e);
+                        }
+                    } else {
+                        readPacket(event.data, mseQueue, mseSourceBuffer, mseStreamingStarted);
+                    }
+                };
+            });
+
+            mse.addEventListener('sourceended', () => {
+                console.log('MediaSource ended');
+            });
+
+            mse.addEventListener('sourceclose', () => {
+                console.log('MediaSource closed');
+            });
+
+        } catch (error) {
+            console.error('Error starting playback:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (!videoRef1.current || !videoRef2.current) return;
+
+        const url1 = document.querySelector<HTMLInputElement>('#mse-url1')?.value;
+        const url2 = document.querySelector<HTMLInputElement>('#mse-url2')?.value;
+
+        if (url1) {
+            startPlay(
+                videoRef1.current, 
+                url1, 
+                mseQueue1, 
+                mseSourceBuffer1, 
+                mseStreamingStarted1,
+                ws1Ref,
+                mseRef1
+            );
+        }
+
+        if (url2) {
+            startPlay(
+                videoRef2.current, 
+                url2, 
+                mseQueue2, 
+                mseSourceBuffer2, 
+                mseStreamingStarted2,
+                ws2Ref,
+                mseRef2
+            );
+        }
+
+        // Cleanup function
+        return () => {
+            // Close WebSocket connections
+            if (ws1Ref.current) {
+                ws1Ref.current.close();
+            }
+            if (ws2Ref.current) {
+                ws2Ref.current.close();
+            }
+
+            // Close MediaSource
+            if (mseRef1.current && mseRef1.current.readyState === 'open') {
+                mseRef1.current.endOfStream();
+            }
+            if (mseRef2.current && mseRef2.current.readyState === 'open') {
+                mseRef2.current.endOfStream();
+            }
+        };
+    }, []);
 
     useEffect(() => {
         const fetchPersons = async () => {
@@ -213,44 +398,19 @@ export default function LiveMonitoring() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {cameras.map((camera) => (
-                            <div 
-                                key={camera.id} 
-                                className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden"
-                            >
-                                <div className="p-3 border-b dark:border-gray-700">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-medium dark:text-white">{camera.name}</h3>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium
-                                            ${camera.status === 'Active' 
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
-                                                : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'}`}>
-                                            {camera.status}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Last motion: {camera.lastMotion}</p>
-                                </div>
-                                
-                                <div className="aspect-video relative bg-gray-900">
-                                    <FaceApi 
-                                        videoUrl={camera.streamUrl}
-                                        targets={targets}
-                                        onDetection={(...args) => {
-                                            const target = targets.find(t => t.name === args[0]);
-                                            void handleDetection({
-                                                name: args[0],
-                                                confidence: args[1],
-                                                personImageUrl: args[2],
-                                                camera,
-                                                capturedFrame: args[3],
-                                                personId: args[4],
-                                                type: target?.type || 'unknown'
-                                            });
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        ))}
+                        <div className="aspect-video relative bg-gray-900">
+                            <RTSPStream
+                                id="mse-video1"
+                                streamUrl="ws://localhost:8083/stream/a8d21378-0eac-4db4-a9ff-d73d19054d5e/channel/0/mse?uuid=a8d21378-0eac-4db4-a9ff-d73d19054d5e&channel=0"
+                            />
+                        </div>
+
+                        <div className="aspect-video relative bg-gray-900">
+                            <RTSPStream
+                                id="mse-video2"
+                                streamUrl="ws://localhost:8083/stream/f4604be9-bea2-44e1-af7c-609ae9a2f7c1/channel/0/mse?uuid=f4604be9-bea2-44e1-af7c-609ae9a2f7c1&channel=0"
+                            />
+                        </div>
                     </div>
 
                     <div className="lg:col-span-1">

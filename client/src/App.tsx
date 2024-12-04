@@ -22,6 +22,8 @@ import RequestsPage from './components/requests/RequestsPage';
 import PersonDetails from './components/suspect/PersonDetails';
 import TutorialTraining from './components/tutorial-training/TutorialTraining';
 import { Toaster } from 'react-hot-toast';
+import AddPerson from './components/suspect/AddPerson';
+import HelpPage from './components/help/HelpPage';
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -69,6 +71,7 @@ function App() {
                   } />
                   <Route path="/monitoring" element={<LiveMonitoring />} />
                   <Route path="/suspects" element={<SuspectPage />} />
+                  <Route path="/suspects/new" element={<AddPerson />} />
                   <Route path="/search" element={<SearchLookup />} />
                   <Route path="/alerts" element={<AlertsPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
@@ -86,6 +89,7 @@ function App() {
                   } />
                   <Route path="/person/:id" element={<PersonDetails />} />
                   <Route path="/tutorial" element={<TutorialTraining />} />
+                  <Route path="/help" element={<HelpPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </main>

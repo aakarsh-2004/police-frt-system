@@ -142,33 +142,64 @@ export default function PersonDetails() {
         }
     };
 
-    const handleUpdate = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
         try {
-            const formData = new FormData();
+            // Create FormData object
+            const formDataToSend = new FormData();
             
-            // Add all form fields
-            Object.keys(formData).forEach(key => {
-                formData.append(key, formData[key as keyof typeof formData]);
-            });
-
-            // Add the new image if selected
-            if (newImage) {
-                formData.append('personImageUrl', newImage);
+            // Format date to ISO string
+            const formattedDate = new Date(formData.dateOfBirth).toISOString();
+            
+            // Manually append each field
+            formDataToSend.append('firstName', formData.firstName);
+            formDataToSend.append('lastName', formData.lastName);
+            formDataToSend.append('age', formData.age.toString());
+            formDataToSend.append('dateOfBirth', formattedDate); // Send formatted date
+            formDataToSend.append('address', formData.address);
+            formDataToSend.append('type', person?.type || '');
+            formDataToSend.append('status', formData.status);
+    
+            // Add risk level only for suspects
+            if (person?.type === 'suspect') {
+                formDataToSend.append('riskLevel', formData.riskLevel || '');
             }
-
-            const response = await axios.put(`${config.apiUrl}/api/persons/${id}`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+    
+            // Add image if selected
+            if (selectedImage) {
+                formDataToSend.append('personImageUrl', selectedImage);
+            }
+    
+            // Log the data being sent
+            const formDataObject = {};
+            formDataToSend.forEach((value, key) => {
+                formDataObject[key] = value;
             });
-            
-            setPerson(response.data.data);
-            setIsEditing(false);
-            setNewImage(null);
-            toast.success('Details updated successfully');
-        } catch (error) {
+            console.log('Sending update data:', formDataObject);
+    
+            const response = await axios.put(
+                `${config.apiUrl}/api/persons/${id}`, 
+                formDataToSend,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+    
+            if (response.data.data) {
+                setPerson(response.data.data);
+                setIsEditing(false);
+                setSelectedImage(null);
+                toast.success('Person details updated successfully');
+                navigate(`/suspects`);
+            }
+        } catch (error: any) {
             console.error('Error updating person:', error);
-            toast.error('Failed to update details');
+            toast.error(error.response?.data?.message || 'Failed to update person details');
         }
-    };
+    }; 
 
     // Add this near the top of your JSX, after the Back button
     const renderEditButton = () => {
@@ -320,7 +351,7 @@ export default function PersonDetails() {
                         Cancel
                     </button>
                     <button
-                        onClick={handleUpdate}
+                        onClick={handleSubmit}
                         className="btn btn-primary"
                     >
                         Save Changes
