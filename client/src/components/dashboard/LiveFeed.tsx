@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Camera, ChevronLeft, ChevronRight, User, MapPin, Clock, Shield } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, MapPin, Clock, Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
+import RTSPStream from '../monitoring/RTSPStream';
 
 interface VideoFeed {
     id: string;
@@ -75,6 +76,16 @@ const videoFeeds: VideoFeed[] = [
     }
 ];
 
+// Add sample stream URLs
+const SAMPLE_STREAMS = [
+    'ws://localhost:8083/stream/a8d21378-0eac-4db4-a9ff-d73d19054d5e/channel/0/mse?uuid=a8d21378-0eac-4db4-a9ff-d73d19054d5e&channel=0',
+    'ws://localhost:8083/stream/f4604be9-bea2-44e1-af7c-609ae9a2f7c1/channel/0/mse?uuid=f4604be9-bea2-44e1-af7c-609ae9a2f7c1&channel=0',
+    'ws://localhost:8083/stream/60d0b153-545b-43c1-97ec-797161af2038/channel/0/mse?uuid=60d0b153-545b-43c1-97ec-797161af2038&channel=0',
+    'ws://localhost:8083/stream/94019b3f-4541-4100-ae81-bd7bc319e3c8/channel/0/mse?uuid=94019b3f-4541-4100-ae81-bd7bc319e3c8&channel=0',
+    'ws://localhost:8083/stream/a52feeeb-8cc7-418b-ad88-ae757d5a6433/channel/0/mse?uuid=a52feeeb-8cc7-418b-ad88-ae757d5a6433&channel=0',
+    'ws://localhost:8083/stream/c0220694-546b-49dd-8c77-93203ab904d5/channel/0/mse?uuid=c0220694-546b-49dd-8c77-93203ab904d5&channel=0'
+];
+
 export default function LiveFeed() {
     const [selectedFeed, setSelectedFeed] = useState(videoFeeds[0]);
     const [showGrid, setShowGrid] = useState(true);
@@ -90,46 +101,40 @@ export default function LiveFeed() {
                         {currentLanguage === 'en' ? 'Live Surveillance Feed' : t('dashboard.liveFeed.title')}
                     </h2>
                 </div>
-                <button
-                    onClick={() => setShowGrid(!showGrid)}
-                    className="btn btn-secondary text-sm"
-                >
-                    {showGrid ? 
-                        (currentLanguage === 'en' ? 'Single View' : t('dashboard.liveFeed.singleView')) : 
-                        (currentLanguage === 'en' ? 'Grid View' : t('dashboard.liveFeed.gridView'))
-                    }
-                </button>
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={() => setShowGrid(true)}
+                        className={`px-3 py-1 rounded-lg text-sm ${
+                            showGrid ? 'bg-blue-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                    >
+                        {currentLanguage === 'en' ? 'Grid View' : t('dashboard.liveFeed.gridView')}
+                    </button>
+                    <button
+                        onClick={() => setShowGrid(false)}
+                        className={`px-3 py-1 rounded-lg text-sm ${
+                            !showGrid ? 'bg-blue-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                    >
+                        {currentLanguage === 'en' ? 'Single View' : t('dashboard.liveFeed.singleView')}
+                    </button>
+                </div>
             </div>
 
             {showGrid ? (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                    {videoFeeds.map((feed) => (
-                        <div
-                            key={feed.id}
-                            className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500"
-                            onClick={() => {
-                                setSelectedFeed(feed);
-                                setShowGrid(false);
-                            }}
-                        >
-                            <video
-                                src={feed.url}
-                                autoPlay
-                                muted
-                                loop
-                                className="w-full h-full object-cover"
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 p-2">
+                    {videoFeeds.map((feed, index) => (
+                        <div key={feed.id} className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                            <RTSPStream
+                                id={`dashboard-video-${index + 1}`}
+                                streamUrl={SAMPLE_STREAMS[index]}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent">
-                                <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="font-medium text-sm">{feed.title}</h3>
-                                            <p className="text-xs opacity-75">{feed.location}</p>
-                                        </div>
-                                        <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full">
-                                            {t('dashboard.liveFeed.live')}
-                                        </span>
-                                    </div>
+                            <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/50 to-transparent">
+                                <div className="flex items-center justify-between text-white">
+                                    <span className="text-sm font-medium">{feed.title}</span>
+                                    <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
+                                        {t('dashboard.liveFeed.live')}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -139,12 +144,9 @@ export default function LiveFeed() {
                 <div className="relative">
                     <div className="card">
                         <div className="aspect-video bg-gray-900">
-                            <video
-                                src={selectedFeed.url}
-                                autoPlay
-                                muted
-                                loop
-                                className="w-full h-full object-cover"
+                            <RTSPStream
+                                id="dashboard-single-video"
+                                streamUrl={SAMPLE_STREAMS[videoFeeds.indexOf(selectedFeed)]}
                             />
                         </div>
 
