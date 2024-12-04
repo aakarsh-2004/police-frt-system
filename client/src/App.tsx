@@ -24,6 +24,7 @@ import TutorialTraining from './components/tutorial-training/TutorialTraining';
 import { Toaster } from 'react-hot-toast';
 import AddPerson from './components/suspect/AddPerson';
 import HelpPage from './components/help/HelpPage';
+import TawkChat from './components/chat/TawkChat';
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -97,6 +98,7 @@ function App() {
           </div>
         </div>
       </Router>
+      <TawkChat />
     </>
   );
 }
