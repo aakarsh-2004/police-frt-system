@@ -1,0 +1,32 @@
+.relative.aspect-video:fullscreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+}
+
+.relative.aspect-video:fullscreen video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+/* Webkit support */
+.relative.aspect-video:-webkit-full-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+}
+
+.relative.aspect-video:-webkit-full-screen video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}

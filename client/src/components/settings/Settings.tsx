@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, Shield, User, Bell, Lock, Globe, Moon, HelpCircle, Upload } from 'lucide-react';
+import { LogOut, Shield, User, Bell, Lock, Globe, Moon, HelpCircle, Upload, ChevronRight } from 'lucide-react';
 import { useTheme } from '../../context/themeContext';
 import axios from 'axios';
 import config from '../../config/config';
@@ -80,10 +80,10 @@ export default function Settings() {
                         name="firstName"
                         value={formData.firstName}
                         onChange={handleInputChange}
-                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
                         required
                     />
-                </div>
+                </div> 
                 <div>
                     <label className="block text-sm font-medium mb-1">
                         {currentLanguage === 'en' ? 'Last Name' : 'अंतिम नाम'}
@@ -93,7 +93,7 @@ export default function Settings() {
                         name="lastName"
                         value={formData.lastName}
                         onChange={handleInputChange}
-                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
                         required
                     />
                 </div>
@@ -106,7 +106,7 @@ export default function Settings() {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
                     required
                 />
             </div>
@@ -118,7 +118,7 @@ export default function Settings() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
                     required
                 />
             </div>
@@ -130,7 +130,7 @@ export default function Settings() {
                     name="designation"
                     value={formData.designation}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
                     required
                 />
             </div>
@@ -142,7 +142,7 @@ export default function Settings() {
                     name="username"
                     value={formData.username}
                     onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
                     required
                 />
             </div>
@@ -206,7 +206,7 @@ export default function Settings() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center">
                     <User className="w-5 h-5 mr-2" />
-                    {currentLanguage === 'en' ? 'Profile Settings' : 'प्रोफ़ाइल सेटिंग्स'}
+                    {currentLanguage === 'en' ? 'Profile Settings' : 'प्रफ़ाइल सेटिंग्स'}
                 </h2>
                 <div className="flex items-center space-x-4 mb-4">
                     {user?.userImageUrl ? (
@@ -231,7 +231,7 @@ export default function Settings() {
                         className="btn btn-secondary text-sm"
                         onClick={() => setIsEditing(true)}
                     >
-                        {currentLanguage === 'en' ? 'Update Profile' : 'प्रोफ़ाइल अपडेट करें'}
+                        {currentLanguage === 'en' ? 'Update Profile' : 'प्रो़ाइल अपडेट करें'}
                     </button>
                 ) : renderUpdateForm()}
             </div>
@@ -293,13 +293,14 @@ export default function Settings() {
                             </div>
                         </button>
                         <button 
-                            onClick={() => navigate('/help')}
+                            onClick={() => navigate('/settings/help-support')}
                             className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between"
                         >
                             <div className="flex items-center">
                                 <HelpCircle className="w-5 h-5 mr-3 text-gray-400" />
                                 <span>{currentLanguage === 'en' ? 'Help & Support' : 'सहायता और समर्थन'}</span>
                             </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400" />
                         </button>
                     </div>
                 </div>

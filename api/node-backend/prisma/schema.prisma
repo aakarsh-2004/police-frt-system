@@ -78,6 +78,7 @@ model RecognizedPerson {
   capturedDateTime DateTime @default(now())
   capturedImageUrl String
   confidenceScore  String
+  videoUrl         String?
 }
 
 model User {

@@ -114,7 +114,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                         max="200"
                         value={contrast}
                         onChange={(e) => setContrast(Number(e.target.value))}
-                        className="w-full"
+                        className="w-full dark:bg-gray-900"
                     />
                     <div className="flex justify-between text-xs text-gray-500">
                         <span>0%</span>
@@ -151,7 +151,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                     <div className="flex items-center space-x-2">
                         <button
                             onClick={() => setZoom(Math.max(50, zoom - 10))}
-                            className="p-1 rounded-lg hover:bg-gray-100"
+                            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                         >
                             <ZoomOut className="w-4 h-4" />
                         </button>
@@ -165,7 +165,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                         />
                         <button
                             onClick={() => setZoom(Math.min(200, zoom + 10))}
-                            className="p-1 rounded-lg hover:bg-gray-100"
+                            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                         >
                             <ZoomIn className="w-4 h-4" />
                         </button>
@@ -187,7 +187,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
 
     const renderAITab = () => (
         <div className="space-y-4">
-            <div className="p-4 border rounded-lg">
+            <div className="p-4 border rounded-lg dark:border-gray-700">
                 <h3 className="font-medium mb-4">AI Image Enhancement</h3>
                 {!enhancedImageUrl ? (
                     <button
@@ -258,7 +258,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
 
     const renderShareTab = () => (
         <div className="space-y-4">
-            <div className="p-4 border rounded-lg">
+            <div className="p-4 border rounded-lg dark:border-gray-700">
                 <h3 className="font-medium mb-4">Download Options</h3>
                 <button
                     onClick={handleDownload}
@@ -273,13 +273,13 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 dark:bg-gray-800">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex space-x-4">
                         <button
                             onClick={() => setActiveTab('enhance')}
                             className={`px-4 py-2 rounded-lg flex items-center ${
-                                activeTab === 'enhance' ? 'bg-blue-900 text-white' : 'text-gray-700'
+                                activeTab === 'enhance' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
                             }`}
                         >
                             <SlidersHorizontal className="w-4 h-4 mr-2" />
@@ -288,7 +288,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                         <button
                             onClick={() => setActiveTab('ai')}
                             className={`px-4 py-2 rounded-lg flex items-center ${
-                                activeTab === 'ai' ? 'bg-blue-900 text-white' : 'text-gray-700'
+                                activeTab === 'ai' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
                             }`}
                         >
                             <Wand2 className="w-4 h-4 mr-2" />
@@ -297,7 +297,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                         <button
                             onClick={() => setActiveTab('share')}
                             className={`px-4 py-2 rounded-lg flex items-center ${
-                                activeTab === 'share' ? 'bg-blue-900 text-white' : 'text-gray-700'
+                                activeTab === 'share' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
                             }`}
                         >
                             <Share2 className="w-4 h-4 mr-2" />
@@ -306,14 +306,14 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full"
+                        className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-700"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-2 bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="md:col-span-2 bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-900">
                         <div className="relative aspect-video">
                             <img
                                 src={imageUrl}

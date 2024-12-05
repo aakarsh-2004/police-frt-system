@@ -158,7 +158,7 @@ export default function ReportsPage() {
                         ) : (
                             <div className="space-y-4">
                                 {recentReports.map((report) => (
-                                    <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:border-gray-700">
+                                    <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700 cursor-pointer">
                                         <div className="flex items-center space-x-4">
                                             <FileText className="w-8 h-8 text-blue-600" />
                                             <div>

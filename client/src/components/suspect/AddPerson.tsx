@@ -118,7 +118,7 @@ export default function AddPerson() {
                 <h1 className="text-2xl font-bold mb-6">Add New Person</h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="bg-white rounded-lg shadow p-6">
+                    <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
                         <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -128,7 +128,7 @@ export default function AddPerson() {
                                     name="type"
                                     value={formData.type}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     required
                                 >
                                     <option value="suspect">Suspect</option>
@@ -143,7 +143,7 @@ export default function AddPerson() {
                                     name="firstName"
                                     value={formData.firstName}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     required
                                 />
                             </div>
@@ -155,7 +155,7 @@ export default function AddPerson() {
                                     name="lastName"
                                     value={formData.lastName}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     required
                                 />
                             </div>
@@ -166,7 +166,7 @@ export default function AddPerson() {
                                     name="gender"
                                     value={formData.gender}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     required
                                 >
                                     <option value="male">Male</option>
@@ -182,7 +182,7 @@ export default function AddPerson() {
                                     name="age"
                                     value={formData.age}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     required
                                 />
                             </div>
@@ -194,7 +194,7 @@ export default function AddPerson() {
                                     name="dateOfBirth"
                                     value={formData.dateOfBirth}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     required
                                 />
                             </div>
@@ -206,7 +206,7 @@ export default function AddPerson() {
                                     name="address"
                                     value={formData.address}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     required
                                 />
                             </div>
@@ -218,7 +218,7 @@ export default function AddPerson() {
                                         name="riskLevel"
                                         value={formData.riskLevel}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded"
+                                        className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     >
                                         <option value="low">Low</option>
                                         <option value="medium">Medium</option>
@@ -236,7 +236,7 @@ export default function AddPerson() {
                                             name="lastSeenDate"
                                             value={formData.lastSeenDate}
                                             onChange={handleInputChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                             required
                                         />
                                     </div>
@@ -247,7 +247,7 @@ export default function AddPerson() {
                                             name="lastSeenLocation"
                                             value={formData.lastSeenLocation}
                                             onChange={handleInputChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                             required
                                         />
                                     </div>
@@ -258,7 +258,7 @@ export default function AddPerson() {
                                             name="reportBy"
                                             value={formData.reportBy}
                                             onChange={handleInputChange}
-                                            className="w-full p-2 border rounded"
+                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                             required
                                         />
                                     </div>
@@ -272,7 +272,7 @@ export default function AddPerson() {
                                     name="email"
                                     value={formData.email}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     placeholder="email@example.com"
                                 />
                             </div>
@@ -284,7 +284,7 @@ export default function AddPerson() {
                                     name="phone"
                                     value={formData.phone}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     placeholder="+91 XXXXX XXXXX"
                                 />
                             </div>
@@ -296,7 +296,7 @@ export default function AddPerson() {
                                     name="nationalId"
                                     value={formData.nationalId}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     placeholder="Enter National ID"
                                 />
                             </div>
@@ -308,7 +308,7 @@ export default function AddPerson() {
                                     name="nationality"
                                     value={formData.nationality}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                                     placeholder="Enter Nationality"
                                 />
                             </div>

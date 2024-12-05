@@ -76,7 +76,7 @@ const cameras: Camera[] = [
     }
 ];
 
-const SAMPLE_STREAMS = [
+const RTSP_STREAMS = [
     'ws://localhost:8083/stream/a8d21378-0eac-4db4-a9ff-d73d19054d5e/channel/0/mse?uuid=a8d21378-0eac-4db4-a9ff-d73d19054d5e&channel=0',
     'ws://localhost:8083/stream/f4604be9-bea2-44e1-af7c-609ae9a2f7c1/channel/0/mse?uuid=f4604be9-bea2-44e1-af7c-609ae9a2f7c1&channel=0',
     'ws://localhost:8083/stream/60d0b153-545b-43c1-97ec-797161af2038/channel/0/mse?uuid=60d0b153-545b-43c1-97ec-797161af2038&channel=0',
@@ -106,10 +106,7 @@ export default function LiveMonitoring() {
     const mseRef1 = useRef<MediaSource | null>(null);
     const mseRef2 = useRef<MediaSource | null>(null);
 
-    const [videoControls, setVideoControls] = useState<Record<string, {
-        zoom: number;
-        rotation: number;
-    }>>({});
+    const [videoControls, setVideoControls] = useState<Record<string, { zoom: number; rotation: number }>>({});
 
     const pushPacket = (
         mseQueue: React.MutableRefObject<ArrayBuffer[]>,
@@ -365,62 +362,53 @@ export default function LiveMonitoring() {
         }
     };
 
-    const handleZoomIn = (id: string) => {
-        setVideoControls(prev => {
-            const currentZoom = prev[id]?.zoom || 1;
-            return {
-                ...prev,
-                [id]: {
-                    ...prev[id],
-                    zoom: Math.min(currentZoom + 0.2, 3)
-                }
-            };
-        });
+    const getVideoStyle = (videoId: string) => {
+        const controls = videoControls[videoId] || { zoom: 100, rotation: 0 };
+        return {
+            transform: `scale(${controls.zoom / 100}) rotate(${controls.rotation}deg)`,
+            transition: 'transform 0.3s ease'
+        };
     };
 
-    const handleZoomOut = (id: string) => {
-        setVideoControls(prev => {
-            const currentZoom = prev[id]?.zoom || 1;
-            return {
-                ...prev,
-                [id]: {
-                    ...prev[id],
-                    zoom: Math.max(currentZoom - 0.2, 0.5)
-                }
-            };
-        });
-    };
-
-    const handleRotate = (id: string) => {
+    const handleZoomIn = (videoId: string) => {
         setVideoControls(prev => ({
             ...prev,
-            [id]: {
-                ...prev[id],
-                rotation: ((prev[id]?.rotation || 0) + 90) % 360
+            [videoId]: {
+                ...prev[videoId] || { rotation: 0 },
+                zoom: Math.min((prev[videoId]?.zoom || 100) + 10, 200)
             }
         }));
     };
 
-    const handleFullScreen = (id: string) => {
-        const element = document.getElementById(id)?.parentElement;
-        if (element?.requestFullscreen) {
-            element.requestFullscreen();
-        } else if ((element as any)?.webkitRequestFullscreen) {
-            (element as any).webkitRequestFullscreen();
-        } else if ((element as any)?.msRequestFullscreen) {
-            (element as any).msRequestFullscreen();
-        }
+    const handleZoomOut = (videoId: string) => {
+        setVideoControls(prev => ({
+            ...prev,
+            [videoId]: {
+                ...prev[videoId] || { rotation: 0 },
+                zoom: Math.max((prev[videoId]?.zoom || 100) - 10, 50)
+            }
+        }));
     };
 
-    const getVideoStyle = (id: string) => {
-        const controls = videoControls[id] || { zoom: 1, rotation: 0 };
-        return {
-            transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`,
-            transition: 'transform 0.3s ease',
-            transformOrigin: 'center',
-            width: '100%',
-            height: '100%'
-        };
+    const handleRotate = (videoId: string) => {
+        setVideoControls(prev => ({
+            ...prev,
+            [videoId]: {
+                ...prev[videoId] || { zoom: 100 },
+                rotation: ((prev[videoId]?.rotation || 0) + 90) % 360
+            }
+        }));
+    };
+
+    const handleFullScreen = (videoId: string) => {
+        const element = document.getElementById(videoId)?.parentElement;
+        if (!element) return;
+
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else {
+            element.requestFullscreen();
+        }
     };
 
     if (loading) {
@@ -455,15 +443,19 @@ export default function LiveMonitoring() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-2">
-                        {SAMPLE_STREAMS.map((streamUrl, index) => {
-                            const videoId = `mse-video-${index + 1}`;
+                    <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {RTSP_STREAMS.map((streamUrl, index) => {
+                            const videoId = `video-${index + 1}`;
                             return (
-                                <div key={index} className="aspect-video relative bg-gray-900 rounded-lg overflow-hidden group">
+                                <div 
+                                    key={index} 
+                                    className="aspect-video relative dark:bg-gray-800 rounded-lg overflow-hidden group bg-black"
+                                >
                                     <div className="relative w-full h-full">
                                         <RTSPStream
                                             id={videoId}
                                             streamUrl={streamUrl}
+                                            fallbackIndex={index}
                                             style={getVideoStyle(videoId)}
                                         />
                                         <VideoControls
@@ -472,7 +464,6 @@ export default function LiveMonitoring() {
                                             onRotate={() => handleRotate(videoId)}
                                             onFullScreen={() => handleFullScreen(videoId)}
                                         />
-                                        
                                         <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/50 to-transparent">
                                             <div className="flex items-center justify-between text-white">
                                                 <span className="text-sm font-medium">Camera {index + 1}</span>

@@ -25,6 +25,8 @@ import { Toaster } from 'react-hot-toast';
 import AddPerson from './components/suspect/AddPerson';
 import HelpPage from './components/help/HelpPage';
 import TawkChat from './components/chat/TawkChat';
+import HelpSupport from './components/settings/HelpSupport';
+import { ThemeProvider } from './context/themeContext';
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -43,7 +45,7 @@ function App() {
   }
 
   return (
-    <>
+    <ThemeProvider>
       <Toaster
         position="top-center"
         reverseOrder={false}
@@ -91,6 +93,7 @@ function App() {
                   <Route path="/person/:id" element={<PersonDetails />} />
                   <Route path="/tutorial" element={<TutorialTraining />} />
                   <Route path="/help" element={<HelpPage />} />
+                  <Route path="/settings/help-support" element={<HelpSupport />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </main>
@@ -98,8 +101,8 @@ function App() {
           </div>
         </div>
       </Router>
-      <TawkChat />
-    </>
+      {/* <TawkChat /> */}
+    </ThemeProvider>
   );
 }
 

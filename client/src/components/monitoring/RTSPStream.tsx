@@ -1,18 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { getFallbackStream } from '../../utils/streamUtils';
 
 interface RTSPStreamProps {
     streamUrl: string;
     id: string;
     style?: React.CSSProperties;
+    fallbackIndex?: number;
 }
 
-export default function RTSPStream({ streamUrl, id, style }: RTSPStreamProps) {
+export default function RTSPStream({ streamUrl, id, style, fallbackIndex = 0 }: RTSPStreamProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const mseQueueRef = useRef<ArrayBuffer[]>([]);
     const mseSourceBufferRef = useRef<SourceBuffer | null>(null);
     const mseStreamingStartedRef = useRef<boolean>(false);
     const mediaSourceRef = useRef<MediaSource | null>(null);
     const webSocketRef = useRef<WebSocket | null>(null);
+    const [useFallback, setUseFallback] = useState(false);
+    const fallbackUrl = getFallbackStream(fallbackIndex);
 
     const pushPacket = () => {
         if (!mseSourceBufferRef.current || !mseQueueRef.current.length) return;
@@ -48,11 +52,45 @@ export default function RTSPStream({ streamUrl, id, style }: RTSPStreamProps) {
         }
     };
 
+    const checkStreamAvailability = async (url: string) => {
+        try {
+            const ws = new WebSocket(url);
+            
+            return new Promise((resolve) => {
+                ws.onopen = () => {
+                    ws.close();
+                    resolve(true);
+                };
+                
+                ws.onerror = () => {
+                    console.log('Stream unavailable, using fallback');
+                    resolve(false);
+                };
+                
+                // Timeout after 5 seconds
+                setTimeout(() => {
+                    ws.close();
+                    resolve(false);
+                }, 5000);
+            });
+        } catch (error) {
+            console.error('Error checking stream:', error);
+            return false;
+        }
+    };
+
     useEffect(() => {
         let mounted = true;
 
-        const startPlay = () => {
-            if (!videoRef.current || !mounted) return;
+        const initializeStream = async () => {
+            const isStreamAvailable = await checkStreamAvailability(streamUrl);
+            
+            if (!mounted) return;
+
+            if (!isStreamAvailable) {
+                setUseFallback(true);
+                return;
+            }
 
             try {
                 const mse = new MediaSource();
@@ -107,7 +145,7 @@ export default function RTSPStream({ streamUrl, id, style }: RTSPStreamProps) {
             }
         };
 
-        startPlay();
+        initializeStream();
 
         return () => {
             mounted = false;
@@ -146,8 +184,46 @@ export default function RTSPStream({ streamUrl, id, style }: RTSPStreamProps) {
         };
     }, [streamUrl]);
 
+    useEffect(() => {
+        const videoEl = videoRef.current;
+        if (!videoEl) return;
+
+        const handleError = () => {
+            console.log('Stream error, switching to fallback');
+            setUseFallback(true);
+        };
+
+        videoEl.addEventListener('error', handleError);
+        return () => videoEl.removeEventListener('error', handleError);
+    }, []);
+
+    if (useFallback) {
+        return (
+            <div className="relative w-full h-full overflow-hidden" id={`container-${id}`}>
+                <video
+                    ref={videoRef}
+                    id={id}
+                    src={fallbackUrl}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    style={{
+                        ...style,
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                        transition: 'transform 0.3s ease',
+                        transformOrigin: 'center'
+                    }}
+                />
+            </div>
+        );
+    }
+
     return (
-        <div className="relative w-full h-full overflow-hidden">
+        <div className="relative w-full h-full overflow-hidden" id={`container-${id}`}>
             <video
                 ref={videoRef}
                 id={id}
