@@ -70,7 +70,7 @@ export default function AddSuspect() {
                 <h1 className="text-2xl font-bold mb-6">Add New Suspect</h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="bg-white rounded-lg shadow p-6">
+                    <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800 dark:text-gray-300">
                         <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -81,7 +81,7 @@ export default function AddSuspect() {
                                     name="firstName"
                                     value={formData.firstName}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300"
                                     required
                                 />
                             </div>

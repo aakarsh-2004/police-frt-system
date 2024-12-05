@@ -6,15 +6,18 @@ import { ThemeProvider } from './context/themeContext.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { LanguageProvider } from './context/LanguageContext'
 import './i18n'
+import { NotificationProvider } from './context/NotificationContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <AuthProvider>
-      <LanguageProvider>
-        <ThemeProvider>
-          <App />
-        </ThemeProvider>
-      </LanguageProvider>
+      <NotificationProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <App />
+          </ThemeProvider>
+        </LanguageProvider>
+      </NotificationProvider>
     </AuthProvider>
   </React.StrictMode>,
 )

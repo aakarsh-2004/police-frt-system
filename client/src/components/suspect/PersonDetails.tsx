@@ -85,6 +85,9 @@ export default function PersonDetails() {
         status: ''
     });
 
+    // Add loading state
+    const [isSaving, setIsSaving] = useState(false);
+
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -153,42 +156,22 @@ export default function PersonDetails() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!person) return;
+        setIsSaving(true); // Start loading
 
         try {
             const formDataToSend = new FormData();
             
-            // Add basic fields using formData (edited values) instead of person (original values)
-            formDataToSend.append('firstName', formData.firstName);
-            formDataToSend.append('lastName', formData.lastName);
-            formDataToSend.append('age', formData.age);
-            formDataToSend.append('dateOfBirth', formData.dateOfBirth);
-            formDataToSend.append('address', formData.address);
-            formDataToSend.append('gender', formData.gender);
-            formDataToSend.append('email', formData.email);
-            formDataToSend.append('phone', formData.phone);
-            formDataToSend.append('nationality', formData.nationality);
-            formDataToSend.append('nationalId', formData.nationalId);
-            
-            // Add the image if selected
+            // Add all form fields to FormData
+            Object.keys(formData).forEach(key => {
+                formDataToSend.append(key, formData[key]);
+            });
+
             if (uploadedImage) {
                 formDataToSend.append('personImageUrl', uploadedImage);
-                console.log('Appending image:', uploadedImage);
-            }
-
-            // Add type-specific fields
-            if (person.type === 'suspect' && formData.riskLevel) {
-                formDataToSend.append('riskLevel', formData.riskLevel);
-            }
-
-            // Log the form data for debugging
-            console.log('Form data entries:');
-            for (let [key, value] of formDataToSend.entries()) {
-                console.log(key, ':', value);
             }
 
             const response = await axios.put(
-                `${config.apiUrl}/api/persons/${person.id}`,
+                `${config.apiUrl}/api/persons/${id}`,
                 formDataToSend,
                 {
                     headers: {
@@ -202,11 +185,13 @@ export default function PersonDetails() {
                 setIsEditing(false);
                 setUploadedImage(null);
                 toast.success('Person details updated successfully');
-                navigate(`/suspects`);
             }
         } catch (error: any) {
             console.error('Error updating person:', error);
             toast.error(error.response?.data?.message || 'Failed to update person details');
+        } finally {
+            setIsSaving(false); // End loading
+            navigate(`/suspects`);
         }
     }; 
 
@@ -248,7 +233,7 @@ export default function PersonDetails() {
                             type="text"
                             value={formData.firstName}
                             onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
                     <div>
@@ -257,7 +242,7 @@ export default function PersonDetails() {
                             type="text"
                             value={formData.lastName}
                             onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
                 </div>
@@ -269,7 +254,7 @@ export default function PersonDetails() {
                             type="number"
                             value={formData.age}
                             onChange={(e) => setFormData({...formData, age: e.target.value})}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
                     <div>
@@ -278,7 +263,7 @@ export default function PersonDetails() {
                             type="date"
                             value={formData.dateOfBirth}
                             onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
                 </div>
@@ -289,7 +274,7 @@ export default function PersonDetails() {
                         <select
                             value={formData.riskLevel}
                             onChange={(e) => setFormData({...formData, riskLevel: e.target.value})}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-gray-300 dark:border-gray-500"
                         >
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
@@ -306,7 +291,7 @@ export default function PersonDetails() {
                                 type="date"
                                 value={formData.lastSeenDate}
                                 onChange={(e) => setFormData({...formData, lastSeenDate: e.target.value})}
-                                className="w-full p-2 border rounded"
+                                className="w-full p-2 border rounded dark:bg-gray-800 dark:text-gray-300 dark:border-gray-500"
                             />
                         </div>
                         <div>
@@ -315,7 +300,7 @@ export default function PersonDetails() {
                                 type="text"
                                 value={formData.lastSeenLocation}
                                 onChange={(e) => setFormData({...formData, lastSeenLocation: e.target.value})}
-                                className="w-full p-2 border rounded"
+                                className="w-full p-2 border rounded dark:bg-gray-800 dark:text-gray-300 dark:border-gray-500"
                             />
                         </div>
                     </>
@@ -344,20 +329,36 @@ export default function PersonDetails() {
                     </div>
                 </div>
 
-                <div className="flex justify-end space-x-2">
-                    <button
-                        onClick={() => setIsEditing(false)}
-                        className="btn btn-secondary"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSubmit}
-                        className="btn btn-primary"
-                    >
-                        Save Changes
-                    </button>
-                </div>
+                {isEditing && (
+                    <div className="flex justify-end space-x-3 mt-4">
+                        <button
+                            type="button"
+                            onClick={() => setIsEditing(false)}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                            disabled={isSaving}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isSaving}
+                        >
+                            {isSaving ? (
+                                <span className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Saving...
+                                </span>
+                            ) : (
+                                'Save Changes'
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };
@@ -490,7 +491,7 @@ export default function PersonDetails() {
 
                         {/* Missing Person-specific Information */}
                         {person.type === 'missing-person' && person.missingPerson && (
-                            <div className="bg-white rounded-lg shadow-lg p-6">
+                            <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
                                 <h2 className="text-xl font-bold mb-4">Missing Person Details</h2>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>

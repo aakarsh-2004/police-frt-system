@@ -1,23 +1,38 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../lib/prisma";
-import { subMinutes } from "date-fns";
+import { subDays, startOfDay, endOfDay } from "date-fns";
 import createHttpError from "http-errors";
 
 export const getRecognitionStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const total = await prisma.recognizedPerson.count();
-        
-        const recentAlerts = await prisma.recognizedPerson.count({
-            where: {
-                capturedDateTime: {
-                    gte: subMinutes(new Date(), 30)
+        const isPreviousPeriod = req.query.period === 'previous';
+        const today = new Date();
+        const dateRange = {
+            gte: startOfDay(isPreviousPeriod ? subDays(today, 1) : today),
+            lt: endOfDay(isPreviousPeriod ? today : today)
+        };
+
+        const [totalDetections, successfulMatches] = await Promise.all([
+            prisma.recognizedPerson.count({
+                where: {
+                    capturedDateTime: dateRange
                 }
-            }
-        });
+            }),
+            prisma.recognizedPerson.count({
+                where: {
+                    capturedDateTime: dateRange,
+                    confidenceScore: {
+                        gte: '80'
+                    }
+                }
+            })
+        ]);
 
         res.json({
-            total,
-            recentAlerts
+            data: {
+                totalDetections,
+                successfulMatches
+            }
         });
     } catch (error) {
         next(createHttpError(500, "Error fetching recognition stats: " + error));
@@ -26,10 +41,23 @@ export const getRecognitionStats = async (req: Request, res: Response, next: Nex
 
 export const getPersonStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const total = await prisma.person.count();
+        const isPreviousPeriod = req.query.period === 'previous';
+        const today = new Date();
+        const dateRange = {
+            gte: startOfDay(isPreviousPeriod ? subDays(today, 1) : today),
+            lt: endOfDay(isPreviousPeriod ? today : today)
+        };
+
+        const total = await prisma.person.count({
+            where: {
+                createdAt: dateRange
+            }
+        });
         
         res.json({
-            total
+            data: {
+                total
+            }
         });
     } catch (error) {
         next(createHttpError(500, "Error fetching person stats: " + error));

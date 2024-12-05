@@ -17,6 +17,7 @@ const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
 const node_fs_1 = __importDefault(require("node:fs"));
+const notificationController_1 = require("../notification/notificationController");
 const getAllPersons = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const persons = yield prisma_1.prisma.person.findMany({
@@ -113,6 +114,7 @@ const createPerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                 missingPerson: true
             }
         });
+        yield (0, notificationController_1.createNotification)(`New ${data.type} ${data.firstName} ${data.lastName} has been added`, 'NEW_PERSON');
         res.status(201).json({
             message: "Person created successfully",
             data: person

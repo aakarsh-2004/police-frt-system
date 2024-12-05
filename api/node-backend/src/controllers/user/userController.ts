@@ -6,6 +6,7 @@ import cloudinary from "../../config/cloudinary";
 import bcrypt from 'bcrypt';
 import fs from "node:fs";
 import { OTPService } from "../../services/otpService";
+import { createNotification } from '../notification/notificationController';
 
 const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -113,6 +114,11 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
 
         // Remove password from response
         const { password: _, ...userWithoutPassword } = user;
+
+        await createNotification(
+            `New user ${firstName} ${lastName} has been created`,
+            'NEW_USER'
+        );
 
         res.status(201).json({
             message: "User created successfully",

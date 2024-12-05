@@ -15,4 +15,5 @@ recognitionRouter.get('/recent', recognitionController_1.getRecentRecognitions);
 recognitionRouter.post('/', upload.single('capturedImage'), recognitionController_1.addRecognition);
 recognitionRouter.get('/report', recognitionController_1.getAllRecognitionsForReport);
 recognitionRouter.get('/stats', recognitionController_1.getRecognitionStats);
+recognitionRouter.post('/share', recognitionController_1.shareDetection);
 exports.default = recognitionRouter;

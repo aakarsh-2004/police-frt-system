@@ -10,28 +10,28 @@ export default function Stats() {
         {
             label: t('dashboard.stats.totalDetections'),
             value: loading ? '...' : stats.totalDetections.toLocaleString(),
-            change: t('dashboard.stats.change.increase', { value: 12.5 }),
+            change: stats.changes.detections,
             icon: UserCheck,
             color: 'blue'
         },
         {
             label: t('dashboard.stats.successfulMatches'),
             value: loading ? '...' : stats.successfulMatches.toLocaleString(),
-            change: t('dashboard.stats.change.decrease', { value: 5 }),
+            change: stats.changes.matches,
             icon: AlertTriangle,
             color: 'red'
         },
         {
             label: t('dashboard.stats.databaseEntries'),
             value: loading ? '...' : stats.databaseEntries.toLocaleString(),
-            change: t('dashboard.stats.change.increase', { value: 235 }),
+            change: stats.changes.entries,
             icon: Database,
             color: 'green'
         },
         {
             label: t('dashboard.stats.activeCameras'),
             value: loading ? '...' : stats.activeCameras.toLocaleString(),
-            change: t('dashboard.stats.change.increase', { value: 3 }),
+            change: stats.changes.cameras,
             icon: Camera,
             color: 'amber'
         }
@@ -52,8 +52,12 @@ export default function Stats() {
                         <div className={`p-2 rounded-lg bg-${stat.color}-100 dark:bg-${stat.color}-900/20`}>
                             <stat.icon className={`w-5 h-5 text-${stat.color}-600 dark:text-${stat.color}-400`} />
                         </div>
-                        <span className={`text-sm font-medium ${stat.change.startsWith('+') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {stat.change}
+                        <span className={`text-sm font-medium ${
+                            stat.change > 0 
+                                ? 'text-green-600 dark:text-green-400' 
+                                : 'text-red-600 dark:text-red-400'
+                        }`}>
+                            {stat.change > 0 ? '+' : ''}{stat.change}%
                         </span>
                     </div>
 

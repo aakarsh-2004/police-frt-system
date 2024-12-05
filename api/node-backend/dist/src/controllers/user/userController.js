@@ -31,6 +31,7 @@ const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const node_fs_1 = __importDefault(require("node:fs"));
 const otpService_1 = require("../../services/otpService");
+const notificationController_1 = require("../notification/notificationController");
 const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const users = yield prisma_1.prisma.user.findMany({
@@ -120,6 +121,7 @@ const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         });
         // Remove password from response
         const { password: _ } = user, userWithoutPassword = __rest(user, ["password"]);
+        yield (0, notificationController_1.createNotification)(`New user ${firstName} ${lastName} has been created`, 'NEW_USER');
         res.status(201).json({
             message: "User created successfully",
             data: userWithoutPassword

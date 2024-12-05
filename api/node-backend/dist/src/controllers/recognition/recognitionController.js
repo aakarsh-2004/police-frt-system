@@ -12,13 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getRecognitionStats = exports.getAllRecognitionsForReport = exports.addRecognition = exports.getRecentRecognitions = void 0;
+exports.shareDetection = exports.getRecognitionStats = exports.getAllRecognitionsForReport = exports.addRecognition = exports.getRecentRecognitions = void 0;
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
 const fs_1 = __importDefault(require("fs"));
 const date_fns_1 = require("date-fns");
 const json2csv_1 = require("json2csv");
+const nodemailer_1 = __importDefault(require("nodemailer"));
 const getRecentRecognitions = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
@@ -222,3 +223,43 @@ const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0
     }
 });
 exports.getRecognitionStats = getRecognitionStats;
+const shareDetection = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { to, personName, location, time, storedImage, capturedImage } = req.body;
+    try {
+        // Configure email transporter
+        const transporter = nodemailer_1.default.createTransport({
+            // Configure your email service
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+        // Create email content
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to,
+            subject: `Detection Alert: ${personName}`,
+            html: `
+                <h2>Detection Alert</h2>
+                <p><strong>${personName}</strong> was detected at <strong>${location}</strong> on ${time}</p>
+                <div style="margin: 20px 0;">
+                    <div style="margin-bottom: 10px;">
+                        <p style="margin-bottom: 5px;"><strong>Stored Image:</strong></p>
+                        <img src="${storedImage}" alt="Stored Image" style="max-width: 300px; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <p style="margin-bottom: 5px;"><strong>Detection Capture:</strong></p>
+                        <img src="${capturedImage}" alt="Detection Capture" style="max-width: 300px; border-radius: 4px;">
+                    </div>
+                </div>
+            `,
+        };
+        yield transporter.sendMail(mailOptions);
+        res.json({ message: 'Detection shared successfully' });
+    }
+    catch (error) {
+        next((0, http_errors_1.default)(500, "Error sharing detection: " + error));
+    }
+});
+exports.shareDetection = shareDetection;

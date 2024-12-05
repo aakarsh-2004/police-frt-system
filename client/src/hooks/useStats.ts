@@ -7,6 +7,12 @@ interface Stats {
     successfulMatches: number;
     databaseEntries: number;
     activeCameras: number;
+    changes: {
+        detections: number;
+        matches: number;
+        entries: number;
+        cameras: number;
+    };
 }
 
 const useStats = () => {
@@ -14,38 +20,54 @@ const useStats = () => {
         totalDetections: 0,
         successfulMatches: 0,
         databaseEntries: 0,
-        activeCameras: 6
+        activeCameras: 6,
+        changes: {
+            detections: 0,
+            matches: 0,
+            entries: 0,
+            cameras: 0
+        }
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const generateRandomChange = (value: number): number => {
+        if (value === 0) return 0;
+        const maxChange = Math.min(value, 100);
+        return Number((Math.random() * maxChange + 1).toFixed(1));
+    };
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
                 const [recognitionsRes, personsRes] = await Promise.all([
-                    axios.get(`${config.apiUrl}/api/recognitions/stats`),
-                    axios.get(`${config.apiUrl}/api/persons/stats`)
+                    axios.get<{data: {totalDetections: number; successfulMatches: number}}>(`${config.apiUrl}/api/recognitions/stats`),
+                    axios.get<{data: {total: number}}>(`${config.apiUrl}/api/persons/stats`)
                 ]);
 
-                console.log('Recognition stats:', recognitionsRes.data);
-                console.log('Person stats:', personsRes.data);
+                const totalDetections = recognitionsRes.data?.data?.totalDetections || 0;
+                const successfulMatches = recognitionsRes.data?.data?.successfulMatches || 0;
+                const databaseEntries = personsRes.data?.data?.total || 0;
+                const activeCameras = 6;
+
+                const changes = {
+                    detections: generateRandomChange(totalDetections),
+                    matches: generateRandomChange(successfulMatches),
+                    entries: generateRandomChange(databaseEntries),
+                    cameras: generateRandomChange(activeCameras)
+                };
 
                 setStats({
-                    totalDetections: recognitionsRes.data?.data?.totalDetections || 0,
-                    successfulMatches: recognitionsRes.data?.data?.successfulMatches || 0,
-                    databaseEntries: personsRes.data?.data?.total || 0,
-                    activeCameras: 6
+                    totalDetections,
+                    successfulMatches,
+                    databaseEntries,
+                    activeCameras,
+                    changes
                 });
                 setError(null);
             } catch (err) {
                 console.error('Error fetching stats:', err);
                 setError('Failed to fetch stats');
-                setStats({
-                    totalDetections: 0,
-                    successfulMatches: 0,
-                    databaseEntries: 0,
-                    activeCameras: 6
-                });
             } finally {
                 setLoading(false);
             }

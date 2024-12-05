@@ -14,6 +14,7 @@ const requestRoutes_1 = __importDefault(require("./routes/request/requestRoutes"
 const recognitionRoutes_1 = __importDefault(require("./routes/recognition/recognitionRoutes"));
 const cameraRoutes_1 = __importDefault(require("./routes/camera/cameraRoutes"));
 const alertRoutes_1 = __importDefault(require("./routes/alert/alertRoutes"));
+const notificationRoutes_1 = __importDefault(require("./routes/notification/notificationRoutes"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -33,5 +34,6 @@ app.use('/api/requests', requestRoutes_1.default);
 app.use('/api/recognitions', recognitionRoutes_1.default);
 app.use('/api/cameras', cameraRoutes_1.default);
 app.use('/api/alerts', alertRoutes_1.default);
+app.use('/api/notifications', notificationRoutes_1.default);
 app.use(errorHandler_1.errorHandler);
 exports.default = app;

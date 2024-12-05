@@ -3,11 +3,12 @@ import { X } from 'lucide-react';
 
 interface CreatePersonModalProps {
     onClose: () => void;
-    onSubmit: (formData: FormData) => void;
+    onSubmit: (formData: FormData) => Promise<void>;
     type: 'suspect' | 'missing-person';
+    isSubmitting: boolean;
 }
 
-export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePersonModalProps) {
+export default function CreatePersonModal({ onClose, onSubmit, type, isSubmitting }: CreatePersonModalProps) {
     const [image, setImage] = useState<File | null>(null);
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,12 +51,12 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto dark:bg-gray-800 dark:text-gray-300">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold">
                         Add New {type === 'suspect' ? 'Suspect' : 'Missing Person'}
                     </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-700">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -68,7 +69,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                                 type="text"
                                 name="firstName"
                                 required
-                                className="w-full p-2 border rounded"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                             />
                         </div>
                         <div>
@@ -77,7 +78,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                                 type="text"
                                 name="lastName"
                                 required
-                                className="w-full p-2 border rounded"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                             />
                         </div>
                     </div>
@@ -89,12 +90,12 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                                 type="number"
                                 name="age"
                                 required
-                                className="w-full p-2 border rounded"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Gender</label>
-                            <select name="gender" required className="w-full p-2 border rounded">
+                            <select name="gender" required className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500">
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
                                 <option value="other">Other</option>
@@ -108,7 +109,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                             type="date"
                             name="dateOfBirth"
                             required
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
 
@@ -117,7 +118,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                         <input
                             type="email"
                             name="email"
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
 
@@ -126,7 +127,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                         <input
                             type="tel"
                             name="phone"
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
 
@@ -135,7 +136,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                         <textarea
                             name="address"
                             required
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                             rows={3}
                         />
                     </div>
@@ -148,14 +149,14 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                             accept="image/*"
                             required
                             onChange={(e) => setImage(e.target.files?.[0] || null)}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                         />
                     </div>
 
                     {type === 'suspect' && (
                         <div>
                             <label className="block text-sm font-medium mb-1">Risk Level</label>
-                            <select name="riskLevel" required className="w-full p-2 border rounded">
+                            <select name="riskLevel" required className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500">
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
                                 <option value="high">High</option>
@@ -171,7 +172,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                                     type="datetime-local"
                                     name="lastSeenDate"
                                     required
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                                 />
                             </div>
                             <div>
@@ -180,7 +181,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                                     type="text"
                                     name="lastSeenLocation"
                                     required
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                                 />
                             </div>
                             <div>
@@ -189,7 +190,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                                     type="text"
                                     name="reportBy"
                                     required
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                                 />
                             </div>
                         </>
@@ -201,7 +202,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                             <input
                                 type="text"
                                 name="nationalId"
-                                className="w-full p-2 border rounded"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                             />
                         </div>
                         <div>
@@ -209,7 +210,7 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                             <input
                                 type="text"
                                 name="nationality"
-                                className="w-full p-2 border rounded"
+                                className="w-full p-2 border rounded dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500"
                             />
                         </div>
                     </div>
@@ -219,14 +220,26 @@ export default function CreatePersonModal({ onClose, onSubmit, type }: CreatePer
                             type="button"
                             onClick={onClose}
                             className="btn btn-secondary"
+                            disabled={isSubmitting}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             className="btn btn-primary"
+                            disabled={isSubmitting}
                         >
-                            Create {type === 'suspect' ? 'Suspect' : 'Missing Person'}
+                            {isSubmitting ? (
+                                <span className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Creating...
+                                </span>
+                            ) : (
+                                `Create ${type === 'suspect' ? 'Suspect' : 'Missing Person'}`
+                            )}
                         </button>
                     </div>
                 </form>

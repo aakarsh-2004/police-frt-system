@@ -9,6 +9,7 @@ import requestRouter from "./routes/request/requestRoutes";
 import recognitionRouter from "./routes/recognition/recognitionRoutes";
 import cameraRouter from "./routes/camera/cameraRoutes";
 import alertRouter from './routes/alert/alertRoutes';
+import notificationRouter from "./routes/notification/notificationRoutes";
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api/requests', requestRouter);
 app.use('/api/recognitions', recognitionRouter);
 app.use('/api/cameras', cameraRouter);
 app.use('/api/alerts', alertRouter);
+app.use('/api/notifications', notificationRouter);
 
 app.use(errorHandler);
 

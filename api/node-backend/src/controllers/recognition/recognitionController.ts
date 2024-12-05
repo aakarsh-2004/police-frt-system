@@ -5,6 +5,7 @@ import cloudinary from "../../config/cloudinary";
 import fs from "fs";
 import { subSeconds } from "date-fns";
 import { Parser } from 'json2csv';
+import nodemailer from 'nodemailer';
 
 export const getRecentRecognitions = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -234,5 +235,48 @@ export const getRecognitionStats = async (req: Request, res: Response, next: Nex
         });
     } catch (error) {
         next(createHttpError(500, "Error fetching recognition stats: " + error));
+    }
+};
+
+export const shareDetection = async (req: Request, res: Response, next: NextFunction) => {
+    const { to, personName, location, time, storedImage, capturedImage } = req.body;
+
+    try {
+        // Configure email transporter
+        const transporter = nodemailer.createTransport({
+            // Configure your email service
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        // Create email content
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to,
+            subject: `Detection Alert: ${personName}`,
+            html: `
+                <h2>Detection Alert</h2>
+                <p><strong>${personName}</strong> was detected at <strong>${location}</strong> on ${time}</p>
+                <div style="margin: 20px 0;">
+                    <div style="margin-bottom: 10px;">
+                        <p style="margin-bottom: 5px;"><strong>Stored Image:</strong></p>
+                        <img src="${storedImage}" alt="Stored Image" style="max-width: 300px; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <p style="margin-bottom: 5px;"><strong>Detection Capture:</strong></p>
+                        <img src="${capturedImage}" alt="Detection Capture" style="max-width: 300px; border-radius: 4px;">
+                    </div>
+                </div>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.json({ message: 'Detection shared successfully' });
+    } catch (error) {
+        next(createHttpError(500, "Error sharing detection: " + error));
     }
 }; 

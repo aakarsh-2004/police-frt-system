@@ -4,6 +4,7 @@ import path from "node:path";
 import createHttpError from "http-errors";
 import cloudinary from "../../config/cloudinary";
 import fs from "node:fs";
+import { createNotification } from '../notification/notificationController';
 
 const getAllPersons = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -120,6 +121,11 @@ const createPerson = async (req: Request, res: Response, next: NextFunction) => 
                 missingPerson: true
             }
         });
+
+        await createNotification(
+            `New ${data.type} ${data.firstName} ${data.lastName} has been added`,
+            'NEW_PERSON'
+        );
 
         res.status(201).json({
             message: "Person created successfully",

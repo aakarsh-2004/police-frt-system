@@ -27,6 +27,7 @@ import HelpPage from './components/help/HelpPage';
 import TawkChat from './components/chat/TawkChat';
 import HelpSupport from './components/settings/HelpSupport';
 import { ThemeProvider } from './context/themeContext';
+import NewLoginPage from './components/auth/NewLoginPage';
 
 function App() {
   const { user, isLoading } = useAuth();

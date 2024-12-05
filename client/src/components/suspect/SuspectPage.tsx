@@ -50,6 +50,7 @@ export default function SuspectsPage() {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchPersons = useCallback(async () => {
         try {
@@ -74,21 +75,18 @@ export default function SuspectsPage() {
 
     const handleCreatePerson = async (formData: FormData) => {
         try {
-            const response = await axios.post(`${config.apiUrl}/api/persons`, formData, {
+            setIsSubmitting(true);
+            await axios.post(`${config.apiUrl}/api/persons`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
-            if (user?.role !== 'admin') {
-                toast.success('Request submitted successfully. Waiting for admin approval.');
-            } else {
-                toast.success('Person created successfully');
-            }
-
             fetchPersons();
             setShowCreateModal(false);
+            toast.success('Person created successfully');
         } catch (err) {
             console.error('Error creating person:', err);
             toast.error('Failed to create person');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -231,6 +229,7 @@ export default function SuspectsPage() {
                     onClose={() => setShowCreateModal(false)}
                     onSubmit={handleCreatePerson}
                     type={currentView === 'suspects' ? 'suspect' : 'missing-person'}
+                    isSubmitting={isSubmitting}
                 />
             )}
         </div>

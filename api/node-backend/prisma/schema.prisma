@@ -78,7 +78,7 @@ model RecognizedPerson {
   capturedDateTime DateTime @default(now())
   capturedImageUrl String
   confidenceScore  String
-  videoUrl         String?
+  videos           Videos[]
 }
 
 model User {
@@ -126,4 +126,24 @@ model Requests {
   imageData    String?
   createdAt    DateTime @default(now())
   approvedAt   DateTime @updatedAt
+}
+
+model Videos {
+  id                 String           @id @default(uuid())
+  videoUrl           String
+  videoDescription   String?
+  videoDate          DateTime
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  recognizedPersonId String
+  recognizedPerson   RecognizedPerson @relation(fields: [recognizedPersonId], references: [id])
+}
+
+model Notification {
+    id          String    @id @default(uuid())
+    message     String
+    type        String    // 'NEW_USER', 'NEW_SUSPECT', etc.
+    read        Boolean   @default(false)
+    createdAt   DateTime  @default(now())
+    readBy      String[]  // Array of user IDs who have read this notification
 }

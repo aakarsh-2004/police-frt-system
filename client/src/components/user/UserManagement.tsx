@@ -4,6 +4,7 @@ import axios from 'axios';
 import config from '../../config/config';
 import { useAuth } from '../../context/AuthContext';
 import UserFormModal from './UserFormModal';
+import { toast } from 'react-hot-toast';
 
 interface User {
     id: string;
@@ -79,6 +80,38 @@ export default function UserManagement() {
         } catch (err) {
             console.error('Error deleting user:', err);
             setError('Failed to delete user');
+        }
+    };
+
+    const handleSubmit = async (id: string, formData: FormData) => {
+        try {
+            if (id) {
+                // Update existing user
+                await axios.put(`${config.apiUrl}/api/users/${id}`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                toast.success('User updated successfully');
+            } else {
+                // Create new user
+                await axios.post(`${config.apiUrl}/api/users`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                toast.success('User created successfully');
+            }
+            // Refresh user list
+            fetchUsers();
+            setShowCreateModal(false);
+        } catch (error) {
+            console.error('Error submitting user form:', error);
+            if (axios.isAxiosError(error)) {
+                toast.error(error.response?.data?.message || 'Failed to process user');
+            } else {
+                toast.error('An unexpected error occurred');
+            }
         }
     };
 

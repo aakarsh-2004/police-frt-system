@@ -18,17 +18,32 @@ const date_fns_1 = require("date-fns");
 const http_errors_1 = __importDefault(require("http-errors"));
 const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const total = yield prisma_1.prisma.recognizedPerson.count();
-        const recentAlerts = yield prisma_1.prisma.recognizedPerson.count({
-            where: {
-                capturedDateTime: {
-                    gte: (0, date_fns_1.subMinutes)(new Date(), 30)
+        const isPreviousPeriod = req.query.period === 'previous';
+        const today = new Date();
+        const dateRange = {
+            gte: (0, date_fns_1.startOfDay)(isPreviousPeriod ? (0, date_fns_1.subDays)(today, 1) : today),
+            lt: (0, date_fns_1.endOfDay)(isPreviousPeriod ? today : today)
+        };
+        const [totalDetections, successfulMatches] = yield Promise.all([
+            prisma_1.prisma.recognizedPerson.count({
+                where: {
+                    capturedDateTime: dateRange
                 }
-            }
-        });
+            }),
+            prisma_1.prisma.recognizedPerson.count({
+                where: {
+                    capturedDateTime: dateRange,
+                    confidenceScore: {
+                        gte: '80'
+                    }
+                }
+            })
+        ]);
         res.json({
-            total,
-            recentAlerts
+            data: {
+                totalDetections,
+                successfulMatches
+            }
         });
     }
     catch (error) {
@@ -38,9 +53,21 @@ const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0
 exports.getRecognitionStats = getRecognitionStats;
 const getPersonStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const total = yield prisma_1.prisma.person.count();
+        const isPreviousPeriod = req.query.period === 'previous';
+        const today = new Date();
+        const dateRange = {
+            gte: (0, date_fns_1.startOfDay)(isPreviousPeriod ? (0, date_fns_1.subDays)(today, 1) : today),
+            lt: (0, date_fns_1.endOfDay)(isPreviousPeriod ? today : today)
+        };
+        const total = yield prisma_1.prisma.person.count({
+            where: {
+                createdAt: dateRange
+            }
+        });
         res.json({
-            total
+            data: {
+                total
+            }
         });
     }
     catch (error) {

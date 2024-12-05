@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import config from '../../config/config';
+import NotificationDropdown from '../notification/NotificationDropdown';
 
 interface SearchResult {
     id: string;
@@ -214,13 +215,7 @@ export default function Navbar() {
                             <HelpCircle className="w-6 h-6" />
                         </button>
 
-                        <div className="relative">
-                            <button className="hover:text-amber-400 transition-colors">
-                                <Bell className="w-6 h-6" />
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full w-4 h-4 
-                                flex items-center justify-center">3</span>
-                            </button>
-                        </div>
+                        <NotificationDropdown />
 
                         <button 
                             onClick={toggleLanguage}
