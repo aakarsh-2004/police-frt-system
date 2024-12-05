@@ -1,0 +1,87 @@
+{
+  "channel_defaults": {},
+  "server": {
+    "debug": true,
+    "http_debug": false,
+    "http_demo": true,
+    "http_dir": "web",
+    "http_login": "demo",
+    "http_password": "demo",
+    "http_port": ":8083",
+    "https": false,
+    "https_auto_tls": false,
+    "https_auto_tls_name": "",
+    "https_cert": "server.crt",
+    "https_key": "server.key",
+    "https_port": ":443",
+    "ice_credential": "",
+    "ice_servers": [
+      "stun:stun.l.google.com:19302"
+    ],
+    "ice_username": "",
+    "log_level": "debug",
+    "rtsp_port": ":5541",
+    "token": {
+      "backend": "http://127.0.0.1/test.php",
+      "enable": false
+    },
+    "webrtc_port_max": 0,
+    "webrtc_port_min": 0
+  },
+  "streams": {
+    "60d0b153-545b-43c1-97ec-797161af2038": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://admin:lnct@123@192.168.5.3:554/"
+        }
+      },
+      "name": "lnct2"
+    },
+    "94019b3f-4541-4100-ae81-bd7bc319e3c8": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://admin:lnct@123@192.168.5.7:554/"
+        }
+      },
+      "name": "lnct5"
+    },
+    "a52feeeb-8cc7-418b-ad88-ae757d5a6433": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://admin:lnct@123@192.168.5.31:554/"
+        }
+      },
+      "name": "lnct4"
+    },
+    "a8d21378-0eac-4db4-a9ff-d73d19054d5e": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://admin:lnct@123@192.168.5.5:554/"
+        }
+      },
+      "name": "lnct"
+    },
+    "c0220694-546b-49dd-8c77-93203ab904d5": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://admin:lnct@123@192.168.5.9:554/"
+        }
+      },
+      "name": "lnct3"
+    },
+    "f4604be9-bea2-44e1-af7c-609ae9a2f7c1": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://admin:lnct@123@192.168.5.4:554/"
+        }
+      },
+      "name": "lnct1"
+    }
+  }
+}

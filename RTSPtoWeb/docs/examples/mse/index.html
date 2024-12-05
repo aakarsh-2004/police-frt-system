@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>RTSPtoWeb MSE example</title>
+  </head>
+  <body>
+    <h1>RTSPtoWeb MSE example</h1>
+    
+    <!-- Input fields for both streams -->
+    <input type="hidden" name="mse-url" id="mse-url1"
+        value="ws://localhost:8083/stream/c0220694-546b-49dd-8c77-93203ab904d5/channel/0/mse?uuid=c0220694-546b-49dd-8c77-93203ab904d5&channel=0">
+    
+    <input type="hidden" name="mse-url" id="mse-url2"
+        value="ws://localhost:8083/stream/f4604be9-bea2-44e1-af7c-609ae9a2f7c1/channel/0/mse?uuid=f4604be9-bea2-44e1-af7c-609ae9a2f7c1&channel=0">
+
+    <!-- Video elements for both streams -->
+    <video id="mse-video1" autoplay muted playsinline controls
+        style="max-width: 40%; max-height: 40%;"></video>
+
+    <video id="mse-video2" autoplay muted playsinline controls
+        style="max-width: 40%; max-height: 40%;"></video>
+
+    <script src="main1.js"></script>
+  </body>
+</html>
