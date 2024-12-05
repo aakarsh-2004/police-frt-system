@@ -6,6 +6,8 @@ import axios from 'axios';
 import config from '../../config/config';
 import { toast } from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 export default function Settings() {
     const { user, logout } = useAuth();
@@ -20,7 +22,9 @@ export default function Settings() {
         designation: user?.designation || '',
         username: user?.username || ''
     });
-    const { currentLanguage } = useLanguage();
+    const { currentLanguage, changeLanguage } = useLanguage();
+    const { t } = useTranslation();
+    const navigate = useNavigate();
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -187,6 +191,12 @@ export default function Settings() {
         }
     };
 
+    const handleLanguageToggle = () => {
+        const newLanguage = currentLanguage === 'en' ? 'hi' : 'en';
+        changeLanguage(newLanguage);
+        toast.success(newLanguage === 'en' ? 'Language changed to English' : 'भाषा हिंदी में बदल दी गई है');
+    };
+
     return (
         <div className="max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold mb-8">
@@ -265,16 +275,27 @@ export default function Settings() {
                                 <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${isDarkMode ? 'translate-x-6' : 'translate-x-1'}`} />
                             </div>
                         </button>
-                        <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between">
+                        <button 
+                            onClick={handleLanguageToggle}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between"
+                        >
                             <div className="flex items-center">
                                 <Globe className="w-5 h-5 mr-3 text-gray-400" />
                                 <span>{currentLanguage === 'en' ? 'Language' : 'भाषा'}</span>
                             </div>
-                            <span className="text-sm text-gray-500">
-                                {currentLanguage === 'en' ? 'English' : 'हिंदी'}
-                            </span>
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm text-gray-500">
+                                    {currentLanguage === 'en' ? 'English' : 'हिंदी'}
+                                </span>
+                                <div className={`w-11 h-6 rounded-full transition-colors ${currentLanguage === 'hi' ? 'bg-amber-500' : 'bg-gray-200'} relative`}>
+                                    <div className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${currentLanguage === 'hi' ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </div>
+                            </div>
                         </button>
-                        <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between">
+                        <button 
+                            onClick={() => navigate('/help')}
+                            className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between"
+                        >
                             <div className="flex items-center">
                                 <HelpCircle className="w-5 h-5 mr-3 text-gray-400" />
                                 <span>{currentLanguage === 'en' ? 'Help & Support' : 'सहायता और समर्थन'}</span>

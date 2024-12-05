@@ -10,7 +10,9 @@ const _config = {
     JWT_SECRET: process.env.JWT_SECRET,
     cloudinaryCloud: process.env.CLOUDINARY_CLOUD,
     cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
-    cloudinarySecret: process.env.CLOUDINARY_API_SECRET
+    cloudinarySecret: process.env.CLOUDINARY_API_SECRET,
+    jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
+    jwtExpiresIn: '24h'
 }
 
 export const config = Object.freeze(_config);

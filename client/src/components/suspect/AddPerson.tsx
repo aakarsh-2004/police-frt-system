@@ -19,7 +19,12 @@ export default function AddPerson() {
         riskLevel: 'low',
         lastSeenDate: '',
         lastSeenLocation: '',
-        reportBy: ''
+        reportBy: '',
+        gender: 'male' as 'male' | 'female' | 'other',
+        email: '',
+        phone: '',
+        nationality: '',
+        nationalId: ''
     });
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -37,34 +42,31 @@ export default function AddPerson() {
         try {
             const submitData = new FormData();
             
-            // Format date to ISO string
-            const formattedDate = new Date(formData.dateOfBirth).toISOString();
-            
-            // Manually append basic fields
+            // Basic Information
             submitData.append('firstName', formData.firstName);
             submitData.append('lastName', formData.lastName);
             submitData.append('age', formData.age.toString());
-            submitData.append('dateOfBirth', formattedDate);
+            submitData.append('dateOfBirth', new Date(formData.dateOfBirth).toISOString());
             submitData.append('address', formData.address);
             submitData.append('type', formData.type);
-            submitData.append('status', 'active'); // Add status field
+            submitData.append('gender', formData.gender);
+            submitData.append('status', 'active');
 
-            // Append suspect-specific fields
+            // Contact and Identity Information
+            submitData.append('email', formData.email || '');
+            submitData.append('phone', formData.phone || '');
+            submitData.append('nationalId', formData.nationalId || '');
+            submitData.append('nationality', formData.nationality || '');
+
+            // Type-specific fields
             if (formData.type === 'suspect') {
-                submitData.append('riskLevel', formData.riskLevel);
-                // Add suspect-specific fields
                 submitData.append('suspect', JSON.stringify({
                     riskLevel: formData.riskLevel,
                     foundStatus: false
                 }));
             }
 
-            // Append missing person-specific fields
             if (formData.type === 'missing-person') {
-                submitData.append('lastSeenDate', formData.lastSeenDate);
-                submitData.append('lastSeenLocation', formData.lastSeenLocation);
-                submitData.append('reportBy', formData.reportBy);
-                // Add missing person-specific fields
                 submitData.append('missingPerson', JSON.stringify({
                     lastSeenDate: formData.lastSeenDate,
                     lastSeenLocation: formData.lastSeenLocation,
@@ -73,19 +75,19 @@ export default function AddPerson() {
                 }));
             }
 
-            // Append image if selected
+            // Image
             if (selectedImage) {
                 submitData.append('personImageUrl', selectedImage);
             }
 
-            // Debug: Log the data being sent
-            const formDataObject = {};
+            // Debug log
+            const formDataObject: Record<string, any> = {};
             submitData.forEach((value, key) => {
                 formDataObject[key] = value;
             });
             console.log('Sending data:', formDataObject);
 
-            const response = await axios.post<{ person: { id: string } }>(
+            const response = await axios.post<{ message: string; data: { id: string } }>(
                 `${config.apiUrl}/api/persons`,
                 submitData,
                 {
@@ -96,7 +98,7 @@ export default function AddPerson() {
             );
 
             toast.success(`${formData.type === 'suspect' ? 'Suspect' : 'Missing Person'} added successfully`);
-            navigate(`/person/${response.data.person.id}`);
+            navigate(`/person/${response.data.data.id}`);
         } catch (error) {
             console.error('Error adding person:', error);
             if (axios.isAxiosError(error)) {
@@ -156,6 +158,21 @@ export default function AddPerson() {
                                     className="w-full p-2 border rounded"
                                     required
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Gender</label>
+                                <select
+                                    name="gender"
+                                    value={formData.gender}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2 border rounded"
+                                    required
+                                >
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
                             </div>
 
                             <div>
@@ -248,7 +265,55 @@ export default function AddPerson() {
                                 </>
                             )}
 
-                            <div className="md:col-span-2">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="email@example.com"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Phone</label>
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="+91 XXXXX XXXXX"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">National ID</label>
+                                <input
+                                    type="text"
+                                    name="nationalId"
+                                    value={formData.nationalId}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="Enter National ID"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Nationality</label>
+                                <input
+                                    type="text"
+                                    name="nationality"
+                                    value={formData.nationality}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2 border rounded"
+                                    placeholder="Enter Nationality"
+                                />
+                            </div>
+
+                            <div className="md:col-span-2 mt-4">
                                 <label className="block text-sm font-medium mb-1">Profile Image</label>
                                 <div className="flex items-center space-x-4">
                                     {selectedImage && (

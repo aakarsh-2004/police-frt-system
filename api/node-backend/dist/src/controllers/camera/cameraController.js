@@ -56,7 +56,6 @@ const getCameraById = (req, res, next) => __awaiter(void 0, void 0, void 0, func
                 }
             }
         });
-        console.log("camera", camera);
         if (!camera) {
             throw (0, http_errors_1.default)(404, "Camera not found");
         }

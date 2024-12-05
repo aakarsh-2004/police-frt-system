@@ -68,34 +68,44 @@ const getPersonById = (req, res, next) => __awaiter(void 0, void 0, void 0, func
 });
 exports.getPersonById = getPersonById;
 const createPerson = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     try {
-        const files = req.files;
         const data = req.body;
+        const file = req.file || ((_b = (_a = req.files) === null || _a === void 0 ? void 0 : _a.personImageUrl) === null || _b === void 0 ? void 0 : _b[0]);
         console.log('Received data:', data);
-        console.log('Received files:', files);
+        console.log('Received files:', file);
         // Validate required fields
         if (!data.firstName || !data.lastName || !data.age || !data.dateOfBirth || !data.type) {
             throw (0, http_errors_1.default)(400, "Missing required fields");
         }
         let imageUrl = null;
-        if (files === null || files === void 0 ? void 0 : files.personImageUrl) {
-            const result = yield cloudinary_1.default.uploader.upload(files.personImageUrl[0].path, {
+        if (file) {
+            const result = yield cloudinary_1.default.uploader.upload(file.path, {
                 folder: 'person-images'
             });
             imageUrl = result.secure_url;
-            node_fs_1.default.unlinkSync(files.personImageUrl[0].path);
+            node_fs_1.default.unlinkSync(file.path);
         }
         // Parse the nested objects if they were stringified
         const suspectData = data.suspect ? JSON.parse(data.suspect) : null;
         const missingPersonData = data.missingPerson ? JSON.parse(data.missingPerson) : null;
         const person = yield prisma_1.prisma.person.create({
-            data: Object.assign(Object.assign({ firstName: data.firstName, lastName: data.lastName, age: parseInt(data.age), dateOfBirth: new Date(data.dateOfBirth), address: data.address, type: data.type, status: data.status || 'active', personImageUrl: imageUrl }, (data.type === 'suspect' && {
+            data: Object.assign(Object.assign({ firstName: data.firstName, lastName: data.lastName, age: parseInt(data.age), dateOfBirth: new Date(data.dateOfBirth), gender: data.gender, email: data.email || null, phone: data.phone || null, address: data.address, type: data.type, nationality: data.nationality || null, nationalId: data.nationalId || null, personImageUrl: imageUrl }, (data.type === 'suspect' && {
                 suspect: {
-                    create: suspectData
+                    create: {
+                        riskLevel: data.riskLevel || 'low',
+                        foundStatus: false
+                    }
                 }
             })), (data.type === 'missing-person' && {
                 missingPerson: {
-                    create: missingPersonData
+                    create: {
+                        lastSeenDate: new Date(data.lastSeenDate),
+                        lastSeenLocation: data.lastSeenLocation,
+                        missingSince: new Date(data.missingSince || data.lastSeenDate),
+                        foundStatus: false,
+                        reportBy: data.reportBy
+                    }
                 }
             })),
             include: {
@@ -104,12 +114,11 @@ const createPerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             }
         });
         res.status(201).json({
-            message: `${data.type} created successfully`,
-            person
+            message: "Person created successfully",
+            data: person
         });
     }
     catch (error) {
-        console.error('Create person error:', error);
         next((0, http_errors_1.default)(500, "Error creating person: " + error));
     }
 });
@@ -131,6 +140,7 @@ const updatePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             throw (0, http_errors_1.default)(404, "Person not found");
         }
         let imageUrl = person.personImageUrl;
+        console.log(files);
         if (files && files.personImageUrl && files.personImageUrl[0]) {
             console.log('Updating person image');
             if (person.personImageUrl) {
@@ -146,21 +156,16 @@ const updatePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
                     console.error('Error deleting old image:', error);
                 }
             }
-            // Upload new image
             const personImageMimeType = files.personImageUrl[0].mimetype.split('/').at(-1);
             const result = yield cloudinary_1.default.uploader.upload(files.personImageUrl[0].path, {
                 folder: 'persons',
                 format: personImageMimeType
             });
             imageUrl = result.secure_url;
-            // Clean up uploaded file
             node_fs_1.default.unlinkSync(files.personImageUrl[0].path);
         }
-        // Ensure date is in correct format
         const dateOfBirth = new Date(updates.dateOfBirth).toISOString();
-        // Prepare the update data
         const updateData = Object.assign({ firstName: updates.firstName, lastName: updates.lastName, age: parseInt(updates.age), dateOfBirth, address: updates.address }, (imageUrl && { personImageUrl: imageUrl }));
-        // Update person details
         const updatedPerson = yield prisma_1.prisma.person.update({
             where: { id },
             data: Object.assign(Object.assign({}, updateData), (person.type === 'suspect' && updates.riskLevel && {
@@ -184,7 +189,6 @@ const updatePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         });
     }
     catch (error) {
-        // Clean up uploaded file if exists
         if ((_b = (_a = files === null || files === void 0 ? void 0 : files.personImageUrl) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.path) {
             node_fs_1.default.unlinkSync(files.personImageUrl[0].path);
         }
@@ -195,7 +199,6 @@ exports.updatePerson = updatePerson;
 const deletePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     try {
-        // Get the person to check their type
         const person = yield prisma_1.prisma.person.findUnique({
             where: { id },
             include: {
@@ -206,9 +209,7 @@ const deletePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         if (!person) {
             throw (0, http_errors_1.default)(404, "Person not found");
         }
-        // Delete in the correct order to handle foreign key constraints
         yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
-            // 1. Delete suspect or missing person record first
             if (person.type === 'suspect' && person.suspect) {
                 yield tx.suspect.delete({
                     where: { personId: id }

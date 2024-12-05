@@ -15,110 +15,109 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const prisma = new client_1.PrismaClient();
+const cameras = [
+    {
+        id: '1',
+        location: 'MP Nagar',
+        streamUrl: 'test.com',
+        latitude: '23.2315',
+        longitude: '77.4353',
+        name: 'MP Nagar',
+        status: 'active',
+    },
+    {
+        id: '2',
+        location: 'DB Mall',
+        streamUrl: 'test.com',
+        latitude: '23.2332',
+        longitude: '77.4173',
+        name: 'Lalghati',
+        status: 'active',
+    },
+    {
+        id: '3',
+        location: 'Bittan Market',
+        streamUrl: 'test.com',
+        latitude: '23.23964593588707',
+        longitude: '77.35441786813742',
+        name: 'Bittan Market',
+        status: 'active',
+    },
+    {
+        id: '4',
+        location: 'Habibganj railway station',
+        streamUrl: 'test.com',
+        latitude: '23.2337',
+        longitude: '77.4349',
+        name: 'Habibganj railway station',
+        status: 'active',
+    },
+    {
+        id: '5',
+        location: 'BHEL',
+        streamUrl: 'test.com',
+        latitude: '23.264464270235067',
+        longitude: '77.50793403018244',
+        name: 'BHEL',
+        status: 'active',
+    },
+    {
+        id: '6',
+        location: 'New Market',
+        streamUrl: 'test.com',
+        latitude: '23.233',
+        longitude: '77.4006',
+        name: 'New Market',
+        status: 'active',
+    },
+    {
+        id: '7',
+        location: 'Maharana Pratap Nagar',
+        streamUrl: 'test.com',
+        latitude: '23.2329',
+        longitude: '77.4343',
+        name: 'Maharana Pratap Nagar',
+        status: 'active',
+    },
+    {
+        id: '8',
+        location: 'Van Vihar National Park',
+        streamUrl: 'test.com',
+        latitude: '23.2334',
+        longitude: '77.3650',
+        name: 'Van Vihar',
+        status: 'active',
+    },
+    {
+        id: '9',
+        location: 'Bhopal Junction Railway Station',
+        streamUrl: 'test.com',
+        latitude: '23.2687',
+        longitude: '77.4259',
+        name: 'Bhopal Junction',
+        status: 'active',
+    },
+    {
+        id: '10',
+        location: '10 Number Market',
+        streamUrl: 'test.com',
+        latitude: '23.2516',
+        longitude: '77.4324',
+        name: '10 Number Market',
+        status: 'active',
+    },
+    {
+        id: '11',
+        location: 'Kamla Park',
+        streamUrl: 'test.com',
+        latitude: '23.2612',
+        longitude: '77.4051',
+        name: 'Kamla Park',
+        status: 'active',
+    }
+];
 function seedCameras() {
     return __awaiter(this, void 0, void 0, function* () {
-        console.log('Starting camera seeding...');
-        const cameras = [
-            {
-                id: '1',
-                location: 'MP Nagar',
-                streamUrl: 'test.com',
-                latitude: '23.2315',
-                longitude: '77.4353',
-                name: 'MP Nagar',
-                status: 'active',
-            },
-            {
-                id: '2',
-                location: 'DB Mall',
-                streamUrl: 'test.com',
-                latitude: '23.2332',
-                longitude: '77.4173',
-                name: 'Lalghati',
-                status: 'active',
-            },
-            {
-                id: '3',
-                location: 'Bittan Market',
-                streamUrl: 'test.com',
-                latitude: '23.23964593588707',
-                longitude: '77.35441786813742',
-                name: 'Bittan Market',
-                status: 'active',
-            },
-            {
-                id: '4',
-                location: 'Habibganj railway station',
-                streamUrl: 'test.com',
-                latitude: '23.2337',
-                longitude: '77.4349',
-                name: 'Habibganj railway station',
-                status: 'active',
-            },
-            {
-                id: '5',
-                location: 'BHEL',
-                streamUrl: 'test.com',
-                latitude: '23.264464270235067',
-                longitude: '77.50793403018244',
-                name: 'BHEL',
-                status: 'active',
-            },
-            {
-                id: '6',
-                location: 'New Market',
-                streamUrl: 'test.com',
-                latitude: '23.233',
-                longitude: '77.4006',
-                name: 'New Market',
-                status: 'active',
-            },
-            {
-                id: '7',
-                location: 'Maharana Pratap Nagar',
-                streamUrl: 'test.com',
-                latitude: '23.2329',
-                longitude: '77.4343',
-                name: 'Maharana Pratap Nagar',
-                status: 'active',
-            },
-            {
-                id: '8',
-                location: 'Van Vihar National Park',
-                streamUrl: 'test.com',
-                latitude: '23.2334',
-                longitude: '77.3650',
-                name: 'Van Vihar',
-                status: 'active',
-            },
-            {
-                id: '9',
-                location: 'Bhopal Junction Railway Station',
-                streamUrl: 'test.com',
-                latitude: '23.2687',
-                longitude: '77.4259',
-                name: 'Bhopal Junction',
-                status: 'active',
-            },
-            {
-                id: '10',
-                location: '10 Number Market',
-                streamUrl: 'test.com',
-                latitude: '23.2516',
-                longitude: '77.4324',
-                name: '10 Number Market',
-                status: 'active',
-            },
-            {
-                id: '11',
-                location: 'Kamla Park',
-                streamUrl: 'test.com',
-                latitude: '23.2612',
-                longitude: '77.4051',
-                name: 'Kamla Park',
-                status: 'active',
-            }
-        ];
         console.log('Creating cameras...');
         for (const camera of cameras) {
             yield prisma.camera.upsert({
@@ -128,22 +127,6 @@ function seedCameras() {
             });
         }
         console.log('Cameras created successfully');
-        console.log('Creating detections...');
-        for (const camera of cameras) {
-            const numDetections = Math.floor(Math.random() * 20) + 5;
-            console.log(`Creating ${numDetections} detections for camera ${camera.name}...`);
-            const detections = Array.from({ length: numDetections }, () => ({
-                cameraId: camera.id,
-                personId: "1",
-                capturedDateTime: new Date(),
-                capturedImageUrl: "https://static.vecteezy.com/system/resources/previews/001/131/187/large_2x/serious-man-portrait-real-people-high-definition-grey-background-photo.jpg",
-                confidenceScore: (Math.random() * 100).toString()
-            }));
-            yield prisma.recognizedPerson.createMany({
-                data: detections
-            });
-        }
-        console.log('All cameras and detections seeded successfully');
     });
 }
 function seedPersons() {
@@ -160,7 +143,6 @@ function seedPersons() {
                 phone: "+919876543210",
                 address: "123 MP Nagar, Bhopal",
                 personImageUrl: "https://res.cloudinary.com/dwbr9hz8y/image/upload/v1732787365/person-images/zvzzcsqsxxccfbf7xzag.jpg",
-                type: "suspect",
                 nationalId: "ABCD1234",
                 nationality: "Indian",
                 suspect: {
@@ -181,7 +163,6 @@ function seedPersons() {
                 phone: "+919876543211",
                 address: "456 Arera Colony, Bhopal",
                 personImageUrl: "https://res.cloudinary.com/dwbr9hz8y/image/upload/v1732787475/person-images/ic87h0dvt2gqg0v0paos.jpg",
-                type: "suspect",
                 nationalId: "EFGH5678",
                 nationality: "Indian",
                 suspect: {
@@ -202,7 +183,6 @@ function seedPersons() {
                 phone: "+919876543212",
                 address: "789 New Market, Bhopal",
                 personImageUrl: "https://res.cloudinary.com/dwbr9hz8y/image/upload/v1732963597/person-images/ere9sjba5bbyue0kueps.jpg",
-                type: "suspect",
                 nationalId: "IJKL9012",
                 nationality: "Indian",
                 suspect: {
@@ -225,7 +205,6 @@ function seedPersons() {
                 phone: "+919876543213",
                 address: "321 Shahpura, Bhopal",
                 personImageUrl: "https://res.cloudinary.com/dwbr9hz8y/image/upload/v1732963442/person-images/m9p55itpabngxs8ncsre.jpg",
-                type: "missing-person",
                 nationalId: "MNOP3456",
                 nationality: "Indian",
                 missingPerson: {
@@ -249,7 +228,6 @@ function seedPersons() {
                 phone: "+919876543214",
                 address: "654 Kolar Road, Bhopal",
                 personImageUrl: "https://res.cloudinary.com/dwbr9hz8y/image/upload/v1732787752/person-images/cxxhghtshsvmlxcjmubf.jpg",
-                type: "missing-person",
                 nationalId: "QRST7890",
                 nationality: "Indian",
                 missingPerson: {
@@ -273,7 +251,6 @@ function seedPersons() {
                 phone: "+919876543215",
                 address: "987 BHEL, Bhopal",
                 personImageUrl: "https://res.cloudinary.com/dwbr9hz8y/image/upload/v1732898032/person-images/dsezyr7ciqottvt24vmv.jpg",
-                type: "missing-person",
                 nationalId: "UVWX1234",
                 nationality: "Indian",
                 missingPerson: {
@@ -287,6 +264,7 @@ function seedPersons() {
                 }
             }
         ];
+        console.log('Creating suspects...');
         for (const suspect of suspects) {
             yield prisma.person.upsert({
                 where: { id: suspect.id },
@@ -294,6 +272,7 @@ function seedPersons() {
                 create: suspect
             });
         }
+        console.log('Creating missing persons...');
         for (const missingPerson of missingPersons) {
             yield prisma.person.upsert({
                 where: { id: missingPerson.id },
@@ -304,40 +283,75 @@ function seedPersons() {
         console.log('Persons seeded');
     });
 }
+function seedDetections() {
+    return __awaiter(this, void 0, void 0, function* () {
+        console.log('Creating detections...');
+        yield new Promise(resolve => setTimeout(resolve, 1000));
+        for (const camera of cameras) {
+            const numDetections = Math.floor(Math.random() * 20) + 5;
+            console.log(`Creating ${numDetections} detections for camera ${camera.name}...`);
+            for (let i = 0; i < numDetections; i++) {
+                try {
+                    yield prisma.recognizedPerson.create({
+                        data: {
+                            cameraId: camera.id,
+                            personId: "1",
+                            capturedDateTime: new Date(),
+                            capturedImageUrl: "https://static.vecteezy.com/system/resources/previews/001/131/187/large_2x/serious-man-portrait-real-people-high-definition-grey-background-photo.jpg",
+                            confidenceScore: (Math.random() * 100).toString(),
+                        }
+                    });
+                }
+                catch (error) {
+                    console.error(`Error creating detection: ${error}`);
+                }
+            }
+        }
+        console.log('All detections created successfully');
+    });
+}
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        yield seedCameras();
-        yield seedPersons();
-        const hashedPassword = yield bcrypt_1.default.hash('admin123', 10);
-        const hashedUserPassword = yield bcrypt_1.default.hash('user123', 10);
-        yield prisma.user.upsert({
-            where: { username: 'admin' },
-            update: {},
-            create: {
-                username: 'admin',
-                password: hashedPassword,
-                email: 'admin@example.com',
-                firstName: 'Admin',
-                lastName: 'User',
-                role: 'admin',
-                designation: 'System Administrator',
-                userImageUrl: 'https://media.licdn.com/dms/image/v2/D4D03AQGpRSx3IqQ8BQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1718230591723?e=1738800000&v=beta&t=rf6jxx2MwCgtJgGKgqROKGkgxBBBcPpAm2Z4GbnODkc'
-            },
-        });
-        yield prisma.user.upsert({
-            where: { username: 'user' },
-            update: {},
-            create: {
-                username: 'user',
-                password: hashedUserPassword,
-                email: 'user@example.com',
-                firstName: 'User',
-                lastName: 'User',
-                role: 'non-admin',
-                designation: 'System Tester'
-            }
-        });
-        console.log('Seed completed');
+        try {
+            console.log('Starting seed...');
+            const hashedPassword = yield bcrypt_1.default.hash('admin123', 10);
+            const hashedUserPassword = yield bcrypt_1.default.hash('user123', 10);
+            yield prisma.user.upsert({
+                where: { username: 'admin' },
+                update: {},
+                create: {
+                    username: 'admin',
+                    password: hashedPassword,
+                    email: 'admin@example.com',
+                    firstName: 'Admin',
+                    lastName: 'User',
+                    role: 'admin',
+                    designation: 'System Administrator',
+                    userImageUrl: 'https://media.licdn.com/dms/image/v2/D4D03AQGpRSx3IqQ8BQ/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1718230591723?e=1738800000&v=beta&t=rf6jxx2MwCgtJgGKgqROKGkgxBBBcPpAm2Z4GbnODkc'
+                },
+            });
+            yield prisma.user.upsert({
+                where: { username: 'user' },
+                update: {},
+                create: {
+                    username: 'user',
+                    password: hashedUserPassword,
+                    email: 'user@example.com',
+                    firstName: 'User',
+                    lastName: 'User',
+                    role: 'non-admin',
+                    designation: 'System Tester'
+                }
+            });
+            yield seedCameras();
+            yield seedPersons();
+            yield seedDetections();
+            console.log('Seed completed successfully');
+        }
+        catch (error) {
+            console.error('Error during seeding:', error);
+            throw error;
+        }
     });
 }
 main()

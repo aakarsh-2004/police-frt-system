@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Filter, Clock, MapPin, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Filter, Clock, MapPin, ArrowRight, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
@@ -40,6 +40,7 @@ interface FilterState {
     endDate: string;
     riskLevel: string[];
     locations: string[];
+    timePeriod: 'daily' | 'weekly' | 'monthly' | 'custom';
 }
 
 const formatDateTime = (dateString: string) => {
@@ -66,7 +67,8 @@ export default function AlertsPage() {
         startDate: '',
         endDate: '',
         riskLevel: [],
-        locations: []
+        locations: [],
+        timePeriod: 'daily'
     });
 
     const [availableLocations, setAvailableLocations] = useState<string[]>([]);
@@ -74,32 +76,40 @@ export default function AlertsPage() {
     const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalAlerts, setTotalAlerts] = useState(0);
+    const pageSize = 10;
+
     useEffect(() => {
-        fetchAlerts();
-        const interval = setInterval(fetchAlerts, 30000);
-        return () => clearInterval(interval);
-    }, [filters]);
+        fetchAlerts(currentPage);
+    }, [currentPage, filters]);
 
-    const fetchAlerts = async () => {
+    const fetchAlerts = async (page: number) => {
         try {
-            const url = `${config.apiUrl}/api/recognitions/recent`;
-            const params = new URLSearchParams();
-
-            if (filters.startDate) params.append('startDate', filters.startDate);
-            if (filters.endDate) params.append('endDate', filters.endDate);
-            if (filters.riskLevel.length) params.append('riskLevel', filters.riskLevel.join(','));
-            if (filters.locations.length) params.append('locations', filters.locations.join(','));
-
-            const response = await axios.get<{data: Recognition[]}>(`${url}?${params.toString()}`);
+            setLoading(true);
+            const response = await axios.get(`${config.apiUrl}/api/alerts`, {
+                params: {
+                    page,
+                    pageSize,
+                    startDate: filters.startDate,
+                    endDate: filters.endDate,
+                    riskLevel: filters.riskLevel.join(','),
+                    locations: filters.locations.join(','),
+                    timePeriod: filters.timePeriod
+                }
+            });
+            
             setAlerts(response.data.data);
+            setTotalAlerts(response.data.total);
+            setTotalPages(Math.ceil(response.data.total / pageSize));
             
-            
-            const locations = new Set(response.data.data.map(alert => alert.camera.location));
+            // Update available locations
+            const locations = new Set(response.data.data.map((alert: Recognition) => alert.camera.location));
             setAvailableLocations(Array.from(locations));
-            
-            setLoading(false);
         } catch (error) {
             console.error('Error fetching alerts:', error);
+        } finally {
             setLoading(false);
         }
     };
@@ -113,7 +123,8 @@ export default function AlertsPage() {
             startDate: '',
             endDate: '',
             riskLevel: [],
-            locations: []
+            locations: [],
+            timePeriod: 'daily'
         });
     };
 
@@ -167,6 +178,56 @@ export default function AlertsPage() {
         return 'pending';
     };
 
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(prev => prev + 1);
+        }
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(prev => prev - 1);
+        }
+    };
+
+    const handleViewDetails = (alert: Recognition) => {
+        navigate(`/person/${alert.personId}`);
+    };
+
+    const handleTimePeriodChange = (period: FilterState['timePeriod']) => {
+        const today = new Date();
+        let startDate = '';
+        let endDate = today.toISOString().split('T')[0];
+
+        switch (period) {
+            case 'daily':
+                startDate = today.toISOString().split('T')[0];
+                break;
+            case 'weekly':
+                const lastWeek = new Date(today);
+                lastWeek.setDate(today.getDate() - 7);
+                startDate = lastWeek.toISOString().split('T')[0];
+                break;
+            case 'monthly':
+                const lastMonth = new Date(today);
+                lastMonth.setMonth(today.getMonth() - 1);
+                startDate = lastMonth.toISOString().split('T')[0];
+                break;
+            case 'custom':
+                startDate = filters.startDate;
+                endDate = filters.endDate;
+                break;
+        }
+
+        setFilters(prev => ({
+            ...prev,
+            timePeriod: period,
+            startDate,
+            endDate
+        }));
+        setCurrentPage(1); // Reset to first page when filter changes
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -182,41 +243,60 @@ export default function AlertsPage() {
                     <h1 className="text-2xl font-bold">
                         {currentLanguage === 'en' ? 'Alerts & Detections' : 'अलर्ट और पहचान'}
                     </h1>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="btn btn-secondary flex items-center"
-                    >
-                        <Filter className="w-4 h-4 mr-2" />
-                        {currentLanguage === 'en' ? 'Filters' : 'फ़िल्टर'}
-                    </button>
+                    <div className="flex items-center space-x-4">
+                        <div className="flex items-center bg-white rounded-lg shadow p-2 dark:bg-gray-800">
+                            <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                            <select
+                                value={filters.timePeriod}
+                                onChange={(e) => handleTimePeriodChange(e.target.value as FilterState['timePeriod'])}
+                                className="border-none bg-transparent focus:ring-0 dark:bg-gray-800 dark:text-white"
+                            >
+                                <option value="daily">{currentLanguage === 'en' ? 'Daily' : 'दैनिक'}</option>
+                                <option value="weekly">{currentLanguage === 'en' ? 'Weekly' : 'साप्ताहिक'}</option>
+                                <option value="monthly">{currentLanguage === 'en' ? 'Monthly' : 'मासिक'}</option>
+                                <option value="custom">{currentLanguage === 'en' ? 'Custom' : 'कस्टम'}</option>
+                            </select>
+                        </div>
+                        
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="btn btn-secondary flex items-center"
+                        >
+                            <Filter className="w-4 h-4 mr-2" />
+                            {currentLanguage === 'en' ? 'Filters' : 'फ़िल्टर'}
+                        </button>
+                    </div>
                 </div>
 
                 {showFilters && (
                     <div className="mb-6 bg-white p-4 rounded-lg shadow dark:bg-gray-800">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    {currentLanguage === 'en' ? 'Start Date' : 'प्रारंभ तिथि'}
-                                </label>
-                                <input
-                                    type="date"
-                                    value={filters.startDate}
-                                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    {currentLanguage === 'en' ? 'End Date' : 'समाप्त तिथि'}
-                                </label>
-                                <input
-                                    type="date"
-                                    value={filters.endDate}
-                                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                                    className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
-                                />
-                            </div>
-
+                            {filters.timePeriod === 'custom' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            {currentLanguage === 'en' ? 'Start Date' : 'प्रारंभ तिथि'}
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={filters.startDate}
+                                            onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            {currentLanguage === 'en' ? 'End Date' : 'समाप्ति तिथि'}
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={filters.endDate}
+                                            onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                            className="w-full p-2 border rounded dark:bg-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                </>
+                            )}
                             <div>
                                 <label className="block text-sm font-medium mb-1">
                                     {currentLanguage === 'en' ? 'Risk Level' : 'जोखा स्तर'}
@@ -309,7 +389,7 @@ export default function AlertsPage() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => navigate(`/alerts/${alert.id}`)}
+                                        onClick={() => handleViewDetails(alert)}
                                         className="btn btn-primary text-xs py-1 px-2 flex items-center"
                                     >
                                         {currentLanguage === 'en' ? 'View Details' : 'विवरण देखें'}
@@ -328,6 +408,44 @@ export default function AlertsPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Pagination */}
+                <div className="mt-6 flex items-center justify-between dark:text-white">
+                    <div className="text-sm text-gray-700">
+                        Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                        {Math.min(currentPage * pageSize, totalAlerts)} of {totalAlerts} alerts
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={handlePrevPage}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded ${
+                                currentPage === 1
+                                    ? 'text-gray-400 cursor-not-allowed dark:text-gray-800'
+                                    : 'text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                            }`}
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <span className="px-4 py-2 rounded bg-gray-100 dark:bg-gray-700/50">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <button
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded ${
+                                currentPage === totalPages
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                        >
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Loading and Error States */}
+                {loading && <div className="text-center mt-6">Loading...</div>}
             </div>
 
             {/* Image Enhancer Modal */}

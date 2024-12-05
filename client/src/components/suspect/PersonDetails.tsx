@@ -60,6 +60,7 @@ export default function PersonDetails() {
     const { user } = useAuth();
     const [newImage, setNewImage] = useState<File | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [uploadedImage, setUploadedImage] = useState<File | null>(null);
 
     // Add form state
     const [formData, setFormData] = useState({
@@ -83,6 +84,14 @@ export default function PersonDetails() {
         reportBy: '',
         status: ''
     });
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            console.log('Image selected:', file);
+            setUploadedImage(file);
+        }
+    };
 
     useEffect(() => {
         const fetchPerson = async () => {
@@ -144,42 +153,42 @@ export default function PersonDetails() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+        if (!person) return;
+
         try {
-            // Create FormData object
             const formDataToSend = new FormData();
             
-            // Format date to ISO string
-            const formattedDate = new Date(formData.dateOfBirth).toISOString();
-            
-            // Manually append each field
+            // Add basic fields using formData (edited values) instead of person (original values)
             formDataToSend.append('firstName', formData.firstName);
             formDataToSend.append('lastName', formData.lastName);
-            formDataToSend.append('age', formData.age.toString());
-            formDataToSend.append('dateOfBirth', formattedDate); // Send formatted date
+            formDataToSend.append('age', formData.age);
+            formDataToSend.append('dateOfBirth', formData.dateOfBirth);
             formDataToSend.append('address', formData.address);
-            formDataToSend.append('type', person?.type || '');
-            formDataToSend.append('status', formData.status);
-    
-            // Add risk level only for suspects
-            if (person?.type === 'suspect') {
-                formDataToSend.append('riskLevel', formData.riskLevel || '');
+            formDataToSend.append('gender', formData.gender);
+            formDataToSend.append('email', formData.email);
+            formDataToSend.append('phone', formData.phone);
+            formDataToSend.append('nationality', formData.nationality);
+            formDataToSend.append('nationalId', formData.nationalId);
+            
+            // Add the image if selected
+            if (uploadedImage) {
+                formDataToSend.append('personImageUrl', uploadedImage);
+                console.log('Appending image:', uploadedImage);
             }
-    
-            // Add image if selected
-            if (selectedImage) {
-                formDataToSend.append('personImageUrl', selectedImage);
+
+            // Add type-specific fields
+            if (person.type === 'suspect' && formData.riskLevel) {
+                formDataToSend.append('riskLevel', formData.riskLevel);
             }
-    
-            // Log the data being sent
-            const formDataObject = {};
-            formDataToSend.forEach((value, key) => {
-                formDataObject[key] = value;
-            });
-            console.log('Sending update data:', formDataObject);
-    
+
+            // Log the form data for debugging
+            console.log('Form data entries:');
+            for (let [key, value] of formDataToSend.entries()) {
+                console.log(key, ':', value);
+            }
+
             const response = await axios.put(
-                `${config.apiUrl}/api/persons/${id}`, 
+                `${config.apiUrl}/api/persons/${person.id}`,
                 formDataToSend,
                 {
                     headers: {
@@ -187,11 +196,11 @@ export default function PersonDetails() {
                     }
                 }
             );
-    
+
             if (response.data.data) {
                 setPerson(response.data.data);
                 setIsEditing(false);
-                setSelectedImage(null);
+                setUploadedImage(null);
                 toast.success('Person details updated successfully');
                 navigate(`/suspects`);
             }
@@ -312,34 +321,26 @@ export default function PersonDetails() {
                     </>
                 )}
 
-                <div>
+                <div className="mb-4">
                     <label className="block text-sm font-medium mb-1">Profile Image</label>
                     <div className="flex items-center space-x-4">
-                        {(newImage || person?.personImageUrl) && (
+                        {(uploadedImage || person?.personImageUrl) && (
                             <img
-                                src={newImage ? URL.createObjectURL(newImage) : person?.personImageUrl}
+                                src={uploadedImage ? URL.createObjectURL(uploadedImage) : person?.personImageUrl}
                                 alt="Preview"
                                 className="w-24 h-24 rounded-lg object-cover"
                             />
                         )}
                         <label className="btn btn-secondary cursor-pointer">
                             <Upload className="w-4 h-4 mr-2" />
-                            Choose New Image
+                            Choose Image
                             <input
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(e) => setNewImage(e.target.files?.[0] || null)}
+                                onChange={handleImageChange}
                             />
                         </label>
-                        {newImage && (
-                            <button
-                                onClick={() => setNewImage(null)}
-                                className="text-sm text-red-600 hover:text-red-800"
-                            >
-                                Remove
-                            </button>
-                        )}
                     </div>
                 </div>
 

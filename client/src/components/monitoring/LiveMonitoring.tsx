@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, Plus } from 'lucide-react';
-import FaceApi from '../face-api/FaceApi';
 import DetectionList from './DetectionList';
 import axios from 'axios';
 import config from '../../config/config';
@@ -77,7 +76,6 @@ const cameras: Camera[] = [
     }
 ];
 
-// Add sample stream URLs
 const SAMPLE_STREAMS = [
     'ws://localhost:8083/stream/a8d21378-0eac-4db4-a9ff-d73d19054d5e/channel/0/mse?uuid=a8d21378-0eac-4db4-a9ff-d73d19054d5e&channel=0',
     'ws://localhost:8083/stream/f4604be9-bea2-44e1-af7c-609ae9a2f7c1/channel/0/mse?uuid=f4604be9-bea2-44e1-af7c-609ae9a2f7c1&channel=0',
@@ -93,25 +91,21 @@ export default function LiveMonitoring() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // MSE refs for video 1
     const videoRef1 = useRef<HTMLVideoElement>(null);
     const mseQueue1 = useRef<ArrayBuffer[]>([]);
     const mseSourceBuffer1 = useRef<SourceBuffer | null>(null);
     const mseStreamingStarted1 = useRef<boolean>(false);
 
-    // MSE refs for video 2
     const videoRef2 = useRef<HTMLVideoElement>(null);
     const mseQueue2 = useRef<ArrayBuffer[]>([]);
     const mseSourceBuffer2 = useRef<SourceBuffer | null>(null);
     const mseStreamingStarted2 = useRef<boolean>(false);
 
-    // Add WebSocket refs to maintain connection
     const ws1Ref = useRef<WebSocket | null>(null);
     const ws2Ref = useRef<WebSocket | null>(null);
     const mseRef1 = useRef<MediaSource | null>(null);
     const mseRef2 = useRef<MediaSource | null>(null);
 
-    // Add state for video controls
     const [videoControls, setVideoControls] = useState<Record<string, {
         zoom: number;
         rotation: number;
@@ -166,7 +160,6 @@ export default function LiveMonitoring() {
         mseRef: React.MutableRefObject<MediaSource | null>
     ) => {
         try {
-            // Create MediaSource
             const mse = new MediaSource();
             mseRef.current = mse;
             videoEl.src = URL.createObjectURL(mse);
@@ -174,7 +167,6 @@ export default function LiveMonitoring() {
             mse.addEventListener('sourceopen', () => {
                 console.log('MediaSource opened');
                 
-                // Create WebSocket connection
                 const ws = new WebSocket(url);
                 wsRef.current = ws;
                 ws.binaryType = 'arraybuffer';
@@ -189,7 +181,6 @@ export default function LiveMonitoring() {
 
                 ws.onclose = () => {
                     console.log('WebSocket closed for:', url);
-                    // Attempt to reconnect after a delay
                     setTimeout(() => {
                         if (videoEl) {
                             startPlay(videoEl, url, mseQueue, mseSourceBuffer, mseStreamingStarted, wsRef, mseRef);
@@ -263,9 +254,7 @@ export default function LiveMonitoring() {
             );
         }
 
-        // Cleanup function
         return () => {
-            // Close WebSocket connections
             if (ws1Ref.current) {
                 ws1Ref.current.close();
             }
@@ -273,7 +262,6 @@ export default function LiveMonitoring() {
                 ws2Ref.current.close();
             }
 
-            // Close MediaSource
             if (mseRef1.current && mseRef1.current.readyState === 'open') {
                 mseRef1.current.endOfStream();
             }
@@ -307,7 +295,6 @@ export default function LiveMonitoring() {
         fetchPersons();
     }, []);
 
-    // Convert persons to targets format for FaceApi
     const targets = persons?.filter(person => person.personImageUrl).map(person => ({
         name: `${person.firstName} ${person.lastName}`,
         images: [person.personImageUrl],
@@ -347,12 +334,10 @@ export default function LiveMonitoring() {
         };
 
         try {
-            // Convert base64 to file
             const response = await fetch(detection.capturedFrame);
             const blob = await response.blob();
             const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
 
-            // Create FormData
             const formData = new FormData();
             formData.append('personId', detection.personId);
             formData.append('capturedLocation', detection.camera.name);
@@ -362,14 +347,12 @@ export default function LiveMonitoring() {
             formData.append('confidenceScore', detection.confidence.toString());
             formData.append('capturedImage', file);
 
-            // Save to database
-            await axios.post(`${config.apiUrl}/api/recognitions`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            // await axios.post(`${config.apiUrl}/api/recognitions`, formData, {
+            //     headers: {
+            //         'Content-Type': 'multipart/form-data',
+            //     },
+            // });
 
-            // Update local state
             setDetections(prev => {
                 const twentySecondsAgo = new Date(Date.now() - 20000);
                 const recentDetections = prev.filter(d => 
@@ -383,23 +366,29 @@ export default function LiveMonitoring() {
     };
 
     const handleZoomIn = (id: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [id]: {
-                ...prev[id],
-                zoom: (prev[id]?.zoom || 1) + 0.1
-            }
-        }));
+        setVideoControls(prev => {
+            const currentZoom = prev[id]?.zoom || 1;
+            return {
+                ...prev,
+                [id]: {
+                    ...prev[id],
+                    zoom: Math.min(currentZoom + 0.2, 3)
+                }
+            };
+        });
     };
 
     const handleZoomOut = (id: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [id]: {
-                ...prev[id],
-                zoom: Math.max((prev[id]?.zoom || 1) - 0.1, 0.5)
-            }
-        }));
+        setVideoControls(prev => {
+            const currentZoom = prev[id]?.zoom || 1;
+            return {
+                ...prev,
+                [id]: {
+                    ...prev[id],
+                    zoom: Math.max(currentZoom - 0.2, 0.5)
+                }
+            };
+        });
     };
 
     const handleRotate = (id: string) => {
@@ -423,12 +412,14 @@ export default function LiveMonitoring() {
         }
     };
 
-    // Get video style based on controls
     const getVideoStyle = (id: string) => {
         const controls = videoControls[id] || { zoom: 1, rotation: 0 };
         return {
             transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`,
-            transition: 'transform 0.3s ease'
+            transition: 'transform 0.3s ease',
+            transformOrigin: 'center',
+            width: '100%',
+            height: '100%'
         };
     };
 

@@ -1,15 +1,13 @@
 {
   "nav": {
-    "frs": "चेहरा पहचान प्रणाली",
-    "searchPlaceholder": "संदिग्धों, मामलों या मैचों की खोज करें...",
-    "newReport": "नई रिपोर्ट",
     "dashboard": "डैशबोर्ड",
     "monitoring": "लाइव निगरानी",
     "suspects": "संदिग्ध",
     "search": "खोज और लुकअप",
     "alerts": "अलर्ट",
-    "reports": "रिपोर्ट",
+    "reports": "रिपोर्ट्स",
     "mapview": "मैप व्यू",
+    "tutorialTraining": "ट्यूटोरियल प्रशिक्षण",
     "users": "उपयोगकर्ता प्रबंधन",
     "settings": "सेटिंग्स",
     "requests": "अनुरोध"
@@ -40,7 +38,7 @@
     "entryAdded": "प्रविष्टि जोड़ी गई",
     "pageTitle": "अलर्ट और पहचान",
     "filters": {
-      "title": "फ़िल्टर",
+      "title": "फ़ल्टर",
       "dateRange": "तिथि सीमा",
       "startDate": "प्रारंभ तिथि",
       "endDate": "समाप्ति तिथि",
@@ -256,7 +254,7 @@
       "lastSeen": "आखिरी बार देखा गया",
       "lastLocation": "आखिरी स्थान",
       "reportedDate": "रिपोर्ट की तिथि",
-      "reportedBy": "रिपोर्ट करने वाला"
+      "reportedBy": "र���पोर्ट कने वाला"
     },
     "detections": {
       "title": "हाल की पहचान",
@@ -290,7 +288,7 @@
     "stats": {
       "totalDetections": "कुल पहचान",
       "successfulMatches": "सफल मिलान",
-      "databaseEntries": "डेटाबेस प्रविष्टियां",
+      "databaseEntries": "डेटा���ेस प्रिष्टियां",
       "activeCameras": "सक्रिय कैमरे",
       "change": {
         "increase": "+{{value}}%",

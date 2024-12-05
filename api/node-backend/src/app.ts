@@ -8,6 +8,7 @@ import userRouter from "./routes/user/userRoutes";
 import requestRouter from "./routes/request/requestRoutes";
 import recognitionRouter from "./routes/recognition/recognitionRoutes";
 import cameraRouter from "./routes/camera/cameraRoutes";
+import alertRouter from './routes/alert/alertRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -29,6 +30,7 @@ app.use('/api/users', userRouter);
 app.use('/api/requests', requestRouter);
 app.use('/api/recognitions', recognitionRouter);
 app.use('/api/cameras', cameraRouter);
+app.use('/api/alerts', alertRouter);
 
 app.use(errorHandler);
 

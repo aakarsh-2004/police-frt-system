@@ -42,8 +42,6 @@ export const getCameraById = async (req: Request, res: Response, next: NextFunct
                 }
             }
         });
-
-        console.log("camera", camera);
         
 
         if (!camera) {

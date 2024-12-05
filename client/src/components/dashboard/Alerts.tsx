@@ -51,6 +51,8 @@ export default function AlertSystem() {
             try {
                 const response = await axios.get<{data: Recognition[]}>(`${config.apiUrl}/api/recognitions/recent`);
                 setRecognitions(response.data.data);
+                console.log("recognitions", response.data.data);
+                
             } catch (err) {
                 console.error('Error fetching recognitions:', err);
             } finally {
@@ -63,6 +65,10 @@ export default function AlertSystem() {
 
         return () => clearInterval(interval);
     }, []);
+
+    const handleViewDetails = (personId: string) => {
+        navigate(`/person/${personId}`);
+    };
 
     if (loading) {
         return <div className="animate-pulse">Loading alerts...</div>;
@@ -121,8 +127,8 @@ export default function AlertSystem() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between text-xs">
-                                <div className="space-y-1">
+                            <div className="flex justify-between items-center mt-2">
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
                                     <div className="flex items-center text-gray-600 dark:text-gray-400">
                                         <MapPin className="w-3 h-3 mr-1" />
                                         {recognition.camera.location}
@@ -133,10 +139,10 @@ export default function AlertSystem() {
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => navigate(`/alerts/${recognition.id}`)}
+                                    onClick={() => handleViewDetails(recognition.person.id)}
                                     className="btn btn-primary text-xs py-1 px-2 flex items-center"
                                 >
-                                    View
+                                    {currentLanguage === 'en' ? 'View Details' : 'विवरण देखें'}
                                     <ArrowRight className="w-3 h-3 ml-1" />
                                 </button>
                             </div>

@@ -3,6 +3,7 @@ import { Camera, ChevronLeft, ChevronRight, MapPin, Clock, Shield } from 'lucide
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
 import RTSPStream from '../monitoring/RTSPStream';
+import VideoControls from '../video/VideoControls';
 
 interface VideoFeed {
     id: string;
@@ -89,8 +90,75 @@ const SAMPLE_STREAMS = [
 export default function LiveFeed() {
     const [selectedFeed, setSelectedFeed] = useState(videoFeeds[0]);
     const [showGrid, setShowGrid] = useState(true);
+    const [videoControls, setVideoControls] = useState<Record<string, {
+        zoom: number;
+        rotation: number;
+    }>>({});
     const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
+
+    const handleZoomIn = (id: string) => {
+        setVideoControls(prev => {
+            const currentZoom = prev[id]?.zoom || 1;
+            return {
+                ...prev,
+                [id]: {
+                    ...prev[id],
+                    zoom: Math.min(currentZoom + 0.2, 3)
+                }
+            };
+        });
+    };
+
+    const handleZoomOut = (id: string) => {
+        setVideoControls(prev => {
+            const currentZoom = prev[id]?.zoom || 1;
+            return {
+                ...prev,
+                [id]: {
+                    ...prev[id],
+                    zoom: Math.max(currentZoom - 0.2, 0.5)
+                }
+            };
+        });
+    };
+
+    const handleRotate = (id: string) => {
+        setVideoControls(prev => ({
+            ...prev,
+            [id]: {
+                ...prev[id],
+                rotation: ((prev[id]?.rotation || 0) + 90) % 360
+            }
+        }));
+    };
+
+    const handleFullScreen = (id: string) => {
+        const element = document.getElementById(id)?.parentElement;
+        if (element?.requestFullscreen) {
+            element.requestFullscreen();
+        } else if ((element as any)?.webkitRequestFullscreen) {
+            (element as any).webkitRequestFullscreen();
+        } else if ((element as any)?.msRequestFullscreen) {
+            (element as any).msRequestFullscreen();
+        }
+    };
+
+    const getVideoStyle = (id: string) => {
+        const controls = videoControls[id] || { zoom: 1, rotation: 0 };
+        return {
+            transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`,
+            transition: 'transform 0.3s ease',
+            transformOrigin: 'center',
+            width: '100%',
+            height: '100%'
+        };
+    };
+
+    const handleCameraClick = (feed: VideoFeed, index: number) => {
+        setSelectedFeed(feed);
+        setShowGrid(false);
+    };
 
     return (
         <div className="card">
@@ -124,7 +192,11 @@ export default function LiveFeed() {
             {showGrid ? (
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 p-2">
                     {videoFeeds.map((feed, index) => (
-                        <div key={feed.id} className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                        <div 
+                            key={feed.id} 
+                            className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all" 
+                            onClick={() => handleCameraClick(feed, index)}
+                        >
                             <RTSPStream
                                 id={`dashboard-video-${index + 1}`}
                                 streamUrl={SAMPLE_STREAMS[index]}
@@ -144,10 +216,21 @@ export default function LiveFeed() {
                 <div className="relative">
                     <div className="card">
                         <div className="aspect-video bg-gray-900">
-                            <RTSPStream
-                                id="dashboard-single-video"
-                                streamUrl={SAMPLE_STREAMS[videoFeeds.indexOf(selectedFeed)]}
-                            />
+                            <div className="relative w-full h-full">
+                                <RTSPStream
+                                    id="dashboard-single-video"
+                                    streamUrl={SAMPLE_STREAMS[videoFeeds.indexOf(selectedFeed)]}
+                                    style={getVideoStyle("dashboard-single-video")}
+                                />
+                                <div className="absolute bottom-4 right-4 flex space-x-2">
+                                    <VideoControls
+                                        onZoomIn={() => handleZoomIn("dashboard-single-video")}
+                                        onZoomOut={() => handleZoomOut("dashboard-single-video")}
+                                        onRotate={() => handleRotate("dashboard-single-video")}
+                                        onFullScreen={() => handleFullScreen("dashboard-single-video")}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {/* Overlay Information */}

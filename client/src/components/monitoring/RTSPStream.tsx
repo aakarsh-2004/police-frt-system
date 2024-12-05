@@ -147,15 +147,22 @@ export default function RTSPStream({ streamUrl, id, style }: RTSPStreamProps) {
     }, [streamUrl]);
 
     return (
-        <video
-            ref={videoRef}
-            id={id}
-            className="w-full h-full object-contain"
-            autoPlay={true}
-            playsInline={true}
-            muted={true}
-            controls={false}
-            style={style}
-        />
+        <div className="relative w-full h-full overflow-hidden">
+            <video
+                ref={videoRef}
+                id={id}
+                className="w-full h-full object-contain"
+                autoPlay={true}
+                playsInline={true}
+                muted={true}
+                controls={false}
+                style={{
+                    ...style,
+                    transition: 'transform 0.3s ease',
+                    transformOrigin: 'center',
+                    willChange: 'transform'
+                }}
+            />
+        </div>
     );
 } 

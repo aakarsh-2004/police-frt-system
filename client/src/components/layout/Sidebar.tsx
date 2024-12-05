@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface SidebarProps {
     onPageChange: (page: string) => void;
@@ -12,17 +14,17 @@ interface SidebarProps {
 }
 
 const menuItems = [
-    { id: 'dashboard', icon: BarChart2, label: 'Dashboard', path: '/' },
-    { id: 'monitoring', icon: Camera, label: 'Live Monitoring', path: '/monitoring' },
-    { id: 'suspects', icon: User, label: 'Suspects', path: '/suspects' },
-    { id: 'search', icon: Search, label: 'Search & Lookup', path: '/search' },
-    { id: 'alerts', icon: Bell, label: 'Alerts', path: '/alerts' },
-    { id: 'reports', icon: FileText, label: 'Reports', path: '/reports' },
-    { id: 'mapview', icon: MapPin, label: 'Map View', path: '/mapview' },
-    { id: 'tutorial', icon: GraduationCap, label: 'Tutorial Training', path: '/tutorial' },
-    { id: 'users', icon: Users, label: 'User Management', path: '/users' },
-    { id: 'settings', icon: Settings, label: 'Settings', path: '/settings' },
-    { id: 'requests', icon: Clock, label: 'Requests', path: '/requests', adminOnly: true }
+    { id: 'dashboard', icon: BarChart2, translationKey: 'nav.dashboard', path: '/' },
+    { id: 'monitoring', icon: Camera, translationKey: 'nav.monitoring', path: '/monitoring' },
+    { id: 'suspects', icon: User, translationKey: 'nav.suspects', path: '/suspects' },
+    { id: 'search', icon: Search, translationKey: 'nav.search', path: '/search' },
+    { id: 'alerts', icon: Bell, translationKey: 'nav.alerts', path: '/alerts' },
+    { id: 'reports', icon: FileText, translationKey: 'nav.reports', path: '/reports' },
+    { id: 'mapview', icon: MapPin, translationKey: 'nav.mapview', path: '/mapview' },
+    { id: 'tutorial', icon: GraduationCap, translationKey: 'nav.tutorialTraining', path: '/tutorial' },
+    { id: 'users', icon: Users, translationKey: 'nav.users', path: '/users' },
+    { id: 'settings', icon: Settings, translationKey: 'nav.settings', path: '/settings' },
+    { id: 'requests', icon: Clock, translationKey: 'nav.requests', path: '/requests', adminOnly: true }
 ];
 
 export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
@@ -30,6 +32,12 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
     const [collapsed, setCollapsed] = React.useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const { t, ready } = useTranslation();
+    const { currentLanguage } = useLanguage();
+
+    if (!ready) {
+        return <div>Loading...</div>;
+    }
 
     const visibleMenuItems = menuItems.filter(item => 
         (!item.adminOnly || user?.role === 'admin')
@@ -69,10 +77,10 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
                                 ? 'bg-blue-900 text-white dark:bg-blue-800'
                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
-                        title={collapsed ? item.label : ''}
+                        title={collapsed ? t(item.translationKey) : ''}
                     >
                         <item.icon className={`w-5 h-5 ${item.id === activePage ? 'text-amber-400' : ''}`} />
-                        {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+                        {!collapsed && <span className="text-sm font-medium">{t(item.translationKey)}</span>}
                     </button>
                 ))}
             </nav>
