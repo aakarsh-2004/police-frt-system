@@ -6,6 +6,7 @@ import config from '../../config/config';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import ImageEnhancer from '../image/ImageEnhancer';
+import SuspectMatches from './SuspectMatches';
 
 interface Recognition {
     id: number;
@@ -363,6 +364,10 @@ export default function PersonDetails() {
         );
     };
 
+    const handleImageClick = (recognition: Recognition) => {
+        navigate(`/detections/${recognition.id}`);
+    };
+
     if (loading) return <div>Loading...</div>;
     if (!person) return <div>Person not found</div>;
 
@@ -564,9 +569,19 @@ export default function PersonDetails() {
             {selectedImage && (
                 <ImageEnhancer
                     imageUrl={selectedImage}
+                    personId={id}
                     onClose={() => setSelectedImage(null)}
                 />
             )}
+
+            <SuspectMatches 
+                suspectId={id} 
+                person={{
+                    firstName: person.firstName,
+                    lastName: person.lastName,
+                    personImageUrl: person.personImageUrl // The stored image URL
+                }}
+            />
         </div>
     );
 } 

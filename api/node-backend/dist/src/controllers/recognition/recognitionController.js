@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.shareDetection = exports.getRecognitionStats = exports.getAllRecognitionsForReport = exports.addRecognition = exports.getRecentRecognitions = void 0;
+exports.getDetectionDetails = exports.getDetectionsByLocation = exports.shareDetection = exports.getRecognitionStats = exports.getAllRecognitionsForReport = exports.addRecognition = exports.getRecentRecognitions = void 0;
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
@@ -54,15 +54,12 @@ const addRecognition = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         return next((0, http_errors_1.default)(400, "No image file provided"));
     }
     try {
-        // Parse the date correctly
         let parsedDateTime;
         try {
-            // Assuming capturedDateTime is in format "YYYY-MM-DD HH:mm:ss"
             const [datePart, timePart] = capturedDateTime.split(' ');
             const [year, month, day] = datePart.split('-');
             const [hours, minutes, seconds] = timePart.split(':');
-            parsedDateTime = new Date(parseInt(year), parseInt(month) - 1, // Month is 0-based
-            parseInt(day), parseInt(hours), parseInt(minutes), parseInt(seconds));
+            parsedDateTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), parseInt(seconds));
             if (isNaN(parsedDateTime.getTime())) {
                 throw new Error('Invalid date');
             }
@@ -157,7 +154,6 @@ const getAllRecognitionsForReport = (req, res, next) => __awaiter(void 0, void 0
                 capturedDateTime: 'desc'
             }
         });
-        // Format data for CSV
         const fields = [
             'Person Name',
             'Person Type',
@@ -190,9 +186,7 @@ const getAllRecognitionsForReport = (req, res, next) => __awaiter(void 0, void 0
 exports.getAllRecognitionsForReport = getAllRecognitionsForReport;
 const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Get total detections
         const totalDetections = yield prisma_1.prisma.recognizedPerson.count();
-        // Get successful matches (confidence > 75%)
         const successfulMatches = yield prisma_1.prisma.recognizedPerson.count({
             where: {
                 confidenceScore: {
@@ -200,7 +194,6 @@ const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0
                 }
             }
         });
-        // Calculate average confidence
         const allRecognitions = yield prisma_1.prisma.recognizedPerson.findMany({
             select: {
                 confidenceScore: true
@@ -226,16 +219,13 @@ exports.getRecognitionStats = getRecognitionStats;
 const shareDetection = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { to, personName, location, time, storedImage, capturedImage } = req.body;
     try {
-        // Configure email transporter
         const transporter = nodemailer_1.default.createTransport({
-            // Configure your email service
             service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
             }
         });
-        // Create email content
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to,
@@ -263,3 +253,92 @@ const shareDetection = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.shareDetection = shareDetection;
+const getDetectionsByLocation = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
+            include: {
+                camera: {
+                    select: {
+                        location: true
+                    }
+                }
+            }
+        });
+        const locationMap = new Map();
+        recognitions.forEach(recognition => {
+            var _a;
+            const location = ((_a = recognition.camera) === null || _a === void 0 ? void 0 : _a.location) || 'Unknown';
+            locationMap.set(location, (locationMap.get(location) || 0) + 1);
+        });
+        const formattedStats = Array.from(locationMap.entries()).map(([location, count]) => ({
+            location,
+            count
+        }));
+        formattedStats.sort((a, b) => b.count - a.count);
+        res.json({
+            message: "Location stats fetched successfully",
+            data: formattedStats
+        });
+    }
+    catch (error) {
+        next((0, http_errors_1.default)(500, "Error fetching location stats: " + error));
+    }
+});
+exports.getDetectionsByLocation = getDetectionsByLocation;
+const getDetectionDetails = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { imageUrl, personId } = req.query;
+        console.log("Finding detection with:", { imageUrl, personId });
+        if (!imageUrl || !personId) {
+            return next((0, http_errors_1.default)(400, "Image URL and Person ID are required"));
+        }
+        const detection = yield prisma_1.prisma.recognizedPerson.findFirst({
+            where: {
+                AND: [
+                    { capturedImageUrl: imageUrl },
+                    { personId: personId }
+                ]
+            },
+            include: {
+                person: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        personImageUrl: true,
+                    }
+                },
+                camera: {
+                    select: {
+                        location: true
+                    }
+                }
+            }
+        });
+        console.log("Found detection:", detection);
+        if (!detection) {
+            console.log("No detection found with URL:", imageUrl);
+            return next((0, http_errors_1.default)(404, "Detection not found"));
+        }
+        res.json({
+            message: "Detection details fetched successfully",
+            data: {
+                id: detection.id,
+                capturedImageUrl: detection.capturedImageUrl,
+                capturedLocation: ((_a = detection.camera) === null || _a === void 0 ? void 0 : _a.location) || 'Unknown',
+                capturedDateTime: detection.capturedDateTime,
+                confidenceScore: detection.confidenceScore,
+                person: {
+                    firstName: detection.person.firstName,
+                    lastName: detection.person.lastName,
+                    personImageUrl: detection.person.personImageUrl
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error("Error in getDetectionDetails:", error);
+        next((0, http_errors_1.default)(500, "Error fetching detection details: " + error));
+    }
+});
+exports.getDetectionDetails = getDetectionDetails;

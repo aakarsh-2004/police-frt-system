@@ -7,6 +7,11 @@ export interface MatchType {
     cameraId: string;
     confidence: number;
     verified: boolean;
+    person?: {
+        firstName: string;
+        lastName: string;
+        personImageUrl: string;
+    };
 }
 
 export const allMatches: MatchType[] = [

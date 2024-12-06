@@ -28,6 +28,14 @@ import TawkChat from './components/chat/TawkChat';
 import HelpSupport from './components/settings/HelpSupport';
 import { ThemeProvider } from './context/themeContext';
 import NewLoginPage from './components/auth/NewLoginPage';
+import DetectionsByLocation from './components/dashboard/DetectionsByLocation';
+import emailjs from '@emailjs/browser';
+import { emailjsConfig } from './config/emailjs';
+import ImageEnhancer from './components/image/ImageEnhancer';
+import { LoginThemeProvider } from './context/LoginThemeContext';
+
+// Initialize EmailJS
+emailjs.init(emailjsConfig.publicKey);
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -42,7 +50,11 @@ function App() {
   }
 
   if (!user) {
-    return <Login />;
+    return (
+      <LoginThemeProvider>
+        <Login />
+      </LoginThemeProvider>
+    );
   }
 
   return (
@@ -71,6 +83,7 @@ function App() {
                         </div>
                       </div>
                       <CrimeHeatmap />
+                      <DetectionsByLocation />
                     </div>
                   } />
                   <Route path="/monitoring" element={<LiveMonitoring />} />
@@ -95,6 +108,7 @@ function App() {
                   <Route path="/tutorial" element={<TutorialTraining />} />
                   <Route path="/help" element={<HelpPage />} />
                   <Route path="/settings/help-support" element={<HelpSupport />} />
+                  <Route path="/detections/:id" element={<ImageEnhancer />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </main>

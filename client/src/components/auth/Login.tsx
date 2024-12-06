@@ -3,8 +3,10 @@ import { Shield, User, Lock, Eye, EyeOff, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import config from '../../config/config';
+import { useLoginTheme } from '../../context/LoginThemeContext';
 
 export default function NewLoginPage() {
+    const { isDarkMode, toggleTheme } = useLoginTheme();
     const [showPassword, setShowPassword] = useState(false);
     const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
     const [username, setUsername] = useState('');
@@ -76,7 +78,7 @@ export default function NewLoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen">
+        <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
             <div className='w-[65%]'>
                 <img
                     src="https://res.cloudinary.com/dwbr9hz8y/image/upload/v1733462754/fgel9tfdohwh1xmbgft8.gif"
@@ -85,37 +87,45 @@ export default function NewLoginPage() {
                 />
             </div>
 
-            <div className='flex flex-col items-center w-[35%] p-8'>
+            <div className={`flex flex-col items-center w-[35%] p-8 ${
+                isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
+            }`}>
                 <div className='w-full'>
                     <div className='flex flex-col justify-center items-center relative'>
                         <img
                             src="https://res.cloudinary.com/dwbr9hz8y/image/upload/v1733422184/m73hlkm5oz1baurcxgns.png"
                             alt="Madhya Pradesh Map"
-                            className='w-[60%] opacity-30'
+                            className='w-[70%] opacity-30'
                         />
                         <Shield
-                            className="absolute text-yellow-500"
-                            size={50}
-                            style={{ top: '40%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                            className={`absolute ${isDarkMode ? 'text-yellow-400' : 'text-yellow-500'}`}
+                            size={55}
+                            style={{ top: '45%', left: '50%', transform: 'translate(-50%, -50%)' }}
                         />
-                        <h1 className="absolute text-black text-center dark:text-gray-300"
+                        <h1 className={`absolute text-center ${isDarkMode ? 'text-white' : 'text-black'}`}
                             style={{
-                                top: '54%', left: '50%', transform: 'translate(-50%, -50%)',
-                                fontWeight: '500', letterSpacing: '2px'
+                                top: '58%', left: '50%', transform: 'translate(-50%, -50%)',
+                                fontWeight: '700', letterSpacing: '2px'
                             }}>
                             BY TEAM HAXTERS
                         </h1>
-                        <h1 className="text-center mt-4 max-w-[305px] text-gray-600 dark:text-gray-400">
+                        <h1 className={`text-center mt-4 max-w-[305px] ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>
                             AI Powered Big Data Analysis and Criminal Search Technology
                         </h1>
                     </div>
                 </div>
 
                 <div className='mt-5 w-full max-w-md'>
-                    <h1 className='text-3xl font-semibold'>Sign in to MP Police FRT</h1>
+                    <h1 className={`text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Sign In
+                    </h1>
 
                     {error && (
-                        <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded relative" role="alert">
+                        <div className={`mt-4 p-3 ${
+                            isDarkMode ? 'bg-red-900/50 text-red-200' : 'bg-red-100 text-red-700'
+                        } border border-red-400 rounded relative`} role="alert">
                             <span className="block sm:inline">{error}</span>
                             <button 
                                 className="absolute top-0 bottom-0 right-0 px-4 py-3"
@@ -139,8 +149,8 @@ export default function NewLoginPage() {
                                 resetForm();
                             }}
                             className={`text-sm pb-1 border-b-2 transition-all ${loginMethod === 'password'
-                                ? 'border-yellow-400 text-gray-800 dark:text-gray-300 dark:hover:text-gray-300'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                ? 'border-yellow-400 text-gray-800 hover:text-black'
+                                : 'border-transparent text-gray-500 hover:text-black'
                                 }`}
                         >
                             Username & Password
@@ -151,8 +161,8 @@ export default function NewLoginPage() {
                                 resetForm();
                             }}
                             className={`text-sm pb-1 border-b-2 transition-all ${loginMethod === 'otp'
-                                ? 'border-yellow-400 text-gray-800 dark:text-gray-300 dark:hover:text-gray-300'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                ? 'border-yellow-400 text-gray-800 hover:text-black'
+                                : 'border-transparent text-gray-500 hover:text-black'
                                 }`}
                         >
                             Phone & OTP
@@ -175,7 +185,7 @@ export default function NewLoginPage() {
                                     value={loginMethod === 'password' ? username : phone}
                                     onChange={(e) => loginMethod === 'password' ? setUsername(e.target.value) : setPhone(e.target.value)}
                                     placeholder={loginMethod === 'password' ? 'Enter username...' : 'Enter phone number...'}
-                                    className='w-full border pl-10 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all dark:bg-gray-800 dark:text-gray-300'
+                                    className='w-full border pl-10 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all'
                                     disabled={loading}
                                 />
                             </div>
@@ -191,7 +201,7 @@ export default function NewLoginPage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder='Password...'
-                                        className='w-full border pl-10 pr-10 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all dark:bg-gray-800 dark:text-gray-300'
+                                        className='w-full border pl-10 pr-10 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all'
                                         disabled={loading}
                                     />
                                     <button
@@ -213,7 +223,7 @@ export default function NewLoginPage() {
                                         value={otp}
                                         onChange={(e) => setOtp(e.target.value)}
                                         placeholder='Enter OTP...'
-                                        className='w-full border pl-10 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all dark:bg-gray-800 dark:text-gray-300'
+                                        className='w-full border pl-10 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all'
                                         disabled={loading}
                                     />
                                 </div>

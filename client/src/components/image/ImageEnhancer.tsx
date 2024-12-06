@@ -1,10 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
     SlidersHorizontal, ZoomIn, ZoomOut, RotateCcw,
-    Sun, Contrast, Focus, Download, Share2, Wand2, X
+    Sun, Contrast, Focus, Download, Share2, Wand2, X,
+    Mail
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import emailjs from '@emailjs/browser';
+import config from '../../config/config';
+
+interface DetectionDetails {
+    id: string;
+    capturedImageUrl: string;
+    capturedLocation: string;
+    capturedDateTime: string;
+    confidenceScore: number;
+    person: {
+        firstName: string;
+        lastName: string;
+        personImageUrl: string;
+    }
+}
 
 interface ImageEnhancerProps {
     imageUrl: string;
@@ -21,6 +38,34 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
     const [zoom, setZoom] = useState(100);
     const [isProcessing, setIsProcessing] = useState(false);
     const [enhancedImageUrl, setEnhancedImageUrl] = useState<string | null>(null);
+    const [recipientEmail, setRecipientEmail] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [detectionDetails, setDetectionDetails] = useState<DetectionDetails | null>(null);
+    const [loading, setLoading] = useState(true);
+    const { id } = useParams();
+
+    console.log("id", id);
+
+    useEffect(() => {
+        const fetchDetectionDetails = async () => {
+            try {
+                const response = await axios.get<{ data: DetectionDetails }>(
+                    `${config.apiUrl}/api/recognitions/details?imageUrl=${imageUrl}&personId=${id}`
+                );
+                setDetectionDetails(response.data.data);
+                console.log(response.data.data);
+            } catch (error) {
+                console.error('Error fetching detection details:', error);
+                toast.error('Failed to fetch detection details');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchDetectionDetails();
+        }
+    }, [id]);
 
     const imageStyle = {
         filter: `brightness(${brightness}%) contrast(${contrast}%)`,
@@ -77,6 +122,49 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
             toast.error('Failed to enhance image');
         } finally {
             setIsProcessing(false);
+        }
+    };
+
+    console.log("detectionDetails", detectionDetails);
+    const handleEmailShare = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!detectionDetails) return;
+        
+
+        setIsSending(true);
+        try {
+            const formattedDate = new Date(detectionDetails.capturedDateTime).toLocaleString('en-US', {
+                dateStyle: 'medium',
+                timeStyle: 'medium'
+            });
+
+            const templateParams = {
+                to_email: recipientEmail,
+                person_name: `${detectionDetails.person.firstName} ${detectionDetails.person.lastName}`,
+                location: detectionDetails.capturedLocation,
+                detection_time: formattedDate,
+                original_image: detectionDetails.person.personImageUrl,
+                captured_image: detectionDetails.capturedImageUrl,
+                confidence: `${detectionDetails.confidenceScore}`
+            };
+
+            console.log('Sending email with params:', templateParams);
+
+            const response = await emailjs.send(
+                'service_78dvtme',
+                'template_k4xq33e',
+                templateParams,
+                'LpIjuCBpkd2u7AhCQ'
+            );
+
+            console.log('Email sent successfully:', response);
+            toast.success('Detection shared successfully');
+            setRecipientEmail('');
+        } catch (error) {
+            console.error('Error sharing detection:', error);
+            toast.error('Failed to share detection');
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -262,11 +350,47 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                 <h3 className="font-medium mb-4">Download Options</h3>
                 <button
                     onClick={handleDownload}
-                    className="w-full btn btn-primary flex items-center justify-center"
+                    className="w-full btn btn-primary flex items-center justify-center mb-4"
                 >
                     <Download className="w-4 h-4 mr-2" />
                     Download Enhanced Image
                 </button>
+
+                <div className="mt-6 border-t pt-4 dark:border-gray-700">
+                    <h3 className="font-medium mb-4">Share via Email</h3>
+                    <form onSubmit={handleEmailShare} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                                Recipient Email
+                            </label>
+                            <input
+                                type="email"
+                                value={recipientEmail}
+                                onChange={(e) => setRecipientEmail(e.target.value)}
+                                className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                placeholder="Enter email address"
+                                required
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={isSending}
+                            className="w-full btn btn-primary flex items-center justify-center"
+                        >
+                            {isSending ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white mr-2" />
+                                    Sending...
+                                </>
+                            ) : (
+                                <>
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Share via Email
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     );

@@ -50,17 +50,15 @@ export const addRecognition = async (req: Request, res: Response, next: NextFunc
     }
 
     try {
-        // Parse the date correctly
         let parsedDateTime;
         try {
-            // Assuming capturedDateTime is in format "YYYY-MM-DD HH:mm:ss"
             const [datePart, timePart] = capturedDateTime.split(' ');
             const [year, month, day] = datePart.split('-');
             const [hours, minutes, seconds] = timePart.split(':');
             
             parsedDateTime = new Date(
                 parseInt(year),
-                parseInt(month) - 1, // Month is 0-based
+                parseInt(month) - 1,
                 parseInt(day),
                 parseInt(hours),
                 parseInt(minutes),
@@ -169,7 +167,6 @@ export const getAllRecognitionsForReport = async (req: Request, res: Response, n
             }
         });
 
-        // Format data for CSV
         const fields = [
             'Person Name',
             'Person Type',
@@ -202,10 +199,8 @@ export const getAllRecognitionsForReport = async (req: Request, res: Response, n
 
 export const getRecognitionStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Get total detections
         const totalDetections = await prisma.recognizedPerson.count();
 
-        // Get successful matches (confidence > 75%)
         const successfulMatches = await prisma.recognizedPerson.count({
             where: {
                 confidenceScore: {
@@ -214,7 +209,6 @@ export const getRecognitionStats = async (req: Request, res: Response, next: Nex
             }
         });
 
-        // Calculate average confidence
         const allRecognitions = await prisma.recognizedPerson.findMany({
             select: {
                 confidenceScore: true
@@ -242,9 +236,7 @@ export const shareDetection = async (req: Request, res: Response, next: NextFunc
     const { to, personName, location, time, storedImage, capturedImage } = req.body;
 
     try {
-        // Configure email transporter
         const transporter = nodemailer.createTransport({
-            // Configure your email service
             service: 'gmail',
             auth: {
                 user: process.env.EMAIL_USER,
@@ -252,7 +244,6 @@ export const shareDetection = async (req: Request, res: Response, next: NextFunc
             }
         });
 
-        // Create email content
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to,
@@ -278,5 +269,100 @@ export const shareDetection = async (req: Request, res: Response, next: NextFunc
         res.json({ message: 'Detection shared successfully' });
     } catch (error) {
         next(createHttpError(500, "Error sharing detection: " + error));
+    }
+};
+
+export const getDetectionsByLocation = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const recognitions = await prisma.recognizedPerson.findMany({
+            include: {
+                camera: {
+                    select: {
+                        location: true
+                    }
+                }
+            }
+        });
+
+        const locationMap = new Map<string, number>();
+        
+        recognitions.forEach(recognition => {
+            const location = recognition.camera?.location || 'Unknown';
+            locationMap.set(location, (locationMap.get(location) || 0) + 1);
+        });
+
+        const formattedStats = Array.from(locationMap.entries()).map(([location, count]) => ({
+            location,
+            count
+        }));
+
+        formattedStats.sort((a, b) => b.count - a.count);
+
+        res.json({
+            message: "Location stats fetched successfully",
+            data: formattedStats
+        });
+    } catch (error) {
+        next(createHttpError(500, "Error fetching location stats: " + error));
+    }
+};
+
+export const getDetectionDetails = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { imageUrl, personId } = req.query;
+        console.log("Finding detection with:", { imageUrl, personId });
+
+        if (!imageUrl || !personId) {
+            return next(createHttpError(400, "Image URL and Person ID are required"));
+        }
+
+        const detection = await prisma.recognizedPerson.findFirst({
+            where: {
+                AND: [
+                    { capturedImageUrl: imageUrl as string },
+                    { personId: personId as string }
+                ]
+            },
+            include: {
+                person: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        personImageUrl: true,
+                    }
+                },
+                camera: {
+                    select: {
+                        location: true
+                    }
+                }
+            }
+        });
+
+        console.log("Found detection:", detection);
+
+        if (!detection) {
+            console.log("No detection found with URL:", imageUrl);
+            return next(createHttpError(404, "Detection not found"));
+        }
+
+        res.json({
+            message: "Detection details fetched successfully",
+            data: {
+                id: detection.id,
+                capturedImageUrl: detection.capturedImageUrl,
+                capturedLocation: detection.camera?.location || 'Unknown',
+                capturedDateTime: detection.capturedDateTime,
+                confidenceScore: detection.confidenceScore,
+                person: {
+                    firstName: detection.person.firstName,
+                    lastName: detection.person.lastName,
+                    personImageUrl: detection.person.personImageUrl
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error in getDetectionDetails:", error);
+        next(createHttpError(500, "Error fetching detection details: " + error));
     }
 }; 

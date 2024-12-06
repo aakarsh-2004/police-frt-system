@@ -131,8 +131,7 @@ model Requests {
 model Videos {
   id                 String           @id @default(uuid())
   videoUrl           String
-  videoDescription   String?
-  videoDate          DateTime
+  videoDate          DateTime         @default(now())
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   recognizedPersonId String
@@ -142,8 +141,8 @@ model Videos {
 model Notification {
     id          String    @id @default(uuid())
     message     String
-    type        String    // 'NEW_USER', 'NEW_SUSPECT', etc.
+    type        String    
     read        Boolean   @default(false)
     createdAt   DateTime  @default(now())
-    readBy      String[]  // Array of user IDs who have read this notification
+    readBy      String[]  
 }
