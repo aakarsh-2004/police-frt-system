@@ -74,7 +74,7 @@ const useStats = () => {
         };
 
         fetchStats();
-        const interval = setInterval(fetchStats, 60000);
+        const interval = setInterval(fetchStats, 5000);
         return () => clearInterval(interval);
     }, []);
 

@@ -79,7 +79,7 @@ export default function NewLoginPage() {
         <div className="flex min-h-screen">
             <div className='w-[65%]'>
                 <img
-                    src="https://res-console.cloudinary.com/dwbr9hz8y/media_explorer_thumbnails/65c6f9c2f980461b8515c274f66e5c48/detailed"
+                    src="https://res.cloudinary.com/dwbr9hz8y/image/upload/v1733462754/fgel9tfdohwh1xmbgft8.gif"
                     className="w-full h-full object-cover"
                     alt="Main Display"
                 />
