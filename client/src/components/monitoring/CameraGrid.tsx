@@ -1,129 +1,95 @@
 import { useState } from 'react';
-import { Camera, Settings, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
-import { cameras } from './cameras';
+import { Maximize, RotateCw } from 'lucide-react';
+import RTSPStream from './RTSPStream';
+import VideoControls from '../video/VideoControls';
 
+interface Camera {
+    id: string;
+    name: string;
+    url: string;
+    location: string;
+}
 
-export default function CameraGrid() {
-    const [expandedCamera, setExpandedCamera] = useState<string | null>(null);
-    const [cameraSettings, setCameraSettings] = useState<Record<string, {
-        zoom: number;
-        rotation: number;
-    }>>({});
+interface CameraGridProps {
+    cameras: Camera[];
+}
 
-    const handleCameraAction = (cameraId: string, action: 'zoomIn' | 'zoomOut' | 'rotate' | 'reset') => {
-        setCameraSettings(prev => {
-            const current = prev[cameraId] || { zoom: 100, rotation: 0 };
-            switch (action) {
-                case 'zoomIn':
-                    return { ...prev, [cameraId]: { ...current, zoom: Math.min(200, current.zoom + 10) } };
-                case 'zoomOut':
-                    return { ...prev, [cameraId]: { ...current, zoom: Math.max(50, current.zoom - 10) } };
-                case 'rotate':
-                    return { ...prev, [cameraId]: { ...current, rotation: (current.rotation + 90) % 360 } };
-                case 'reset':
-                    return { ...prev, [cameraId]: { zoom: 100, rotation: 0 } };
-                default:
-                    return prev;
-            }
-        });
+export default function CameraGrid({ cameras }: CameraGridProps) {
+    const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    const handleCameraClick = (camera: Camera) => {
+        setSelectedCamera(camera);
     };
 
-    const getCameraStyle = (cameraId: string) => {
-        const settings = cameraSettings[cameraId] || { zoom: 100, rotation: 0 };
-        return {
-            transform: `scale(${settings.zoom / 100}) rotate(${settings.rotation}deg)`,
-            transition: 'transform 0.3s ease-out'
-        };
+    const handleClose = () => {
+        setSelectedCamera(null);
+        setIsFullscreen(false);
     };
-
-    const displayedCameras = expandedCamera
-        ? cameras.filter(cam => cam.id === expandedCamera)
-        : cameras;
 
     return (
-        <div className="overflow-y-auto max-h-[calc(100vh-10rem)]">
-            <div className={`grid ${expandedCamera ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-4`}>
-                {displayedCameras.map((camera) => (
-                    <div
-                        key={camera.id}
-                        className={`bg-white rounded-lg shadow-lg overflow-hidden ${expandedCamera === camera.id ? 'col-span-full' : ''}`}
+        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800 h-[calc(100vh-16rem)]">
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold dark:text-white">Live Surveillance</h2>
+                <div className="flex items-center space-x-2">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        title="Refresh feeds"
                     >
-                        <div className="relative">
-                            <div className="aspect-video bg-gray-900">
-                                <img
-                                    src={camera.stream}
-                                    alt={camera.name}
-                                    className="w-full h-full object-cover"
-                                    style={getCameraStyle(camera.id)}
-                                />
-                            </div>
+                        <RotateCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    {selectedCamera && (
+                        <button
+                            onClick={() => setIsFullscreen(!isFullscreen)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="Toggle fullscreen"
+                        >
+                            <Maximize className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        </button>
+                    )}
+                </div>
+            </div>
 
-                            {/* Camera Info Overlay */}
-                            <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
-                                <div className="flex items-center justify-between text-white">
-                                    <div className="flex items-center space-x-2">
-                                        <Camera className="w-4 h-4" />
-                                        <span className="font-medium">{camera.name}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <span className={`w-2 h-2 rounded-full ${camera.status === 'active' ? 'bg-green-500' : 'bg-red-500'
-                                            }`} />
-                                        <span className="text-sm">{camera.status}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Control Buttons */}
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
-                                <div className="flex items-center justify-between text-white">
-                                    <div className="text-sm">
-                                        <div>{camera.location}</div>
-                                        <div className="text-xs opacity-75">{camera.area}</div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <button
-                                            onClick={() => handleCameraAction(camera.id, 'zoomOut')}
-                                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                                        >
-                                            <ZoomOut className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleCameraAction(camera.id, 'zoomIn')}
-                                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                                        >
-                                            <ZoomIn className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleCameraAction(camera.id, 'rotate')}
-                                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                                        >
-                                            <RotateCcw className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleCameraAction(camera.id, 'reset')}
-                                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                                        >
-                                            <Settings className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => setExpandedCamera(
-                                                expandedCamera === camera.id ? null : camera.id
-                                            )}
-                                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                                        >
-                                            {expandedCamera === camera.id ? (
-                                                <Minimize2 className="w-4 h-4" />
-                                            ) : (
-                                                <Maximize2 className="w-4 h-4" />
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+            <div className="overflow-y-auto h-[calc(100%-4rem)] pr-2">
+                {selectedCamera ? (
+                    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-black' : ''}`}>
+                        <div className="relative h-full">
+                            <RTSPStream
+                                streamUrl={selectedCamera.url}
+                                onClose={handleClose}
+                                isFullscreen={isFullscreen}
+                            />
+                            <VideoControls
+                                onClose={handleClose}
+                                onFullscreen={() => setIsFullscreen(!isFullscreen)}
+                                isFullscreen={isFullscreen}
+                            />
                         </div>
                     </div>
-                ))}
+                ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                        {cameras.map((camera) => (
+                            <div
+                                key={camera.id}
+                                onClick={() => handleCameraClick(camera)}
+                                className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden cursor-pointer group hover:ring-2 hover:ring-blue-500 transition-all"
+                            >
+                                <RTSPStream
+                                    streamUrl={camera.url}
+                                    isPreview={true}
+                                />
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                    <h3 className="text-white font-medium">{camera.name}</h3>
+                                    <p className="text-gray-300 text-sm">{camera.location}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
 }
+
+</```rewritten_file>

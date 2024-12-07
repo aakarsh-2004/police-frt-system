@@ -170,8 +170,8 @@ export default function LiveFeed() {
     };
 
     return (
-        <div className="card">
-            <div className="p-4 border-b flex items-center justify-between dark:border-gray-700">
+        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800 h-[calc(100vh-16rem)]">
+            <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                     <Camera className="w-5 h-5 text-blue-900" />
                     <h2 className="text-lg font-semibold">
@@ -198,55 +198,65 @@ export default function LiveFeed() {
                 </div>
             </div>
 
-            {showGrid ? (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 p-2">
-                    {RTSP_STREAMS.map((streamUrl, index) => (
-                        <div 
-                            key={index} 
-                            className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden cursor-pointer"
-                            onClick={() => handleCameraClick(videoFeeds[index], index)}
-                        >
-                            <RTSPStream
-                                id={`dashboard-video-${index + 1}`}
-                                streamUrl={streamUrl}
-                                fallbackIndex={index}
-                                style={getVideoStyle(`dashboard-video-${index + 1}`)}
-                            />
-                            <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/50 to-transparent">
-                                <div className="flex items-center justify-between text-white">
-                                    <span className="text-sm font-medium">{videoFeeds[index].title}</span>
-                                    <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
-                                        {t('dashboard.liveFeed.live')}
-                                    </span>
+            <div className="h-[calc(100%-3.5rem)]">
+                {showGrid ? (
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 h-full">
+                        {RTSP_STREAMS.map((streamUrl, index) => (
+                            <div 
+                                key={index} 
+                                className="relative w-full h-[180px] pb-[56.25%] bg-gray-900 rounded-lg overflow-hidden cursor-pointer group hover:ring-2 hover:ring-blue-500/50 transition-all"
+                                onClick={() => handleCameraClick(videoFeeds[index], index)}
+                            >
+                                <div className="absolute inset-0">
+                                    <RTSPStream
+                                        id={`dashboard-video-${index + 1}`}
+                                        streamUrl={streamUrl}
+                                        fallbackIndex={index}
+                                        style={{
+                                            ...getVideoStyle(`dashboard-video-${index + 1}`),
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover'
+                                        }}
+                                    />
+                                    <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/50 to-transparent">
+                                        <div className="flex items-center justify-between text-white">
+                                            <span className="text-sm font-medium">{videoFeeds[index].title}</span>
+                                            <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
+                                                {t('dashboard.liveFeed.live')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <VideoControls
+                                        onZoomIn={() => handleZoomIn(`dashboard-video-${index + 1}`)}
+                                        onZoomOut={() => handleZoomOut(`dashboard-video-${index + 1}`)}
+                                        onRotate={() => handleRotate(`dashboard-video-${index + 1}`)}
+                                        onFullScreen={() => handleFullScreen(`dashboard-video-${index + 1}`)}
+                                    />
                                 </div>
                             </div>
-                            <VideoControls
-                                onZoomIn={() => handleZoomIn(`dashboard-video-${index + 1}`)}
-                                onZoomOut={() => handleZoomOut(`dashboard-video-${index + 1}`)}
-                                onRotate={() => handleRotate(`dashboard-video-${index + 1}`)}
-                                onFullScreen={() => handleFullScreen(`dashboard-video-${index + 1}`)}
+                        ))}
+                    </div>
+                ) : (
+                    <div className="relative h-full w-full">
+                        <div className="absolute inset-0 rounded-lg overflow-hidden bg-gray-900">
+                            <RTSPStream
+                                id={selectedFeed.id}
+                                streamUrl={selectedStreamUrl}
+                                fallbackIndex={videoFeeds.findIndex(f => f.id === selectedFeed.id)}
+                                style={{
+                                    ...getVideoStyle(selectedFeed.id),
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain'
+                                }}
                             />
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="relative">
-                    <div className="card">
-                        <div className="relative aspect-video bg-gray-900 group overflow-hidden" id={`video-container-${selectedFeed.id}`}>
-                            <div className="relative w-full h-full">
-                                <RTSPStream
-                                    id={selectedFeed.id}
-                                    streamUrl={selectedStreamUrl}
-                                    fallbackIndex={videoFeeds.findIndex(f => f.id === selectedFeed.id)}
-                                    style={getVideoStyle(selectedFeed.id)}
-                                />
-                                <VideoControls
-                                    onZoomIn={() => handleZoomIn(selectedFeed.id)}
-                                    onZoomOut={() => handleZoomOut(selectedFeed.id)}
-                                    onRotate={() => handleRotate(selectedFeed.id)}
-                                    onFullScreen={() => handleFullScreen(selectedFeed.id)}
-                                />
-                            </div>
+                            <VideoControls
+                                onZoomIn={() => handleZoomIn(selectedFeed.id)}
+                                onZoomOut={() => handleZoomOut(selectedFeed.id)}
+                                onRotate={() => handleRotate(selectedFeed.id)}
+                                onFullScreen={() => handleFullScreen(selectedFeed.id)}
+                            />
 
                             {/* Overlay Information */}
                             <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
@@ -289,33 +299,33 @@ export default function LiveFeed() {
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Navigation Buttons */}
-                    <button
-                        onClick={() => {
-                            const currentIndex = videoFeeds.findIndex(f => f.id === selectedFeed.id);
-                            const prevIndex = currentIndex === 0 ? videoFeeds.length - 1 : currentIndex - 1;
-                            setSelectedFeed(videoFeeds[prevIndex]);
-                            setSelectedStreamUrl(RTSP_STREAMS[prevIndex]);
-                        }}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 rounded-full text-white hover:bg-black/75"
-                    >
-                        <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <button
-                        onClick={() => {
-                            const currentIndex = videoFeeds.findIndex(f => f.id === selectedFeed.id);
-                            const nextIndex = currentIndex === videoFeeds.length - 1 ? 0 : currentIndex + 1;
-                            setSelectedFeed(videoFeeds[nextIndex]);
-                            setSelectedStreamUrl(RTSP_STREAMS[nextIndex]);
-                        }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 rounded-full text-white hover:bg-black/75"
-                    >
-                        <ChevronRight className="w-6 h-6" />
-                    </button>
-                </div>
-            )}
+                        {/* Navigation Buttons */}
+                        <button
+                            onClick={() => {
+                                const currentIndex = videoFeeds.findIndex(f => f.id === selectedFeed.id);
+                                const prevIndex = currentIndex === 0 ? videoFeeds.length - 1 : currentIndex - 1;
+                                setSelectedFeed(videoFeeds[prevIndex]);
+                                setSelectedStreamUrl(RTSP_STREAMS[prevIndex]);
+                            }}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 rounded-full text-white hover:bg-black/75 transition-colors"
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const currentIndex = videoFeeds.findIndex(f => f.id === selectedFeed.id);
+                                const nextIndex = currentIndex === videoFeeds.length - 1 ? 0 : currentIndex + 1;
+                                setSelectedFeed(videoFeeds[nextIndex]);
+                                setSelectedStreamUrl(RTSP_STREAMS[nextIndex]);
+                            }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 rounded-full text-white hover:bg-black/75 transition-colors"
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

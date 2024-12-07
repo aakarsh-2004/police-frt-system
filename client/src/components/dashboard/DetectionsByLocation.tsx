@@ -10,9 +10,10 @@ import {
     CartesianGrid, 
     Tooltip, 
     ResponsiveContainer,
-    Legend
+    LabelList
 } from 'recharts';
 import { useTheme } from '../../context/themeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface LocationStats {
     location: string;
@@ -38,6 +39,7 @@ export default function DetectionsByLocation() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { isDarkMode } = useTheme();
+    const { currentLanguage } = useLanguage();
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -85,77 +87,37 @@ export default function DetectionsByLocation() {
     if (stats.length === 0) {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mt-6">
-                <div className="flex items-center space-x-2 mb-6">
-                    <ChartIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    <h2 className="text-xl font-semibold dark:text-white">Detections by Location</h2>
-                </div>
                 <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-                    No detection data available
+                    {currentLanguage === 'en' ? 'No detection data available' : 'कोई डिटेक्शन डेटा उपलब्ध नहीं है'}
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mt-6">
-            <div className="flex items-center space-x-2 mb-6">
-                <ChartIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                <h2 className="text-xl font-semibold dark:text-white">Detections by Location</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800 h-[300px]">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold dark:text-white">
+                    {currentLanguage === 'en' ? 'Detections by Location' : 'स्थान के अनुसार पहचान'}
+                </h2>
             </div>
 
-            <div className="h-[400px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                        data={stats}
-                        margin={{
-                            top: 20,
-                            right: 30,
-                            left: 20,
-                            bottom: 60
-                        }}
-                    >
-                        <CartesianGrid 
-                            strokeDasharray="3 3" 
-                            stroke={isDarkMode ? '#374151' : '#E5E7EB'}
-                        />
-                        <XAxis
-                            dataKey="location"
+            <div className="h-[calc(100%-4rem)] overflow-hidden">
+                <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={stats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                            dataKey="location" 
                             angle={-45}
                             textAnchor="end"
                             height={60}
-                            tick={{ 
-                                fill: isDarkMode ? '#D1D5DB' : '#374151',
-                                fontSize: 12 
-                            }}
+                            interval={0}
+                            tick={{ fontSize: 12 }}
                         />
-                        <YAxis 
-                            tick={{ 
-                                fill: isDarkMode ? '#D1D5DB' : '#374151',
-                                fontSize: 12 
-                            }}
-                            label={{ 
-                                value: 'Number of Detections', 
-                                angle: -90, 
-                                position: 'insideLeft',
-                                fill: isDarkMode ? '#D1D5DB' : '#374151'
-                            }}
-                        />
-                        <Tooltip 
-                            content={<CustomTooltip />}
-                            cursor={{ fill: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
-                        />
-                        <Legend 
-                            wrapperStyle={{ 
-                                color: isDarkMode ? '#D1D5DB' : '#374151'
-                            }}
-                        />
-                        <Bar
-                            name="Detections"
-                            dataKey="count"
-                            fill={isDarkMode ? '#3B82F6' : '#2563EB'}
-                            radius={[4, 4, 0, 0]}
-                            barSize={40}
-                        >
+                        <YAxis />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="count" fill="#3B82F6">
+                            <LabelList dataKey="count" position="top" />
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>

@@ -6,31 +6,28 @@ import { useLanguage } from '../../context/LanguageContext';
 import axios from 'axios';
 import config from '../../config/config';
 import ImageEnhancer from '../../components/image/ImageEnhancer';
+import { formatDistanceToNow, format } from 'date-fns';
+import { enUS, hi } from 'date-fns/locale';
 
-interface Recognition {
-    id: number;
-    personId: string;
-    capturedImageUrl: string;
-    capturedLocation: string;
+interface Alert {
+    id: string;
     capturedDateTime: string;
-    createdAt: string;
-    type: string;
     confidenceScore: string;
+    capturedImageUrl: string;
     person: {
         id: string;
         firstName: string;
         lastName: string;
         personImageUrl: string;
         type: string;
-        suspect?: {
-            foundStatus: boolean;
-            riskLevel: string;
-        };
-        missingPerson?: {
-            foundStatus: boolean;
-        };
+        status: string;
+        lastSeenDate?: string;
+        lastSeenLocation?: string;
+        missingSince?: string;
     };
     camera: {
+        id: string;
+        name: string;
         location: string;
     };
 }
@@ -43,25 +40,15 @@ interface FilterState {
     timePeriod: 'daily' | 'weekly' | 'monthly' | 'custom';
 }
 
-const formatDateTime = (dateString: string) => {
-    try {
-        // Split the date string into its components
-        const [date, time] = dateString.split(' ');
-        // Return in a nicely formatted way but with same values
-        return `${date}, ${time}`;
-    } catch (error) {
-        console.error('Error formatting date:', error);
-        return dateString;
-    }
-};
-
 export default function AlertsPage() {
     const [enhancingImage, setEnhancingImage] = useState<string | null>(null);
-    const [alerts, setAlerts] = useState<Recognition[]>([]);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const navigate = useNavigate();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const { t } = useTranslation();
+    const { currentLanguage } = useLanguage();
 
     const [filters, setFilters] = useState<FilterState>({
         startDate: '',
@@ -72,9 +59,6 @@ export default function AlertsPage() {
     });
 
     const [availableLocations, setAvailableLocations] = useState<string[]>([]);
-
-    const { t } = useTranslation();
-    const { currentLanguage } = useLanguage();
 
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
@@ -105,7 +89,7 @@ export default function AlertsPage() {
             setTotalPages(Math.ceil(response.data.total / pageSize));
             
             // Update available locations
-            const locations = new Set(response.data.data.map((alert: Recognition) => alert.camera.location));
+            const locations = new Set(response.data.data.map((alert: Alert) => alert.camera.location));
             setAvailableLocations(Array.from(locations));
         } catch (error) {
             console.error('Error fetching alerts:', error);
@@ -161,7 +145,7 @@ export default function AlertsPage() {
         }
     };
 
-    const getAlertSeverity = (recognition: Recognition) => {
+    const getAlertSeverity = (recognition: Alert) => {
         if (recognition.person.type === 'suspect' && recognition.person.suspect?.riskLevel === 'high') {
             return 'critical';
         }
@@ -171,7 +155,7 @@ export default function AlertsPage() {
         return 'medium';
     };
 
-    const getStatusBadge = (recognition: Recognition) => {
+    const getStatusBadge = (recognition: Alert) => {
         const confidence = parseFloat(recognition.confidenceScore);
         if (confidence >= 90) return 'verified';
         if (confidence >= 75) return 'investigating';
@@ -190,7 +174,7 @@ export default function AlertsPage() {
         }
     };
 
-    const handleViewDetails = (alert: Recognition) => {
+    const handleViewDetails = (alert: Alert) => {
         navigate(`/person/${alert.personId}`);
     };
 
@@ -226,6 +210,20 @@ export default function AlertsPage() {
             endDate
         }));
         setCurrentPage(1); // Reset to first page when filter changes
+    };
+
+    const formatDateTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return format(date, 'dd MMM yyyy, hh:mm a', {
+            locale: currentLanguage === 'en' ? enUS : hi
+        });
+    };
+
+    const getTimeAgo = (dateString: string) => {
+        return formatDistanceToNow(new Date(dateString), {
+            addSuffix: true,
+            locale: currentLanguage === 'en' ? enUS : hi
+        });
     };
 
     if (loading) {
@@ -339,7 +337,7 @@ export default function AlertsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {alerts.map((alert) => (
                         <div key={alert.id} className="bg-white rounded-lg shadow-lg overflow-hidden dark:bg-gray-800">
-                            <div className="p-4 border-b">
+                            <div className="p-4 border-b dark:border-gray-700">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
                                         <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -351,6 +349,26 @@ export default function AlertsPage() {
                                         {parseFloat(alert.confidenceScore).toFixed(1)}%
                                     </span>
                                 </div>
+                                {alert.person.type === 'missing-person' && (
+                                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                        <div className="flex items-center space-x-2">
+                                            <Clock className="w-3 h-3" />
+                                            <span>
+                                                {currentLanguage === 'en' ? 'Missing since: ' : 'लापता: '}
+                                                {alert.person.missingSince && formatDateTime(alert.person.missingSince)}
+                                            </span>
+                                        </div>
+                                        {alert.person.lastSeenLocation && (
+                                            <div className="flex items-center space-x-2 mt-1">
+                                                <MapPin className="w-3 h-3" />
+                                                <span>
+                                                    {currentLanguage === 'en' ? 'Last seen at: ' : 'अंतिम बार देखा गया: '}
+                                                    {alert.person.lastSeenLocation}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 p-4">
@@ -376,18 +394,26 @@ export default function AlertsPage() {
                                 </div>
                             </div>
 
-                            <div className="p-4 border-t">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1 text-sm">
-                                        <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                            <MapPin className="w-3 h-3 mr-1 dark:text-gray-400" />
-                                            {alert.capturedLocation}
-                                        </div>
-                                        <div className="flex items-center text-gray-600 dark:text-gray-400">
-                                            <Clock className="w-3 h-3 mr-1 dark:text-gray-400" />
-                                            {alert.capturedDateTime.split('T')[0] + ', ' + alert.capturedDateTime.split('T')[1].split('.')[0]}
-                                        </div>
+                            <div className="p-4 border-t dark:border-gray-700">
+                                <div className="space-y-2">
+                                    <div className="flex items-center text-gray-600 dark:text-gray-400">
+                                        <MapPin className="w-3 h-3 mr-1" />
+                                        <span>
+                                            {currentLanguage === 'en' ? 'Detected at: ' : 'यहाँ पहचाना गया: '}
+                                            {alert.camera.name} ({alert.camera.location})
+                                        </span>
                                     </div>
+                                    <div className="flex items-center text-gray-600 dark:text-gray-400">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        <span>
+                                            {formatDateTime(alert.capturedDateTime)}
+                                            <span className="text-sm text-gray-500 ml-1">
+                                                ({getTimeAgo(alert.capturedDateTime)})
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="mt-3 flex justify-end">
                                     <button
                                         onClick={() => handleViewDetails(alert)}
                                         className="btn btn-primary text-xs py-1 px-2 flex items-center"
@@ -409,7 +435,6 @@ export default function AlertsPage() {
                     )}
                 </div>
 
-                {/* Pagination */}
                 <div className="mt-6 flex items-center justify-between dark:text-white">
                     <div className="text-sm text-gray-700">
                         Showing {(currentPage - 1) * pageSize + 1} to{' '}
@@ -421,8 +446,8 @@ export default function AlertsPage() {
                             disabled={currentPage === 1}
                             className={`p-2 rounded ${
                                 currentPage === 1
-                                    ? 'text-gray-400 cursor-not-allowed dark:text-gray-800'
-                                    : 'text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                                    ? 'text-gray-400 cursor-not-allowed dark:text-gray-500'
+                                    : 'text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50 dark:text-white'
                             }`}
                         >
                             <ChevronLeft className="w-5 h-5" />
@@ -435,8 +460,8 @@ export default function AlertsPage() {
                             disabled={currentPage === totalPages}
                             className={`p-2 rounded ${
                                 currentPage === totalPages
-                                    ? 'text-gray-400 cursor-not-allowed'
-                                    : 'text-gray-700 hover:bg-gray-100'
+                                    ? 'text-gray-400 cursor-not-allowed dark:text-gray-500'
+                                    : 'text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50 dark:text-white'
                             }`}
                         >
                             <ChevronRight className="w-5 h-5" />
@@ -444,11 +469,9 @@ export default function AlertsPage() {
                     </div>
                 </div>
 
-                {/* Loading and Error States */}
                 {loading && <div className="text-center mt-6">Loading...</div>}
             </div>
 
-            {/* Image Enhancer Modal */}
             {selectedImage && (
                 <ImageEnhancer
                     imageUrl={selectedImage}
