@@ -19,7 +19,7 @@ const errorHandler_1 = require("./middleware/errorHandler");
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
 app.use((0, cors_1.default)({
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "https://frt-system-client.vercel.app", "https://frt-system-client-68fw0x2f7-sp4rtas-projects.vercel.app/"],
+    origin: ["http://localhost:5173", "https://frt-system-client.vercel.app"],
     credentials: true
 }));
 app.get('/api', (req, res, next) => {

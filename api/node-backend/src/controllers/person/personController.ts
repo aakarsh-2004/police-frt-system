@@ -36,6 +36,9 @@ const getPersonById = async (req: Request, res: Response, next: NextFunction) =>
                 },
                 missingPerson: true,
                 recognizedPerson: {
+                    include: {
+                        camera: true
+                    },
                     orderBy: {
                         capturedDateTime: 'desc'
                     }
@@ -64,7 +67,6 @@ const createPerson = async (req: Request, res: Response, next: NextFunction) => 
         console.log('Received data:', data);
         console.log('Received files:', file);
 
-        // Validate required fields
         if (!data.firstName || !data.lastName || !data.age || !data.dateOfBirth || !data.type) {
             throw createHttpError(400, "Missing required fields");
         }
@@ -78,44 +80,50 @@ const createPerson = async (req: Request, res: Response, next: NextFunction) => 
             fs.unlinkSync(file.path);
         }
 
-        // Parse the nested objects if they were stringified
         const suspectData = data.suspect ? JSON.parse(data.suspect) : null;
         const missingPersonData = data.missingPerson ? JSON.parse(data.missingPerson) : null;
 
+        const personData: any = {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            age: parseInt(data.age),
+            dateOfBirth: new Date(data.dateOfBirth),
+            gender: data.gender,
+            email: data.email || null,
+            phone: data.phone || null,
+            address: data.address,
+            type: data.type,
+            nationality: data.nationality || null,
+            nationalId: data.nationalId || null,
+            personImageUrl: imageUrl
+        };
+
+        if (data.type === 'suspect' && suspectData) {
+            personData.suspect = {
+                create: {
+                    riskLevel: suspectData.riskLevel || 'low',
+                    foundStatus: false
+                }
+            };
+        } else if (data.type === 'missing-person' && missingPersonData) {
+            const lastSeenDate = new Date(missingPersonData.lastSeenDate);
+            if (isNaN(lastSeenDate.getTime())) {
+                throw createHttpError(400, "Invalid lastSeenDate");
+            }
+
+            personData.missingPerson = {
+                create: {
+                    lastSeenDate: lastSeenDate,
+                    lastSeenLocation: missingPersonData.lastSeenLocation,
+                    missingSince: lastSeenDate,
+                    foundStatus: false,
+                    reportBy: missingPersonData.reportBy
+                }
+            };
+        }
+
         const person = await prisma.person.create({
-            data: {
-                firstName: data.firstName,
-                lastName: data.lastName,
-                age: parseInt(data.age),
-                dateOfBirth: new Date(data.dateOfBirth),
-                gender: data.gender,
-                email: data.email || null,
-                phone: data.phone || null,
-                address: data.address,
-                type: data.type,
-                nationality: data.nationality || null,
-                nationalId: data.nationalId || null,
-                personImageUrl: imageUrl,
-                ...(data.type === 'suspect' && {
-                    suspect: {
-                        create: {
-                            riskLevel: data.riskLevel || 'low',
-                            foundStatus: false
-                        }
-                    }
-                }),
-                ...(data.type === 'missing-person' && {
-                    missingPerson: {
-                        create: {
-                            lastSeenDate: new Date(data.lastSeenDate),
-                            lastSeenLocation: data.lastSeenLocation,
-                            missingSince: new Date(data.missingSince || data.lastSeenDate),
-                            foundStatus: false,
-                            reportBy: data.reportBy
-                        }
-                    }
-                })
-            },
+            data: personData,
             include: {
                 suspect: true,
                 missingPerson: true
@@ -123,8 +131,8 @@ const createPerson = async (req: Request, res: Response, next: NextFunction) => 
         });
 
         await createNotification(
-            `New ${data.type} ${data.firstName} ${data.lastName} has been added`,
-            'NEW_PERSON'
+            `New ${data.type} added: ${data.firstName} ${data.lastName}`,
+            'PERSON_ADDED'
         );
 
         res.status(201).json({
@@ -132,6 +140,7 @@ const createPerson = async (req: Request, res: Response, next: NextFunction) => 
             data: person
         });
     } catch (error) {
+        console.error('Error creating person:', error);
         next(createHttpError(500, "Error creating person: " + error));
     }
 };
@@ -254,12 +263,10 @@ const deletePerson = async (req: Request, res: Response, next: NextFunction) => 
                 });
             }
 
-            // 2. Delete all recognitions for this person
             await tx.recognizedPerson.deleteMany({
                 where: { personId: id }
             });
 
-            // 3. Delete the person record
             await tx.person.delete({
                 where: { id }
             });
@@ -277,40 +284,116 @@ const deletePerson = async (req: Request, res: Response, next: NextFunction) => 
 
 const searchPersons = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { q: query } = req.query;
-        console.log('Search query:', query);
+        const searchQuery = req.query.q as string || '';
+        const locations = req.query.locations ? (req.query.locations as string).split(',') : [];
+        const minConfidence = parseFloat(req.query.minConfidence as string) || 0;
 
-        if (!query || typeof query !== 'string' || query.trim() === '') {
-            return res.status(200).json({
-                message: "No search query provided",
-                data: []
-            });
-        }
+        // Base query conditions
+        const baseConditions = searchQuery ? {
+            OR: [
+                { firstName: { contains: searchQuery, mode: 'insensitive' } },
+                { lastName: { contains: searchQuery, mode: 'insensitive' } },
+                { address: { contains: searchQuery, mode: 'insensitive' } },
+                { nationalId: { contains: searchQuery, mode: 'insensitive' } }
+            ]
+        } : {};
 
-        const searchQuery = query.trim().toLowerCase();
-        console.log('Processing search query:', searchQuery);
+        // Location filter conditions
+        const locationConditions = locations.length > 0 ? {
+            recognizedPerson: {
+                some: {
+                    camera: {
+                        location: {
+                            in: locations
+                        }
+                    }
+                }
+            }
+        } : {};
+
+        // Confidence filter conditions
+        const confidenceConditions = minConfidence > 0 ? {
+            recognizedPerson: {
+                some: {
+                    confidenceScore: {
+                        gte: minConfidence.toString()
+                    }
+                }
+            }
+        } : {};
+
+        // Combine all conditions
+        const whereClause = {
+            AND: [
+                baseConditions,
+                ...(locations.length > 0 ? [locationConditions] : []),
+                ...(minConfidence > 0 ? [confidenceConditions] : [])
+            ]
+        };
 
         const persons = await prisma.person.findMany({
-            where: {
-                OR: [
-                    { firstName: { contains: searchQuery, mode: 'insensitive' } },
-                    { lastName: { contains: searchQuery, mode: 'insensitive' } },
-                    { address: { contains: searchQuery, mode: 'insensitive' } },
-                    { nationalId: { contains: searchQuery, mode: 'insensitive' } }
-                ]
-            },
+            where: whereClause,
             include: {
                 suspect: true,
-                missingPerson: true
-            },
-            take: 10 // Limit results to 10 for better performance
+                missingPerson: true,
+                recognizedPerson: {
+                    include: {
+                        camera: true
+                    },
+                    orderBy: {
+                        capturedDateTime: 'desc'
+                    }
+                }
+            }
         });
 
         console.log(`Found ${persons.length} matches`);
-        
+
+        // Post-process results to ensure they match all criteria
+        const filteredPersons = persons.filter(person => {
+            // If no filters are applied, include all persons
+            if (locations.length === 0 && minConfidence === 0) {
+                return true;
+            }
+
+            // Check if person has any recognitions
+            if (person.recognizedPerson.length === 0) {
+                return false;
+            }
+
+            // Check location filter
+            if (locations.length > 0) {
+                const hasMatchingLocation = person.recognizedPerson.some(rec => 
+                    locations.includes(rec.camera.location)
+                );
+                if (!hasMatchingLocation) {
+                    return false;
+                }
+            }
+
+            // Check confidence filter
+            if (minConfidence > 0) {
+                const hasMatchingConfidence = person.recognizedPerson.some(rec => 
+                    parseFloat(rec.confidenceScore) >= minConfidence
+                );
+                if (!hasMatchingConfidence) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        // Add a count of matching detections for each person
+        const personsWithMatchCounts = filteredPersons.map(person => ({
+            ...person,
+            matchCount: person.recognizedPerson.length
+        }));
+
         res.status(200).json({
             message: "Search results fetched successfully",
-            data: persons
+            data: personsWithMatchCounts,
+            totalMatches: personsWithMatchCounts.reduce((acc, p) => acc + p.matchCount, 0)
         });
     } catch (error) {
         console.error("Search error:", error);

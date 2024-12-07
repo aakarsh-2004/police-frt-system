@@ -52,6 +52,9 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                 const response = await axios.get<{ data: DetectionDetails }>(
                     `${config.apiUrl}/api/recognitions/details?imageUrl=${imageUrl}&personId=${id}`
                 );
+
+                console.log("url => ", `${config.apiUrl}/api/recognitions/details?imageUrl=${imageUrl}&personId=${id}`);
+                
                 setDetectionDetails(response.data.data);
                 console.log(response.data.data);
             } catch (error) {

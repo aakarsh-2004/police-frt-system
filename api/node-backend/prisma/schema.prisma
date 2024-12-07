@@ -129,11 +129,9 @@ model Requests {
 }
 
 model Videos {
-  id                 String           @id @default(uuid())
+  id                 Int              @id @default(autoincrement())
   videoUrl           String
   videoDate          DateTime         @default(now())
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
   recognizedPersonId String
   recognizedPerson   RecognizedPerson @relation(fields: [recognizedPersonId], references: [id])
 }

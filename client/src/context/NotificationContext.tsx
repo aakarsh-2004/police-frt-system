@@ -50,7 +50,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     useEffect(() => {
         if (user) {
             fetchNotifications();
-            const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
+            const interval = setInterval(fetchNotifications, 10000); 
             return () => clearInterval(interval);
         }
     }, [user]);

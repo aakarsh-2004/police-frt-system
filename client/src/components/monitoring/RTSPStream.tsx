@@ -16,139 +16,101 @@ export default function RTSPStream({ streamUrl, id, style, fallbackIndex = 0 }: 
     const fallbackUrl = getFallbackStream(fallbackIndex);
     const wsRef = useRef<WebSocket | null>(null);
     const retryCountRef = useRef(0);
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 2000;
+    const playAttemptRef = useRef<number | null>(null);
 
-    const closeWebSocket = () => {
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
-    };
-
-    const cleanupMediaSource = () => {
-        if (sourceBufferRef.current && mediaSourceRef.current) {
-            try {
-                mediaSourceRef.current.removeSourceBuffer(sourceBufferRef.current);
-            } catch (e) {
-                console.warn('Error cleaning up MediaSource:', e);
-            }
-        }
-        sourceBufferRef.current = null;
-        mediaSourceRef.current = null;
-    };
-
-    const initializeStream = async () => {
+    const switchToFallback = async () => {
         if (!videoRef.current) return;
         
-        const videoElement = videoRef.current;
-
         try {
-            // Clean up existing connections
-            closeWebSocket();
-            cleanupMediaSource();
+            setUseFallback(true);
+            const video = videoRef.current;
+            video.src = fallbackUrl;
 
-            // Create new MediaSource
-            const mediaSource = new MediaSource();
-            mediaSourceRef.current = mediaSource;
-            videoElement.src = URL.createObjectURL(mediaSource);
+            // Clear any existing play attempt timeout
+            if (playAttemptRef.current) {
+                clearTimeout(playAttemptRef.current);
+            }
 
-            mediaSource.addEventListener('sourceopen', () => {
+            // Add a small delay before attempting to play
+            playAttemptRef.current = window.setTimeout(async () => {
                 try {
-                    // Create WebSocket connection
-                    const ws = new WebSocket(streamUrl);
-                    wsRef.current = ws;
-                    ws.binaryType = 'arraybuffer';
-
-                    ws.onopen = () => {
-                        console.log('WebSocket connected:', streamUrl);
-                        retryCountRef.current = 0; // Reset retry count on successful connection
-                    };
-
-                    ws.onmessage = (event) => {
-                        if (!event.data || !(event.data instanceof ArrayBuffer)) return;
-
-                        const data = new Uint8Array(event.data);
-                        
-                        if (data[0] === 9) {
-                            // Handle codec initialization
-                            const decoder = new TextDecoder('utf-8');
-                            const decodedData = decoder.decode(data.slice(1));
-                            
-                            if (!sourceBufferRef.current && mediaSource.readyState === 'open') {
-                                try {
-                                    sourceBufferRef.current = mediaSource.addSourceBuffer(
-                                        `video/mp4; codecs="${decodedData}"`
-                                    );
-                                    sourceBufferRef.current.mode = 'segments';
-                                } catch (e) {
-                                    console.error('Error adding SourceBuffer:', e);
-                                    setUseFallback(true);
-                                }
-                            }
-                        } else if (sourceBufferRef.current && !sourceBufferRef.current.updating) {
-                            try {
-                                sourceBufferRef.current.appendBuffer(event.data);
-                            } catch (e) {
-                                console.warn('Error appending buffer:', e);
-                            }
-                        }
-                    };
-
-                    ws.onerror = (error) => {
-                        console.error('WebSocket error:', error);
-                        handleConnectionError();
-                    };
-
-                    ws.onclose = () => {
-                        console.log('WebSocket closed:', streamUrl);
-                        handleConnectionError();
-                    };
+                    await video.play();
+                    console.log(`Fallback video playing for stream ${id}`);
                 } catch (error) {
-                    console.error('Error in sourceopen:', error);
-                    handleConnectionError();
+                    console.error(`Error playing fallback video for stream ${id}:`, error);
                 }
-            });
+            }, 100);
 
         } catch (error) {
-            console.error('Error initializing stream:', error);
-            handleConnectionError();
-        }
-    };
-
-    const handleConnectionError = () => {
-        if (retryCountRef.current < MAX_RETRIES) {
-            retryCountRef.current++;
-            console.log(`Retrying connection (${retryCountRef.current}/${MAX_RETRIES})...`);
-            setTimeout(initializeStream, RETRY_DELAY);
-        } else {
-            console.log('Max retries reached, switching to fallback');
-            setUseFallback(true);
+            console.error(`Error switching to fallback for stream ${id}:`, error);
         }
     };
 
     useEffect(() => {
-        if (!useFallback) {
-            initializeStream();
-        } else {
-            if (videoRef.current) {
-                videoRef.current.src = fallbackUrl;
-                videoRef.current.load();
-                videoRef.current.play().catch(console.error);
-            }
-        }
+        const video = videoRef.current;
+        if (!video) return;
 
-        return () => {
-            closeWebSocket();
-            cleanupMediaSource();
-            if (videoRef.current?.src) {
-                URL.revokeObjectURL(videoRef.current.src);
+        const setupStream = async () => {
+            try {
+                if (wsRef.current) {
+                    wsRef.current.close();
+                }
+
+                // Create MediaSource
+                mediaSourceRef.current = new MediaSource();
+                video.src = URL.createObjectURL(mediaSourceRef.current);
+
+                mediaSourceRef.current.addEventListener('sourceopen', () => {
+                    try {
+                        if (!mediaSourceRef.current) return;
+
+                        sourceBufferRef.current = mediaSourceRef.current.addSourceBuffer('video/mp4; codecs="avc1.42E01E,mp4a.40.2"');
+                        
+                        // Connect to WebSocket
+                        wsRef.current = new WebSocket(streamUrl);
+                        
+                        wsRef.current.onmessage = (event) => {
+                            // Handle incoming video data
+                        };
+
+                        wsRef.current.onerror = () => {
+                            console.warn(`WebSocket error for stream ${id}, switching to fallback`);
+                            switchToFallback();
+                        };
+
+                        wsRef.current.onclose = () => {
+                            console.warn(`WebSocket closed for stream ${id}, switching to fallback`);
+                            switchToFallback();
+                        };
+                    } catch (error) {
+                        console.error(`Error in sourceopen handler for stream ${id}:`, error);
+                        switchToFallback();
+                    }
+                });
+            } catch (error) {
+                console.error(`Error setting up stream ${id}:`, error);
+                switchToFallback();
             }
         };
-    }, [streamUrl, useFallback, fallbackUrl]);
+
+        setupStream();
+
+        return () => {
+            // Cleanup
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+            if (playAttemptRef.current) {
+                clearTimeout(playAttemptRef.current);
+            }
+            if (video.src) {
+                URL.revokeObjectURL(video.src);
+            }
+        };
+    }, [streamUrl, id]);
 
     return (
-        <div className="relative w-full h-full overflow-hidden bg-black" id={`container-${id}`}>
+        <div className="relative w-full h-full">
             <video
                 ref={videoRef}
                 id={id}

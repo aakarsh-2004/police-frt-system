@@ -23,6 +23,14 @@ interface SearchResult {
         lastSeenLocation: string;
         foundStatus: boolean;
     };
+    recognizedPerson?: {
+        length: number;
+    }[];
+}
+
+interface SearchFilters {
+    locations: string[];
+    minConfidence: number;
 }
 
 export default function SearchLookup() {
@@ -33,6 +41,10 @@ export default function SearchLookup() {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
+    const [filters, setFilters] = useState<SearchFilters>({
+        locations: [],
+        minConfidence: 80
+    });
 
     // Function to fetch all persons
     const fetchAllPersons = async () => {
@@ -55,33 +67,47 @@ export default function SearchLookup() {
     };
 
     // Function to handle search
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!query.trim()) {
-            await fetchAllPersons();
-            return;
+    const handleSearch = async (e?: React.FormEvent, searchFilters = filters) => {
+        if (e) {
+            e.preventDefault();
         }
 
         try {
             setLoading(true);
-            const response = await axios.get<{data: SearchResult[]}>(
-                `${config.apiUrl}/api/persons/search`,
-                {
-                    params: { q: query }
-                }
-            );
+            const params = new URLSearchParams();
+            
+            if (query.trim()) {
+                params.append('q', query);
+            }
+            
+            if (searchFilters.locations.length > 0) {
+                params.append('locations', searchFilters.locations.join(','));
+            }
+            
+            if (searchFilters.minConfidence > 0) {
+                params.append('minConfidence', searchFilters.minConfidence.toString());
+            }
+
+            const response = await axios.get<{data: SearchResult[]}>(`${config.apiUrl}/api/persons/search?${params}`);
             
             if (response.data && Array.isArray(response.data.data)) {
                 setResults(response.data.data);
             } else {
-                console.error('Invalid search response:', response.data);
                 setResults([]);
             }
         } catch (error) {
-            console.error('Search error:', error);
+            console.error('Error searching:', error);
             setResults([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleFilterChange = (newFilters: SearchFilters) => {
+        setFilters(newFilters);
+        // Optionally trigger a new search with the updated filters
+        if (query) {
+            handleSearch(undefined, newFilters);
         }
     };
 
@@ -125,7 +151,7 @@ export default function SearchLookup() {
                         </button>
                     </form>
 
-                    {showFilters && <SearchFilters />}
+                    {showFilters && <SearchFilters onFilterChange={handleFilterChange} />}
                 </div>
 
                 {loading ? (
@@ -165,6 +191,12 @@ export default function SearchLookup() {
                                             </>
                                         )}
                                     </div>
+
+                                    {person.recognizedPerson && person.recognizedPerson.length > 0 && (
+                                        <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                                            {person.recognizedPerson.length} {person.recognizedPerson.length === 1 ? 'match' : 'matches'} found
+                                        </div>
+                                    )}
 
                                     <button
                                         onClick={() => navigate(`/person/${person.id}`)}

@@ -70,8 +70,7 @@ export default function AddPerson() {
                 submitData.append('missingPerson', JSON.stringify({
                     lastSeenDate: formData.lastSeenDate,
                     lastSeenLocation: formData.lastSeenLocation,
-                    reportBy: formData.reportBy,
-                    foundStatus: false
+                    reportBy: formData.reportBy
                 }));
             }
 

@@ -1,182 +1,127 @@
-import { useState } from 'react';
-import { Filter, Calendar, MapPin, Camera, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MapPin } from 'lucide-react';
+import axios from 'axios';
+import config from '../../config/config';
 
+interface SearchFiltersProps {
+    onFilterChange: (filters: {
+        locations: string[];
+        minConfidence: number;
+    }) => void;
+}
 
-const allLocations = [
-    'MP Nagar Zone 1',
-    'MP Nagar Zone 2',
-    'New Market',
-    'TT Nagar',
-    'Habibganj',
-    'Arera Colony',
-    'Shahpura',
-    'Kolar Road',
-    'Bairagarh',
-    'BHEL',
-    'Govindpura',
-    'Piplani',
-    'Ayodhya Bypass',
-    'Misrod',
-    'Karond',
-    'Berasia Road',
-    'Jahangirabad',
-    'Kohefiza',
-    'Idgah Hills',
-    'Shyamla Hills',
-    'Bittan Market',
-    'Trilanga',
-    '10 No. Market',
-    'Chuna Bhatti',
-    'Lalghati',
-    'Airport Area',
-    'Gandhi Nagar',
-    'Saket Nagar',
-    'Malviya Nagar',
-    'Rachna Nagar'
-];
+export default function SearchFilters({ onFilterChange }: SearchFiltersProps) {
+    const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+    const [minConfidence, setMinConfidence] = useState(80);
+    const [locations, setLocations] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
 
-const allCameras = [
-    'MP Nagar Gate Cam 1',
-    'MP Nagar Gate Cam 2',
-    'New Market Entry Cam',
-    'New Market Exit Cam',
-    'TT Nagar Main Road Cam',
-    'Habibganj Station Cam 1',
-    'Habibganj Station Cam 2',
-    'Arera Colony Market Cam',
-    'DB Mall Entry Cam',
-    'DB Mall Exit Cam',
-    'BHEL Gate 1 Cam',
-    'BHEL Gate 2 Cam',
-    'Bittan Market Cam',
-    'Van Vihar Gate Cam',
-    'Boat Club Cam',
-    'People\'s Mall Cam 1',
-    'People\'s Mall Cam 2',
-    'Chowk Bazaar Cam',
-    'Kamla Park Cam',
-    'Moti Masjid Area Cam',
-    'Manisha Market Cam',
-    'Bairagarh Station Cam',
-    'Shahpura Lake Cam',
-    'Kolar Road Junction Cam',
-    'Govindpura Industrial Cam'
-];
+    // Fetch camera locations on component mount
+    useEffect(() => {
+        const fetchLocations = async () => {
+            try {
+                const response = await axios.get<{data: Array<{location: string}>}>(`${config.apiUrl}/api/cameras`);
+                const uniqueLocations = [...new Set(response.data.map(camera => camera.location))];
+                setLocations(uniqueLocations);
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-export default function SearchFilters() {
-    const [locationSearch, setLocationSearch] = useState('');
-    const [cameraSearch, setCameraSearch] = useState('');
+        fetchLocations();
+    }, []);
 
-    const filteredLocations = allLocations.filter(location =>
-        location.toLowerCase().includes(locationSearch.toLowerCase())
-    );
+    // Handle location selection
+    const handleLocationChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+        setSelectedLocations(selectedOptions);
+        onFilterChange({
+            locations: selectedOptions,
+            minConfidence
+        });
+    };
 
-    const filteredCameras = allCameras.filter(camera =>
-        camera.toLowerCase().includes(cameraSearch.toLowerCase())
-    );
+    // Handle confidence change
+    const handleConfidenceChange = (value: number) => {
+        setMinConfidence(value);
+        onFilterChange({
+            locations: selectedLocations,
+            minConfidence: value
+        });
+    };
+
+    // Apply filters
+    const applyFilters = (locations: string[], confidence: number) => {
+        onFilterChange({
+            locations,
+            minConfidence: confidence
+        });
+    };
+
+    // Reset filters
+    const handleReset = () => {
+        setSelectedLocations([]);
+        setMinConfidence(80);
+        onFilterChange({
+            locations: [],
+            minConfidence: 80
+        });
+    };
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium flex items-center">
-                    <Filter className="w-5 h-5 mr-2 text-blue-900" />
-                    Search Filters
-                </h3>
-            </div>
-
-            <div className="space-y-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Date Range
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                        <input
-                            type="date"
-                            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <input
-                            type="date"
-                            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <label className="block text-sm font-medium mb-2 flex items-center dark:text-gray-300">
                         <MapPin className="w-4 h-4 mr-2" />
                         Locations
                     </label>
-                    <div className="space-y-2">
-                        <input
-                            type="text"
-                            placeholder="Search locations..."
-                            value={locationSearch}
-                            onChange={(e) => setLocationSearch(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <select
-                            multiple
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-40"
-                        >
-                            {filteredLocations.map(location => (
+                    <select
+                        multiple
+                        value={selectedLocations}
+                        onChange={handleLocationChange}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-40 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    >
+                        {loading ? (
+                            <option disabled>Loading locations...</option>
+                        ) : (
+                            locations.map(location => (
                                 <option key={location} value={location}>{location}</option>
-                            ))}
-                        </select>
-                    </div>
+                            ))
+                        )}
+                    </select>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Cameras
+                    <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+                        Minimum Match Confidence ({minConfidence}%)
                     </label>
                     <div className="space-y-2">
-                        <input
-                            type="text"
-                            placeholder="Search cameras..."
-                            value={cameraSearch}
-                            onChange={(e) => setCameraSearch(e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <select
-                            multiple
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-40"
-                        >
-                            {filteredCameras.map(camera => (
-                                <option key={camera} value={camera}>{camera}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                        <User className="w-4 h-4 mr-2" />
-                        Minimum Match Confidence
-                    </label>
-                    <div className="flex items-center space-x-4">
                         <input
                             type="range"
                             min="0"
                             max="100"
-                            className="flex-1"
+                            value={minConfidence}
+                            onChange={(e) => handleConfidenceChange(Number(e.target.value))}
+                            className="w-full dark:bg-gray-700"
                         />
-                        <span className="text-sm font-medium w-16">
-                            80%
-                        </span>
+                        <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div className="mt-6 flex justify-end space-x-2">
                 <button
+                    onClick={handleReset}
                     className="btn btn-secondary"
                 >
                     Reset
-                </button>
-                <button className="btn btn-primary">
-                    Apply Filters
                 </button>
             </div>
         </div>

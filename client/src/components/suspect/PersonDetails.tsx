@@ -1,4 +1,4 @@
-import { MapPin, AlertTriangle, Clock, Edit2, Trash2, Upload } from 'lucide-react';
+import { MapPin, AlertTriangle, Clock, Edit2, Trash2, Upload, ArrowRight } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -11,9 +11,13 @@ import SuspectMatches from './SuspectMatches';
 interface Recognition {
     id: number;
     capturedImageUrl: string;
-    capturedLocation: string;
     capturedDateTime: string;
     confidenceScore: string;
+    camera: {
+        id: string;
+        location: string;
+        name: string;
+    };
 }
 
 interface Person {
@@ -521,42 +525,65 @@ export default function PersonDetails() {
                             {/* Add max height and scrolling */}
                             <div className="space-y-4 max-h-[600px] overflow-y-auto">
                                 {person.recognizedPerson.map((recognition) => (
-                                    <div key={recognition.id} className="border rounded-lg p-4 dark:border-gray-700">
-                                        {/* Modified image container */}
-                                        <div 
-                                            className="cursor-pointer relative pt-[75%] bg-gray-100 rounded-lg overflow-hidden mb-3 dark:bg-gray-900 dark:border-gray-700"
-                                            onClick={() => setSelectedImage(recognition.capturedImageUrl)}
-                                        >
-                                            <img 
-                                                src={recognition.capturedImageUrl} 
-                                                alt="Detection" 
-                                                className="absolute inset-0 w-full h-full object-contain"
-                                                style={{ 
-                                                    objectPosition: 'center',
-                                                    transform: 'scale(0.95)'  // Slight padding
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="space-y-2 text-sm">
-                                            <p className="flex items-center">
-                                                <MapPin className="w-4 h-4 mr-2" />
-                                                {recognition.capturedLocation}
-                                            </p>
-                                            <p className="flex items-center">
-                                                <Clock className="w-4 h-4 mr-2" />
-                                                {new Date(recognition.capturedDateTime).toLocaleString()}
-                                            </p>
-                                            <p className="flex items-center">
-                                                <AlertTriangle className="w-4 h-4 mr-2" />
-                                                Confidence: {parseFloat(recognition.confidenceScore).toFixed(2)}%
-                                            </p>
+                                    <div 
+                                        key={recognition.id} 
+                                        className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all"
+                                    >
+                                        <div className="flex space-x-6">
+                                            {/* Larger Image Container */}
+                                            <div className="w-40 h-40 flex-shrink-0">
+                                                <img
+                                                    src={recognition.capturedImageUrl}
+                                                    alt="Detection"
+                                                    className="w-full h-full object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
+                                                    onClick={() => setSelectedImage(recognition.capturedImageUrl)}
+                                                />
+                                            </div>
+
+                                            {/* Detection Details */}
+                                            <div className="flex-1 space-y-3">
+                                                <div className="flex items-center space-x-2">
+                                                    <MapPin className="w-5 h-5 text-blue-500" />
+                                                    <span className="text-base text-gray-700 dark:text-gray-300">
+                                                        {recognition.camera?.location || 'Unknown Location'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center space-x-2">
+                                                    <Clock className="w-5 h-5 text-green-500" />
+                                                    <span className="text-base text-gray-700 dark:text-gray-300">
+                                                        {new Date(recognition.capturedDateTime).toLocaleString()}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center space-x-2">
+                                                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                                                    <span className="text-base text-gray-700 dark:text-gray-300">
+                                                        Match Confidence: {parseFloat(recognition.confidenceScore).toFixed(2)}%
+                                                    </span>
+                                                </div>
+
+                                                {recognition.camera?.name && (
+                                                    <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                                        Camera: {recognition.camera.name}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
 
                                 {person.recognizedPerson.length === 0 && (
-                                    <div className="text-center py-8 text-gray-500">
-                                        No detections recorded
+                                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        <div className="flex flex-col items-center space-y-3">
+                                            <AlertTriangle className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+                                            <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
+                                                No detections recorded
+                                            </p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                This person has not been detected by any cameras yet.
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </div>

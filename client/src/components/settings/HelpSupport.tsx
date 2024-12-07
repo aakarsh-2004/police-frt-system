@@ -7,8 +7,11 @@ import {
     ExternalLink, 
     Clock,
     AlertTriangle,
-    CheckCircle
+    CheckCircle,
+    HelpCircle
 } from 'lucide-react';
+import emailjs from '@emailjs/browser';
+import { toast } from 'react-hot-toast';
 
 interface Ticket {
     id: string;
@@ -23,9 +26,10 @@ interface Ticket {
 export default function HelpSupport() {
     const [activeTab, setActiveTab] = useState<'contact' | 'tickets'>('contact');
     const [showNewTicket, setShowNewTicket] = useState(false);
-    const [ticketForm, setTicketForm] = useState({
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
         subject: '',
-        description: '',
+        message: '',
         priority: 'medium'
     });
 
@@ -78,6 +82,57 @@ export default function HelpSupport() {
         }
     };
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!formData.subject || !formData.message) {
+            toast.error('Please fill in all required fields');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const templateParams = {
+                from_name: "MP Police User",
+                from_email: "contactmppolicefrt@gmail.com",
+                to_name: "MP Police FRT Support",
+                subject: formData.subject,
+                message: formData.message,
+                priority_level: formData.priority,
+                system_info: {
+                    browser: navigator.userAgent,
+                    timestamp: new Date().toISOString()
+                }
+            };
+
+            const result = await emailjs.send(
+                "service_r6y0pop",
+                "template_986lap2",
+                templateParams,
+                "eQjd1EjlnE0-7vaNr"
+            );
+
+            if (result.status === 200) {
+                toast.success('Support message sent successfully!');
+                
+                // Clear form
+                setFormData({
+                    subject: '',
+                    message: '',
+                    priority: 'medium'
+                });
+            } else {
+                throw new Error('Failed to send message');
+            }
+        } catch (error) {
+            console.error('Error sending support message:', error);
+            toast.error('Failed to send message. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="p-6">
             <div className="max-w-[2000px] mx-auto">
@@ -121,14 +176,14 @@ export default function HelpSupport() {
                                         <Phone className="w-5 h-5 text-blue-600" />
                                         <div>
                                             <p className="font-medium">Emergency Support</p>
-                                            <p className="text-gray-600 dark:text-gray-400">+91 755-2443333</p>
+                                            <p className="text-gray-600 dark:text-gray-400">+91 75524-43333</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-3">
                                         <Mail className="w-5 h-5 text-blue-600" />
                                         <div>
                                             <p className="font-medium">Email Support</p>
-                                            <p className="text-gray-600 dark:text-gray-400">support@mpsurveillance.gov.in</p>
+                                            <p className="text-gray-600 dark:text-gray-400">contactmppolicefrt@gmail.com</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-3">
@@ -170,34 +225,53 @@ export default function HelpSupport() {
                         </div>
 
                         <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
-                            <h2 className="text-lg font-semibold mb-4">Send Message</h2>
-                            <form className="space-y-4">
+                            <h2 className="text-lg font-semibold mb-4">Send Support Message</h2>
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Subject</label>
+                                    <label className="block text-sm font-medium mb-1 dark:text-white">
+                                        Subject <span className="text-red-500">*</span>
+                                    </label>
                                     <input
                                         type="text"
-                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                                        placeholder="Enter subject"
+                                        className="w-full px-4 py-2 border dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                                        value={formData.subject}
+                                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                        required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Message</label>
-                                    <textarea
-                                        rows={4}
-                                        className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                                        placeholder="Describe your issue"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Priority</label>
-                                    <select className="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                                    <label className="block text-sm font-medium mb-1 dark:text-white">
+                                        Priority
+                                    </label>
+                                    <select
+                                        className="w-full px-4 py-2 border dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                                        value={formData.priority}
+                                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                                    >
                                         <option value="low">Low</option>
                                         <option value="medium">Medium</option>
                                         <option value="high">High</option>
+                                        <option value="urgent">Urgent</option>
                                     </select>
                                 </div>
-                                <button type="submit" className="w-full btn btn-primary">
-                                    Send Message
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 dark:text-white">
+                                        Message <span className="text-red-500">*</span>
+                                    </label>
+                                    <textarea
+                                        rows={4}
+                                        className="w-full px-4 py-2 border dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                                        value={formData.message}
+                                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Sending...' : 'Send Message'}
                                 </button>
                             </form>
                         </div>

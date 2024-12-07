@@ -7,6 +7,9 @@ import { AuthProvider } from './context/AuthContext.tsx'
 import { LanguageProvider } from './context/LanguageContext'
 import './i18n'
 import { NotificationProvider } from './context/NotificationContext'
+import emailjs from '@emailjs/browser';
+
+emailjs.init("eQjd1EjlnE0-7vaNr");
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
