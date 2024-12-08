@@ -41,33 +41,39 @@ export default function NewLoginPage() {
         }
     }, [user, navigate, from]);
 
-    // Initialize RecaptchaVerifier once when component mounts
     useEffect(() => {
-        // Cleanup any existing reCAPTCHA instances
-        if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.clear();
-            delete window.recaptchaVerifier;
-        }
-
-        // Create new reCAPTCHA instance
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha', {
-            size: 'invisible',
-            callback: () => {
-                console.log('reCAPTCHA resolved');
-            },
-            'expired-callback': () => {
-                toast.error('reCAPTCHA expired. Please try again.');
-                setLoading(false);
-            }
-        });
-
-        // Cleanup on unmount
-        return () => {
+        // Cleanup function to remove existing reCAPTCHA
+        const cleanup = () => {
             if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.clear();
-                delete window.recaptchaVerifier;
+                try {
+                    window.recaptchaVerifier.clear();
+                } catch (error) {
+                    console.error('Error clearing reCAPTCHA:', error);
+                }
+                window.recaptchaVerifier = null;
             }
         };
+
+        // Initialize new reCAPTCHA
+        const initRecaptcha = () => {
+            cleanup();
+            
+            const verifier = new RecaptchaVerifier(auth, 'recaptcha', {
+                size: 'invisible',
+                callback: () => {
+                    console.log('reCAPTCHA resolved');
+                },
+                'expired-callback': () => {
+                    toast.error('reCAPTCHA expired. Please try again.');
+                    setLoading(false);
+                }
+            });
+
+            window.recaptchaVerifier = verifier;
+        };
+
+        initRecaptcha();
+        return cleanup;
     }, []);
 
     const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -127,12 +133,19 @@ export default function NewLoginPage() {
             setLoading(true);
             setError(null);
 
+            if (!window.recaptchaVerifier) {
+                throw new Error('reCAPTCHA not initialized');
+            }
+
             const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
             // First verify if phone exists in our database
             await axios.post(`${config.apiUrl}/api/auth/verify-phone`, {
                 phone: formattedPhone
             });
+
+            // Render reCAPTCHA widget if needed
+            await window.recaptchaVerifier.render();
 
             // Send OTP
             const confirmationResult = await signInWithPhoneNumber(
@@ -152,6 +165,16 @@ export default function NewLoginPage() {
             
             setError(errorMessage);
             toast.error(errorMessage);
+
+            // Reset reCAPTCHA on error
+            if (window.recaptchaVerifier) {
+                try {
+                    window.recaptchaVerifier.clear();
+                    window.recaptchaVerifier = null;
+                } catch (e) {
+                    console.error('Error clearing reCAPTCHA:', e);
+                }
+            }
         } finally {
             setLoading(false);
         }
