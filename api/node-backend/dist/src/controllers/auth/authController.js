@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -18,6 +29,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const http_errors_1 = __importDefault(require("http-errors"));
 const otpService_1 = require("../../services/otpService");
+const config_1 = require("../../config/config");
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -26,7 +38,16 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
             throw (0, http_errors_1.default)(400, "Username and password are required");
         }
         const user = yield prisma_1.prisma.user.findUnique({
-            where: { username }
+            where: { username },
+            select: {
+                id: true,
+                username: true,
+                password: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true
+            }
         });
         if (!user) {
             throw (0, http_errors_1.default)(401, "Invalid username or password");
@@ -35,18 +56,16 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
         if (!isValidPassword) {
             throw (0, http_errors_1.default)(401, "Invalid username or password");
         }
-        const token = jsonwebtoken_1.default.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' });
+        const token = jsonwebtoken_1.default.sign({ userId: user.id }, config_1.config.jwtSecret, { expiresIn: '24h' });
+        console.log('Generated token for user:', {
+            userId: user.id,
+            username: user.username,
+            role: user.role
+        });
+        const { password: _ } = user, userWithoutPassword = __rest(user, ["password"]);
         res.json({
             token,
-            user: {
-                id: user.id,
-                username: user.username,
-                role: user.role,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                userImageUrl: user.userImageUrl
-            }
+            user: userWithoutPassword
         });
     }
     catch (error) {

@@ -35,42 +35,42 @@ const cameras: Camera[] = [
     {
         id: '1',
         name: 'Front Door Camera',
-        streamUrl: '/videos/1.mp4',
+        streamUrl: '/SIH-stock-vids/1.mp4',
         status: 'Active',
         lastMotion: '2 mins ago'
     },
     {
         id: '2',
         name: 'Back Door Camera',
-        streamUrl: '/videos/2.mp4',
+        streamUrl: '/SIH-stock-vids/2.mp4',
         status: 'Active',
         lastMotion: '5 mins ago'
     },
     {
         id: '3',
         name: 'Garage Camera',
-        streamUrl: '/videos/3.mp4',
+        streamUrl: '/SIH-stock-vids/3.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     },
     {
         id: '4',
         name: 'Side Entrance',
-        streamUrl: '/videos/4.mp4',
+        streamUrl: '/SIH-stock-vids/4.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     },
     {
         id: '5',
         name: 'Parking Area',
-        streamUrl: '/videos/5.mp4',
+        streamUrl: '/SIH-stock-vids/5.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     },
     {
         id: '6',
         name: 'Main Gate',
-        streamUrl: '/videos/6.mp4',
+        streamUrl: '/SIH-stock-vids/6.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     }
@@ -343,12 +343,6 @@ export default function LiveMonitoring() {
             formData.append('type', person.type);
             formData.append('confidenceScore', detection.confidence.toString());
             formData.append('capturedImage', file);
-
-            // await axios.post(`${config.apiUrl}/api/recognitions`, formData, {
-            //     headers: {
-            //         'Content-Type': 'multipart/form-data',
-            //     },
-            // });
 
             setDetections(prev => {
                 const twentySecondsAgo = new Date(Date.now() - 20000);

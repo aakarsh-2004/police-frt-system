@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import axios from 'axios';
 import config from '../../config/config';
+import { useTheme } from '../../context/themeContext';
 
 interface CameraDetails {
     id: string;
@@ -35,6 +36,7 @@ export default function CrimeHeatmap() {
     const [selectedCamera, setSelectedCamera] = useState<CameraDetails | null>(null);
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
+    const { isDarkMode } = useTheme();
 
     useEffect(() => {
         const fetchCameras = async () => {
@@ -68,13 +70,15 @@ export default function CrimeHeatmap() {
 
         const map = new mapboxgl.Map({
             container: mapContainerRef.current,
-            style: "mapbox://styles/mapbox/light-v11",
+            style: isDarkMode ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
             center: BHOPAL_CENTER,
-            zoom: 12
+            zoom: 12,
+            pitch: 45,
+            bearing: -17.6,
+            antialias: true
         });
 
         map.on('load', () => {
-            // Add the heatmap source
             map.addSource('cameras', {
                 'type': 'geojson',
                 'data': {
@@ -92,7 +96,6 @@ export default function CrimeHeatmap() {
                 }
             });
 
-            // Add the heatmap layer
             map.addLayer(
                 {
                     'id': 'camera-heat',
@@ -100,7 +103,6 @@ export default function CrimeHeatmap() {
                     'source': 'cameras',
                     'maxzoom': 15,
                     'paint': {
-                        // Weight paint property based on the detection count
                         'heatmap-weight': [
                             'interpolate',
                             ['linear'],
@@ -108,7 +110,6 @@ export default function CrimeHeatmap() {
                             0, 0,
                             100, 1
                         ],
-                        // Heatmap intensity
                         'heatmap-intensity': [
                             'interpolate',
                             ['linear'],
@@ -116,7 +117,6 @@ export default function CrimeHeatmap() {
                             0, 1,
                             9, 3
                         ],
-                        // Heatmap radius
                         'heatmap-radius': [
                             'interpolate',
                             ['linear'],
@@ -124,26 +124,23 @@ export default function CrimeHeatmap() {
                             0, 30,
                             9, 50
                         ],
-                        // Heatmap opacity
-                        'heatmap-opacity': 0.8,
-                        // Color gradient
+                        'heatmap-opacity': 0.9,
                         'heatmap-color': [
                             'interpolate',
                             ['linear'],
                             ['heatmap-density'],
-                            0, 'rgba(33,102,172,0)',
-                            0.2, '#fca5a5',
-                            0.4, '#f87171',
-                            0.6, '#ef4444',
-                            0.8, '#dc2626',
-                            1.0, '#991b1b'
+                            0, 'rgba(0,0,0,0)',
+                            0.2, '#fb7185',
+                            0.4, '#f43f5e',
+                            0.6, '#e11d48',
+                            0.8, '#be123c',
+                            1.0, '#881337'
                         ]
                     }
                 },
                 'waterway-label'
             );
 
-            // Add circle layer for high zoom levels
             map.addLayer(
                 {
                     'id': 'camera-point',
@@ -152,22 +149,44 @@ export default function CrimeHeatmap() {
                     'minzoom': 14,
                     'paint': {
                         'circle-radius': 8,
-                        'circle-color': '#ef4444',
-                        'circle-opacity': 0.5,
+                        'circle-color': '#e11d48',
+                        'circle-opacity': 0.8,
                         'circle-stroke-width': 2,
-                        'circle-stroke-color': '#ffffff'
+                        'circle-stroke-color': '#fecdd3',
+                        'circle-stroke-opacity': 0.5,
+                        'circle-blur': 0.5
                     }
                 },
                 'waterway-label'
             );
 
-            // Add markers last
+            map.addLayer(
+                {
+                    'id': '3d-buildings',
+                    'source': 'composite',
+                    'source-layer': 'building',
+                    'filter': ['==', 'extrude', 'true'],
+                    'type': 'fill-extrusion',
+                    'minzoom': 12,
+                    'paint': {
+                        'fill-extrusion-color': '#242424',
+                        'fill-extrusion-height': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            12, 0,
+                            12.5, ['get', 'height']
+                        ],
+                        'fill-extrusion-opacity': 0.6
+                    }
+                }
+            );
+
             cameras.forEach(camera => {
                 const el = document.createElement('div');
                 el.className = 'custom-marker';
                 el.style.backgroundColor = camera.status === 'active' ? '#4CAF50' : '#9E9E9E';
 
-                // Add click handler
                 el.addEventListener('click', () => {
                     setSelectedCamera(camera);
                 });
@@ -184,7 +203,7 @@ export default function CrimeHeatmap() {
                             closeOnClick: false
                         })
                             .setHTML(`
-                                <div class="p-2">
+                                <div class="p-2 dark:text-black">
                                     <h3 class="font-bold">${camera.name}</h3>
                                     <p class="text-sm text-gray-600">${camera.location}</p>
                                     <p class="text-sm font-medium mt-1">
@@ -203,9 +222,8 @@ export default function CrimeHeatmap() {
         return () => {
             map.remove();
         };
-    }, [cameras]);
+    }, [cameras, isDarkMode]);
 
-    // Get hotspots sorted by detection count
     const hotspots = cameras
         .map(camera => ({
             area: camera.name,

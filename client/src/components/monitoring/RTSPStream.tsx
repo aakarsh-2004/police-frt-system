@@ -1,133 +1,88 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { getFallbackStream } from '../../utils/streamUtils';
+import { useEffect, useRef, useState } from 'react';
+import FaceDetectionOverlay from './FaceDetectionOverlay';
 
 interface RTSPStreamProps {
     streamUrl: string;
-    id: string;
-    style?: React.CSSProperties;
     fallbackIndex?: number;
+    style?: React.CSSProperties;
 }
 
-export default function RTSPStream({ streamUrl, id, style, fallbackIndex = 0 }: RTSPStreamProps) {
+export default function RTSPStream({ streamUrl, fallbackIndex = 0, style }: RTSPStreamProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const mediaSourceRef = useRef<MediaSource | null>(null);
-    const sourceBufferRef = useRef<SourceBuffer | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
     const [useFallback, setUseFallback] = useState(false);
-    const fallbackUrl = getFallbackStream(fallbackIndex);
-    const wsRef = useRef<WebSocket | null>(null);
-    const retryCountRef = useRef(0);
-    const playAttemptRef = useRef<number | null>(null);
 
-    const switchToFallback = async () => {
+    const getFallbackStream = (index: number) => {
+        const fallbackStreams = [
+            '/vids/1.mp4',
+            '/vids/2.mp4',
+            '/vids/3.mp4',
+            '/vids/4.mp4',
+            '/vids/5.mp4',
+            '/vids/6.mp4'
+        ];
+        return fallbackStreams[index % fallbackStreams.length];
+    };
+
+    const handleStreamError = () => {
         if (!videoRef.current) return;
-        
-        try {
-            setUseFallback(true);
-            const video = videoRef.current;
-            video.src = fallbackUrl;
-
-            // Clear any existing play attempt timeout
-            if (playAttemptRef.current) {
-                clearTimeout(playAttemptRef.current);
-            }
-
-            // Add a small delay before attempting to play
-            playAttemptRef.current = window.setTimeout(async () => {
-                try {
-                    await video.play();
-                    console.log(`Fallback video playing for stream ${id}`);
-                } catch (error) {
-                    console.error(`Error playing fallback video for stream ${id}:`, error);
-                }
-            }, 100);
-
-        } catch (error) {
-            console.error(`Error switching to fallback for stream ${id}:`, error);
-        }
+        console.log('Stream error, switching to fallback video');
+        setUseFallback(true);
+        const fallbackUrl = getFallbackStream(fallbackIndex);
+        videoRef.current.src = fallbackUrl;
+        videoRef.current.play().catch(err => {
+            console.error('Error playing fallback video:', err);
+        });
     };
 
     useEffect(() => {
+        if (!videoRef.current) return;
         const video = videoRef.current;
-        if (!video) return;
 
-        const setupStream = async () => {
+        setUseFallback(false);
+        setIsPlaying(false);
+
+        const playVideo = async () => {
             try {
-                if (wsRef.current) {
-                    wsRef.current.close();
+                if (streamUrl.startsWith('rtsp://')) {
+                    handleStreamError();
+                } else {
+                    video.src = streamUrl;
+                    await video.play();
+                    setIsPlaying(true);
                 }
-
-                // Create MediaSource
-                mediaSourceRef.current = new MediaSource();
-                video.src = URL.createObjectURL(mediaSourceRef.current);
-
-                mediaSourceRef.current.addEventListener('sourceopen', () => {
-                    try {
-                        if (!mediaSourceRef.current) return;
-
-                        sourceBufferRef.current = mediaSourceRef.current.addSourceBuffer('video/mp4; codecs="avc1.42E01E,mp4a.40.2"');
-                        
-                        // Connect to WebSocket
-                        wsRef.current = new WebSocket(streamUrl);
-                        
-                        wsRef.current.onmessage = (event) => {
-                            // Handle incoming video data
-                        };
-
-                        wsRef.current.onerror = () => {
-                            console.warn(`WebSocket error for stream ${id}, switching to fallback`);
-                            switchToFallback();
-                        };
-
-                        wsRef.current.onclose = () => {
-                            console.warn(`WebSocket closed for stream ${id}, switching to fallback`);
-                            switchToFallback();
-                        };
-                    } catch (error) {
-                        console.error(`Error in sourceopen handler for stream ${id}:`, error);
-                        switchToFallback();
-                    }
-                });
             } catch (error) {
-                console.error(`Error setting up stream ${id}:`, error);
-                switchToFallback();
+                console.error('Error playing video:', error);
+                handleStreamError();
             }
         };
 
-        setupStream();
+        playVideo();
+
+        video.onplay = () => setIsPlaying(true);
+        video.onpause = () => setIsPlaying(false);
+        video.onerror = handleStreamError;
 
         return () => {
-            // Cleanup
-            if (wsRef.current) {
-                wsRef.current.close();
-            }
-            if (playAttemptRef.current) {
-                clearTimeout(playAttemptRef.current);
-            }
-            if (video.src) {
-                URL.revokeObjectURL(video.src);
-            }
+            video.onplay = null;
+            video.onpause = null;
+            video.onerror = null;
+            video.src = '';
         };
-    }, [streamUrl, id]);
+    }, [streamUrl, fallbackIndex]);
 
     return (
-        <div className="relative w-full h-full">
+        <div className="relative">
             <video
                 ref={videoRef}
-                id={id}
-                className="w-full h-full object-contain"
                 autoPlay
-                playsInline
                 muted
+                playsInline
                 loop={useFallback}
-                controls={false}
-                style={{
-                    ...style,
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain',
-                    backgroundColor: 'black'
-                }}
+                style={style}
+                className="w-full h-full object-contain"
             />
+            {isPlaying && <FaceDetectionOverlay videoRef={videoRef} />}
         </div>
     );
 } 

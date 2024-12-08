@@ -6,15 +6,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const requestController_1 = require("../../controllers/request/requestController");
 const auth_1 = require("../../middleware/auth");
+const authenticateAdmin_1 = require("../../middleware/authenticateAdmin");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const upload = (0, multer_1.default)({
-    dest: path_1.default.resolve(__dirname, '../../../public/uploads'),
-    limits: { fileSize: 3e7 }
+    dest: path_1.default.resolve(__dirname, '../../../public/uploads')
 });
 const requestRouter = (0, express_1.Router)();
-requestRouter.get('/', auth_1.authMiddleware, requestController_1.getAllRequests);
-requestRouter.post('/', auth_1.authMiddleware, upload.single('personImage'), requestController_1.createRequest);
-requestRouter.put('/:id/approve', auth_1.authMiddleware, requestController_1.approveRequest);
-requestRouter.put('/:id/reject', auth_1.authMiddleware, requestController_1.rejectRequest);
+// Apply auth middleware to all routes
+requestRouter.use(auth_1.authMiddleware);
+// Get all requests - admin only
+requestRouter.get('/', authenticateAdmin_1.authenticateAdmin, requestController_1.getAllRequests);
+// Create request - any authenticated user
+requestRouter.post('/', upload.single('personImageUrl'), requestController_1.createRequest);
+// Approve/reject requests - admin only
+requestRouter.put('/:id/approve', authenticateAdmin_1.authenticateAdmin, requestController_1.approveRequest);
+requestRouter.put('/:id/reject', authenticateAdmin_1.authenticateAdmin, requestController_1.rejectRequest);
 exports.default = requestRouter;

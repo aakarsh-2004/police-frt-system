@@ -9,25 +9,38 @@ import nodemailer from 'nodemailer';
 
 export const getRecentRecognitions = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const recognitions = await prisma.recognizedPerson.findMany({
-            take: 20,
+        const recentDetections = await prisma.recognizedPerson.findMany({
+            take: 10,
             orderBy: {
                 capturedDateTime: 'desc'
             },
             include: {
-                person: {
-                    include: {
-                        suspect: true,
-                        missingPerson: true
-                    }
-                },
+                person: true,
                 camera: true
             }
         });
 
+        const formattedDetections = recentDetections.map(detection => ({
+            id: detection.id,
+            capturedDateTime: detection.capturedDateTime.toISOString(),
+            confidenceScore: detection.confidenceScore,
+            capturedImageUrl: detection.capturedImageUrl,
+            person: {
+                id: detection.person.id,
+                firstName: detection.person.firstName,
+                lastName: detection.person.lastName,
+                personImageUrl: detection.person.personImageUrl,
+                type: detection.person.type
+            },
+            camera: {
+                name: detection.camera.name,
+                location: detection.camera.location
+            }
+        }));
+
         res.json({
             message: "Recent recognitions fetched successfully",
-            data: recognitions
+            data: formattedDetections
         });
     } catch (error) {
         next(createHttpError(500, "Error fetching recognitions: " + error));

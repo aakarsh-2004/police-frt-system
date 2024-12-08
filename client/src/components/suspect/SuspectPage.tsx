@@ -56,18 +56,27 @@ export default function SuspectPage() {
     const fetchPersons = useCallback(async () => {
         try {
             setLoading(true);
+            setError(null);
+            
             const response = await axios.get<PersonResponse>(`${config.apiUrl}/api/persons`);
             const allPersons = response.data.data;
             
-            // Filter based on current view (suspects or missing persons)
-            const viewFilteredPersons = allPersons.filter((person) => 
-                currentView === 'suspects' ? person.type === 'suspect' : person.type === 'missing-person'
-            );
+            // Filter persons based on current view type
+            const filteredByType = allPersons.filter((person) => {
+                if (currentView === 'suspects') {
+                    return person.type === 'suspect';
+                } else {
+                    return person.type === 'missing-person';
+                }
+            });
+
+            // Set both persons and filtered persons with the correctly filtered data
+            setPersons(filteredByType);
+            setFilteredPersons(filteredByType);
             
-            setPersons(viewFilteredPersons);
-            setFilteredPersons(viewFilteredPersons); // Initialize filtered results with all persons
         } catch (error) {
             console.error('Error fetching persons:', error);
+            setError('Failed to fetch persons');
         } finally {
             setLoading(false);
         }
@@ -80,15 +89,38 @@ export default function SuspectPage() {
     const handleCreatePerson = async (formData: FormData) => {
         try {
             setIsSubmitting(true);
-            await axios.post(`${config.apiUrl}/api/persons`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            fetchPersons();
-            setShowCreateModal(false);
-            toast.success('Person created successfully');
+            
+            // Check if user is admin
+            if (user?.role === 'admin') {
+                // Direct creation for admin
+                await axios.post(`${config.apiUrl}/api/persons`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                fetchPersons();
+                setShowCreateModal(false);
+                toast.success('Person created successfully');
+            } else {
+                // Create request using existing Requests table
+                const requestData = new FormData();
+                // Add all form fields to request data
+                for (const [key, value] of formData.entries()) {
+                    requestData.append(key, value);
+                }
+
+                // Send request to the correct endpoint
+                await axios.post(`${config.apiUrl}/api/requests`, requestData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                
+                setShowCreateModal(false);
+                toast.success('Request submitted successfully. Waiting for admin approval.');
+            }
         } catch (err) {
             console.error('Error creating person:', err);
-            toast.error('Failed to create person');
+            toast.error(user?.role === 'admin' ? 
+                'Failed to create person' : 
+                'Failed to submit request'
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -109,9 +141,9 @@ export default function SuspectPage() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
+        
         if (!searchQuery.trim()) {
-            // If search is empty, show all persons of current type
-            setFilteredPersons(persons);
+            setFilteredPersons(persons); // Reset to current view's persons
             return;
         }
 
@@ -123,8 +155,6 @@ export default function SuspectPage() {
                 ${person.address?.toLowerCase() || ''} 
                 ${person.nationalId?.toLowerCase() || ''}
             `;
-            
-            // Check if all search terms are found in the searchable text
             return searchTerms.every(term => searchableText.includes(term));
         });
 
@@ -143,8 +173,8 @@ export default function SuspectPage() {
     const handleViewChange = (view: ViewType) => {
         setCurrentView(view);
         setSearchQuery(''); // Clear search query
+        setSelectedSuspectId(null); // Clear selected suspect
         setFilteredPersons([]); // Clear filtered results
-        fetchPersons(); // Fetch new list based on current view
     };
 
     if (loading) {
@@ -187,7 +217,6 @@ export default function SuspectPage() {
                                 value={searchQuery}
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
-                                    // Perform search on each input change
                                     const query = e.target.value.toLowerCase();
                                     if (!query.trim()) {
                                         setFilteredPersons(persons);
@@ -289,6 +318,7 @@ export default function SuspectPage() {
                     onSubmit={handleCreatePerson}
                     type={currentView === 'suspects' ? 'suspect' : 'missing-person'}
                     isSubmitting={isSubmitting}
+                    isRequest={user?.role !== 'admin'}
                 />
             )}
         </div>

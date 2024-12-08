@@ -27,6 +27,10 @@ export default function CameraGrid({ cameras }: CameraGridProps) {
         setIsFullscreen(false);
     };
 
+    const handlePersonDetected = (person: { name: string; confidence: number }) => {
+        console.log('Person detected:', person);
+    };
+
     return (
         <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800 h-[calc(100vh-16rem)]">
             <div className="flex items-center justify-between mb-6">
@@ -68,7 +72,7 @@ export default function CameraGrid({ cameras }: CameraGridProps) {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         {cameras.map((camera) => (
                             <div
                                 key={camera.id}
@@ -76,8 +80,10 @@ export default function CameraGrid({ cameras }: CameraGridProps) {
                                 className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden cursor-pointer group hover:ring-2 hover:ring-blue-500 transition-all"
                             >
                                 <RTSPStream
+                                    id={`camera-${camera.id}`}
                                     streamUrl={camera.url}
-                                    isPreview={true}
+                                    onPersonDetected={handlePersonDetected}
+                                    fallbackIndex={parseInt(camera.id) - 1}
                                 />
                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                                     <h3 className="text-white font-medium">{camera.name}</h3>
@@ -91,5 +97,3 @@ export default function CameraGrid({ cameras }: CameraGridProps) {
         </div>
     );
 }
-
-</```rewritten_file>

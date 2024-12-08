@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Camera, ChevronLeft, ChevronRight, MapPin, Clock, Shield, User } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
 import RTSPStream from '../monitoring/RTSPStream';
@@ -23,7 +23,7 @@ interface VideoFeed {
 const videoFeeds: VideoFeed[] = [
     {
         id: '1',
-        url: '/demo-vids/1.mp4',
+        url: '/SIH-stock-vids/1.mp4',
         title: 'Live Camera',
         location: 'Zone 1, MP Nagar',
         area: 'Bhopal, Madhya Pradesh',
@@ -32,7 +32,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '2',
-        url: '/demo-vids/2.mp4',
+        url: '/SIH-stock-vids/2.mp4',
         title: 'New Market Area',
         location: 'TT Nagar',
         area: 'Bhopal, Madhya Pradesh',
@@ -41,7 +41,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '3',
-        url: '/videos/3.mp4',
+        url: '/SIH-stock-vids/3.mp4',
         title: 'Habibganj Railway Station',
         location: 'Railway Station Area',
         area: 'Bhopal, Madhya Pradesh',
@@ -50,7 +50,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '4',
-        url: '/videos/4.mp4',
+        url: '/SIH-stock-vids/4.mp4',
         title: 'DB Mall Entrance',
         location: 'Arera Colony',
         area: 'Bhopal, Madhya Pradesh',
@@ -59,7 +59,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '5',
-        url: '/videos/5.mp4',
+        url: '/SIH-stock-vids/5.mp4',
         title: 'BHEL Gate',
         location: 'BHEL Township',
         area: 'Bhopal, Madhya Pradesh',
@@ -68,7 +68,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '6',
-        url: '/videos/6.mp4',
+        url: '/SIH-stock-vids/6.mp4',
         title: 'Bittan Market',
         location: 'Bittan Market Area',
         area: 'Bhopal, Madhya Pradesh',
@@ -258,46 +258,6 @@ export default function LiveFeed() {
                                 onFullScreen={() => handleFullScreen(selectedFeed.id)}
                             />
 
-                            {/* Overlay Information */}
-                            <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
-                                {/* Top Bar */}
-                                <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <Shield className="w-5 h-5 text-amber-400 mr-2" />
-                                        <div>
-                                            <h2 className="text-white font-semibold">{selectedFeed.title}</h2>
-                                            <div className="flex items-center text-white/80 text-sm">
-                                                <MapPin className="w-4 h-4 mr-1" />
-                                                {selectedFeed.location}, {selectedFeed.area}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
-                                            {t('dashboard.liveFeed.live')}
-                                        </span>
-                                        <span className="text-white/80 text-sm flex items-center">
-                                            <Clock className="w-4 h-4 mr-1" />
-                                            {selectedFeed.timestamp}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Recognition Overlays */}
-                                {selectedFeed.recognitions.map((rec) => (
-                                    <div
-                                        key={rec.id}
-                                        className="absolute top-1/3 left-1/4 border-2 border-amber-400 rounded-lg p-2 bg-black/50 text-white"
-                                    >
-                                        <div className="flex items-center space-x-2">
-                                            <User className="w-4 h-4 text-amber-400" />
-                                            <span className="text-xs font-medium">
-                                                Match: {rec.confidence}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
 
                         {/* Navigation Buttons */}

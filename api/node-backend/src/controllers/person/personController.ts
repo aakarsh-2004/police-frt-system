@@ -5,6 +5,7 @@ import createHttpError from "http-errors";
 import cloudinary from "../../config/cloudinary";
 import fs from "node:fs";
 import { createNotification } from '../notification/notificationController';
+import { AuthRequest } from '../../middleware/auth';
 
 const getAllPersons = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -59,8 +60,41 @@ const getPersonById = async (req: Request, res: Response, next: NextFunction) =>
     }
 }
 
-const createPerson = async (req: Request, res: Response, next: NextFunction) => {
+const createPerson = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+        const user = req.user;
+        if (!user) {
+            return next(createHttpError(401, "Unauthorized"));
+        }
+
+        // If user is not admin, create a request instead
+        if (user.role !== 'admin') {
+            const requestData = {
+                requestedBy: user.id,
+                status: 'pending',
+                personData: JSON.stringify(req.body),
+                imageData: req.file ? JSON.stringify(req.file) : null
+            };
+
+            const request = await prisma.requests.create({
+                data: requestData,
+                include: {
+                    user: true
+                }
+            });
+
+            await createNotification(
+                `New person request from ${user.firstName} ${user.lastName}`,
+                'request'
+            );
+
+            return res.status(201).json({
+                message: "Request submitted successfully",
+                data: request
+            });
+        }
+
+        // If user is admin, proceed with direct creation
         const data = req.body;
         const file = req.file || (req.files as any)?.personImageUrl?.[0];
 

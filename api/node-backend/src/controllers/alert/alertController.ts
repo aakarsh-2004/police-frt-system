@@ -8,12 +8,7 @@ export const getAlerts = async (req: Request, res: Response, next: NextFunction)
         const pageSize = parseInt(req.query.pageSize as string) || 10;
         const skip = (page - 1) * pageSize;
 
-        // Get total count for pagination
-        const totalAlerts = await prisma.recognizedPerson.count({
-            where: {
-                // Add filters if needed
-            }
-        });
+        const totalAlerts = await prisma.recognizedPerson.count({});
 
         const alerts = await prisma.recognizedPerson.findMany({
             skip,
@@ -29,7 +24,7 @@ export const getAlerts = async (req: Request, res: Response, next: NextFunction)
                         type: true,
                         suspect: true,
                         missingPerson: true,
-                        personImageUrl: true
+                        personImageUrl: true,
                     }
                 },
                 camera: {
@@ -39,6 +34,7 @@ export const getAlerts = async (req: Request, res: Response, next: NextFunction)
                 }
             }
         });
+        
 
         res.status(200).json({
             message: "Alerts fetched successfully",

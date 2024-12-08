@@ -74,6 +74,31 @@ exports.getPersonById = getPersonById;
 const createPerson = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
+        const user = req.user;
+        if (!user) {
+            return next((0, http_errors_1.default)(401, "Unauthorized"));
+        }
+        // If user is not admin, create a request instead
+        if (user.role !== 'admin') {
+            const requestData = {
+                requestedBy: user.id,
+                status: 'pending',
+                personData: JSON.stringify(req.body),
+                imageData: req.file ? JSON.stringify(req.file) : null
+            };
+            const request = yield prisma_1.prisma.requests.create({
+                data: requestData,
+                include: {
+                    user: true
+                }
+            });
+            yield (0, notificationController_1.createNotification)(`New person request from ${user.firstName} ${user.lastName}`, 'request');
+            return res.status(201).json({
+                message: "Request submitted successfully",
+                data: request
+            });
+        }
+        // If user is admin, proceed with direct creation
         const data = req.body;
         const file = req.file || ((_b = (_a = req.files) === null || _a === void 0 ? void 0 : _a.personImageUrl) === null || _b === void 0 ? void 0 : _b[0]);
         console.log('Received data:', data);

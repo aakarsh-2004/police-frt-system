@@ -21,9 +21,11 @@ interface Alert {
         personImageUrl: string;
         type: string;
         status: string;
-        lastSeenDate?: string;
-        lastSeenLocation?: string;
-        missingSince?: string;
+        missingPerson?: {
+            missingSince: string;
+            lastSeenDate: string;
+            lastSeenLocation: string;
+        };
     };
     camera: {
         id: string;
@@ -41,13 +43,11 @@ interface FilterState {
 }
 
 export default function AlertsPage() {
-    const [enhancingImage, setEnhancingImage] = useState<string | null>(null);
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const navigate = useNavigate();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
-    const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
 
     const [filters, setFilters] = useState<FilterState>({
@@ -83,12 +83,10 @@ export default function AlertsPage() {
                     timePeriod: filters.timePeriod
                 }
             });
-            
             setAlerts(response.data.data);
             setTotalAlerts(response.data.total);
             setTotalPages(Math.ceil(response.data.total / pageSize));
             
-            // Update available locations
             const locations = new Set(response.data.data.map((alert: Alert) => alert.camera.location));
             setAvailableLocations(Array.from(locations));
         } catch (error) {
@@ -209,10 +207,11 @@ export default function AlertsPage() {
             startDate,
             endDate
         }));
-        setCurrentPage(1); // Reset to first page when filter changes
+        setCurrentPage(1); 
     };
 
     const formatDateTime = (dateString: string) => {
+        dateString = dateString.split('T')[0] + ' ' + dateString.split('T')[1].split('.')[0];
         const date = new Date(dateString);
         return format(date, 'dd MMM yyyy, hh:mm a', {
             locale: currentLanguage === 'en' ? enUS : hi
@@ -220,6 +219,7 @@ export default function AlertsPage() {
     };
 
     const getTimeAgo = (dateString: string) => {
+        dateString = dateString.split('T')[0] + ' ' + dateString.split('T')[1].split('.')[0];
         return formatDistanceToNow(new Date(dateString), {
             addSuffix: true,
             locale: currentLanguage === 'en' ? enUS : hi
@@ -341,7 +341,7 @@ export default function AlertsPage() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
                                         <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                        <h3 className="font-semibold">
+                                        <h3 className="font-semibold text-xl">
                                             {alert.person.firstName} {alert.person.lastName}
                                         </h3>
                                     </div>
@@ -355,7 +355,7 @@ export default function AlertsPage() {
                                             <Clock className="w-3 h-3" />
                                             <span>
                                                 {currentLanguage === 'en' ? 'Missing since: ' : 'लापता: '}
-                                                {alert.person.missingSince && formatDateTime(alert.person.missingSince)}
+                                                {alert.person.missingPerson && alert.person.missingPerson.missingSince && formatDateTime(alert.person.missingPerson.missingSince)}
                                             </span>
                                         </div>
                                         {alert.person.lastSeenLocation && (

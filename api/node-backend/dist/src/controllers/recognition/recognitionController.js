@@ -22,24 +22,36 @@ const json2csv_1 = require("json2csv");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const getRecentRecognitions = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
-            take: 20,
+        const recentDetections = yield prisma_1.prisma.recognizedPerson.findMany({
+            take: 10,
             orderBy: {
                 capturedDateTime: 'desc'
             },
             include: {
-                person: {
-                    include: {
-                        suspect: true,
-                        missingPerson: true
-                    }
-                },
+                person: true,
                 camera: true
             }
         });
+        const formattedDetections = recentDetections.map(detection => ({
+            id: detection.id,
+            capturedDateTime: detection.capturedDateTime.toISOString(),
+            confidenceScore: detection.confidenceScore,
+            capturedImageUrl: detection.capturedImageUrl,
+            person: {
+                id: detection.person.id,
+                firstName: detection.person.firstName,
+                lastName: detection.person.lastName,
+                personImageUrl: detection.person.personImageUrl,
+                type: detection.person.type
+            },
+            camera: {
+                name: detection.camera.name,
+                location: detection.camera.location
+            }
+        }));
         res.json({
             message: "Recent recognitions fetched successfully",
-            data: recognitions
+            data: formattedDetections
         });
     }
     catch (error) {

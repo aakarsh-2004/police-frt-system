@@ -20,12 +20,7 @@ const getAlerts = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.pageSize) || 10;
         const skip = (page - 1) * pageSize;
-        // Get total count for pagination
-        const totalAlerts = yield prisma_1.prisma.recognizedPerson.count({
-            where: {
-            // Add filters if needed
-            }
-        });
+        const totalAlerts = yield prisma_1.prisma.recognizedPerson.count({});
         const alerts = yield prisma_1.prisma.recognizedPerson.findMany({
             skip,
             take: pageSize,
@@ -40,7 +35,7 @@ const getAlerts = (req, res, next) => __awaiter(void 0, void 0, void 0, function
                         type: true,
                         suspect: true,
                         missingPerson: true,
-                        personImageUrl: true
+                        personImageUrl: true,
                     }
                 },
                 camera: {

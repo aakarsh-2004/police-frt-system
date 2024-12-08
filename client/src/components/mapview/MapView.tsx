@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import axios from 'axios';
 import config from '../../config/config';
+import { useTheme } from '../../context/themeContext';
 
 interface LocationFilter {
     city: string;
@@ -98,6 +99,7 @@ export default function MapView() {
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const [selectedCamera, setSelectedCamera] = useState<CameraDetails | null>(null);
+    const { isDarkMode } = useTheme();
 
     // Fetch cameras from the database
     useEffect(() => {
@@ -118,15 +120,18 @@ export default function MapView() {
     }, []);
 
     useEffect(() => {
-        if (!mapContainerRef.current || cameras.length === 0) return;
+        if (!mapContainerRef.current) return;
 
         mapboxgl.accessToken = "pk.eyJ1IjoiYWFrYXJzaC0yMDA0IiwiYSI6ImNtNDhrdXhycjAwb2gycXMyZjljdTl0MnIifQ.6L9i8t_eW3gubSsF7HmXwg";
 
         const map = new mapboxgl.Map({
             container: mapContainerRef.current,
-            style: "mapbox://styles/mapbox/streets-v11",
+            style: isDarkMode ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
             center: BHOPAL_CENTER,
-            zoom: 12.5,
+            zoom: 12,
+            pitch: 45,
+            bearing: -17.6,
+            antialias: true,
             scrollZoom: true,
             boxZoom: true,
             dragRotate: true,
@@ -138,41 +143,53 @@ export default function MapView() {
             maxBounds: [
                 [BHOPAL_BOUNDS.west - 0.1, BHOPAL_BOUNDS.south - 0.1],
                 [BHOPAL_BOUNDS.east + 0.1, BHOPAL_BOUNDS.north + 0.1]
-            ],
-            dragPanOptions: {
-                smoothScroll: true,
-                inertia: true,
-                linearImpulse: 0.3,
-                maxSpeed: 1400,
-                deceleration: 2500
-            },
-            interactive: true,
-            antialias: true
+            ]
         });
 
         mapRef.current = map;
 
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        map.on('dragstart', () => {
-            map.getCanvas().style.cursor = 'grabbing';
+        // Wait for style to load before adding terrain
+        map.on('style.load', () => {
+            // Add terrain source
+            map.addSource('mapbox-dem', {
+                'type': 'raster-dem',
+                'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                'tileSize': 512,
+                'maxzoom': 14
+            });
+
+            // Add terrain layer
+            map.setTerrain({
+                'source': 'mapbox-dem',
+                'exaggeration': 1.5
+            });
+
+            // Add 3D buildings layer
+            map.addLayer({
+                'id': '3d-buildings',
+                'source': 'composite',
+                'source-layer': 'building',
+                'filter': ['==', 'extrude', 'true'],
+                'type': 'fill-extrusion',
+                'minzoom': 12,
+                'paint': {
+                    'fill-extrusion-color': '#242424',
+                    'fill-extrusion-height': [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        12, 0,
+                        12.5, ['get', 'height']
+                    ],
+                    'fill-extrusion-opacity': 0.6
+                }
+            });
         });
 
-        map.on('dragend', () => {
-            map.getCanvas().style.cursor = '';
-        });
-
-        map.on('movestart', () => {
-            map.getCanvas().style.imageRendering = 'auto';
-        });
-
-        map.on('moveend', () => {
-            map.getCanvas().style.imageRendering = 'auto';
-        });
-
+        // Add markers after map loads
         map.on('load', () => {
-            map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-
             cameras.forEach(camera => {
                 const coordinates: [number, number] = [
                     parseFloat(camera.longitude),
@@ -194,26 +211,26 @@ export default function MapView() {
                 })
                     .setLngLat(coordinates)
                     .setPopup(
-                        new mapboxgl.Popup({ 
+                        new mapboxgl.Popup({
                             offset: 25,
                             closeButton: false,
                             closeOnClick: false
                         })
-                        .setHTML(`
-                            <div class="p-2">
-                                <h3 class="font-bold">${camera.name}</h3>
-                                <p class="text-sm text-gray-600">${camera.location}</p>
-                                <p class="text-xs mt-1">
-                                    <span class="px-2 py-1 rounded-full ${
-                                        camera.status === 'active' 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : 'bg-gray-100 text-gray-800'
-                                    }">
-                                        ${camera.status.toUpperCase()}
-                                    </span>
-                                </p>
-                            </div>
-                        `)
+                            .setHTML(`
+                                <div class="p-2 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-lg">
+                                    <h3 class="font-bold">${camera.name}</h3>
+                                    <p class="text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}">${camera.location}</p>
+                                    <p class="text-xs mt-1">
+                                        <span class="px-2 py-1 rounded-full ${
+                                            camera.status === 'active' 
+                                                ? isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'
+                                                : isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
+                                        }">
+                                            ${camera.status.toUpperCase()}
+                                        </span>
+                                    </p>
+                                </div>
+                            `)
                     )
                     .addTo(map);
 
@@ -224,10 +241,24 @@ export default function MapView() {
             });
         });
 
-        return () => {
-            map.remove();
-        };
-    }, [cameras]);
+        map.on('dragstart', () => {
+            map.getCanvas().style.cursor = 'grabbing';
+        });
+
+        map.on('dragend', () => {
+            map.getCanvas().style.cursor = '';
+        });
+
+        map.on('movestart', () => {
+            map.getCanvas().style.imageRendering = 'auto';
+        });
+
+        map.on('moveend', () => {
+            map.getCanvas().style.imageRendering = 'auto';
+        });
+
+        return () => map.remove();
+    }, [cameras, isDarkMode]);
 
     const createCustomMarker = () => {
         const el = document.createElement('div');

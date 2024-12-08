@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import axios from 'axios';
 import config from '../../config/config';
 import { formatDateTime, getTimeAgo } from '../../utils/dateUtils';
+import ImageEnhancer from '../image/ImageEnhancer';
 
 interface Recognition {
     id: string;
@@ -24,9 +25,64 @@ interface Recognition {
     };
 }
 
+const formatLocalDateTime = (dateTimeStr: string) => {
+    try {
+        console.log('Formatting datetime:', dateTimeStr);
+
+        dateTimeStr = dateTimeStr.split('T')[0] + ' ' + dateTimeStr.split('T')[1].split('.')[0];
+        console.log(dateTimeStr);
+        
+        // Handle ISO format (with T and Z)
+        // if (dateTimeStr.includes('T')) {
+        //     const isoDate = new Date(dateTimeStr);
+        //     console.log("isoDate", isoDate);
+            
+        //     return isoDate.toLocaleString('en-US', {
+        //         year: 'numeric',
+        //         month: 'short',
+        //         day: 'numeric',
+        //         hour: '2-digit',
+        //         minute: '2-digit',
+        //         second: '2-digit',
+        //         hour12: true
+        //     });
+        // }
+        
+        // Handle standard format (YYYY-MM-DD HH:mm:ss)
+        const [date, time] = dateTimeStr.split(' ');
+        if (!date || !time) {
+            console.error('Invalid datetime format:', dateTimeStr);
+            return dateTimeStr;
+        }
+        
+        const [year, month, day] = date.split('-').map(Number);
+        const [hours, minutes, seconds] = time.split(':').map(Number);
+        
+        if (!year || !month || !day || !hours || !minutes || !seconds) {
+            console.error('Invalid date/time components:', { year, month, day, hours, minutes, seconds });
+            return dateTimeStr;
+        }
+        
+        const localDate = new Date(year, month - 1, day, hours, minutes, seconds);
+        return localDate.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+    } catch (error) {
+        console.error('Error formatting datetime:', error, 'Input:', dateTimeStr);
+        return dateTimeStr;
+    }
+};
+
 export default function Alerts() {
     const [recognitions, setRecognitions] = useState<Recognition[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const navigate = useNavigate();
     const { currentLanguage } = useLanguage();
 
@@ -39,6 +95,11 @@ export default function Alerts() {
     const fetchRecognitions = async () => {
         try {
             const response = await axios.get<{ data: Recognition[] }>(`${config.apiUrl}/api/recognitions/recent`);
+            
+            // Log the raw date format
+            console.log('First recognition:', response.data.data[0]);
+            console.log('Raw recognition date:', response.data.data[0]?.capturedDateTime);
+            
             setRecognitions(response.data.data);
         } catch (error) {
             console.error('Error fetching recognitions:', error);
@@ -84,7 +145,8 @@ export default function Alerts() {
                                     <img
                                         src={recognition.person.personImageUrl}
                                         alt={`${recognition.person.firstName} ${recognition.person.lastName}`}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover cursor-pointer"
+                                        onClick={() => setSelectedImage(recognition.person.personImageUrl)}
                                     />
                                     <div className="text-xs text-center mt-1 font-medium text-gray-600 dark:text-gray-400">
                                         Original
@@ -94,7 +156,8 @@ export default function Alerts() {
                                     <img
                                         src={recognition.capturedImageUrl}
                                         alt="Captured"
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover cursor-pointer"
+                                        onClick={() => setSelectedImage(recognition.capturedImageUrl)}
                                     />
                                     <div className="text-xs text-center mt-1 font-medium text-gray-600 dark:text-gray-400">
                                         Captured
@@ -123,7 +186,7 @@ export default function Alerts() {
                                         <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
                                         <div>
                                             <span className="font-medium">
-                                                {formatDateTime(recognition.capturedDateTime, currentLanguage)}
+                                                {formatLocalDateTime(recognition.capturedDateTime)}
                                             </span>
                                             <span className="text-gray-500 ml-2">
                                                 ({getTimeAgo(recognition.capturedDateTime, currentLanguage)})
@@ -152,6 +215,13 @@ export default function Alerts() {
                     </div>
                 )}
             </div>
+
+            {selectedImage && (
+                <ImageEnhancer
+                    imageUrl={selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
 }

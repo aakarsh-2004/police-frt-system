@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import createHttpError from "http-errors";
 import { OTPService } from "../../services/otpService";
+import { config } from '../../config/config';
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
@@ -16,7 +17,16 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
         }
 
         const user = await prisma.user.findUnique({
-            where: { username }
+            where: { username },
+            select: {
+                id: true,
+                username: true,
+                password: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true
+            }
         });
 
         if (!user) {
@@ -31,21 +41,21 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
 
         const token = jwt.sign(
             { userId: user.id },
-            JWT_SECRET,
+            config.jwtSecret,
             { expiresIn: '24h' }
         );
 
+        console.log('Generated token for user:', {
+            userId: user.id,
+            username: user.username,
+            role: user.role
+        });
+
+        const { password: _, ...userWithoutPassword } = user;
+
         res.json({
             token,
-            user: {
-                id: user.id,
-                username: user.username,
-                role: user.role,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                userImageUrl: user.userImageUrl
-            }
+            user: userWithoutPassword
         });
     } catch (error) {
         next(error);

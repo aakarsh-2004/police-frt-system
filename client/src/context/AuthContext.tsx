@@ -72,19 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             );
             
             const { token, user } = response.data;
+            
+            console.log('Login successful:', { user });
+            console.log('Token received:', token);
+            
             localStorage.setItem('token', token);
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             setUser(user);
-            toast.success('Successfully logged in!', {
-                position: "top-center",
-                duration: 3000,
-                style: {
-                    background: '#10B981', // green-500
-                    color: 'white',
-                    fontWeight: 'bold'
-                }
-            });
+            
+            console.log('Token in localStorage:', localStorage.getItem('token'));
+            console.log('Authorization header:', axios.defaults.headers.common['Authorization']);
+            
+            toast.success('Successfully logged in!');
         } catch (error) {
+            console.error('Login error:', error);
             throw error;
         }
     };
