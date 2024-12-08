@@ -1,20 +1,18 @@
-import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBJadLgRQ-mWuLET2Orsnpo-cyJld_BFrE",
-    authDomain: "qwiklabs-gcp-03-08abd4d72d2c.firebaseapp.com",
-    projectId: "qwiklabs-gcp-03-08abd4d72d2c",
-    storageBucket: "qwiklabs-gcp-03-08abd4d72d2c.firebasestorage.app",
-    messagingSenderId: "590401122347",
-    appId: "1:590401122347:web:4e969db09276a4fc8a7a6e"
+    apiKey: "AIzaSyApWwA7nKRX-b9RsYmR8W3dYKVXfISd2_M",
+    authDomain: "qwiklabs-gcp-02-01d47808a95c.firebaseapp.com",
+    projectId: "qwiklabs-gcp-02-01d47808a95c",
+    storageBucket: "qwiklabs-gcp-02-01d47808a95c.firebasestorage.app",
+    messagingSenderId: "612709331959",
+    appId: "1:612709331959:web:a2e8d0a3c6e58ff9bfb4f2"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Add proper error messages
 export const getFirebaseErrorMessage = (code: string) => {
     switch (code) {
         case 'auth/invalid-app-credential':
@@ -36,7 +34,6 @@ export const getFirebaseErrorMessage = (code: string) => {
     }
 };
 
-// Add type declarations
 declare global {
     interface Window {
         recaptchaVerifier: any;

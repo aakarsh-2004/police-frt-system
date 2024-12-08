@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import config from '../config/config';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
     id: string;
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -91,10 +93,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
-        setUser(null);
-        toast.success('Logged out successfully');
+        try {
+            localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
+            setUser(null);
+            toast.success('Successfully logged out');
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            toast.error('Error during logout');
+        }
     };
 
     const loginWithOTP = async (phone: string, otp: string) => {
@@ -113,6 +121,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw error;
             }
             throw new Error('OTP verification failed');
+        }
+    };
+
+    const loginWithPhone = async (phone: string, firebaseUid: string) => {
+        try {
+            // First verify if phone exists in database
+            const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+            
+            const loginResponse = await axios.post(`${config.apiUrl}/api/auth/login-with-phone`, {
+                phone: formattedPhone,
+                firebaseUid
+            });
+
+            const { token, user } = loginResponse.data;
+            
+            // Set token in axios headers
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            
+            // Store token and user data
+            localStorage.setItem('token', token);
+            setUser(user);
+            
+            return user;
+        } catch (error: any) {
+            const message = error.response?.data?.message || 'Login failed';
+            toast.error(message);
+            throw new Error(message);
         }
     };
 

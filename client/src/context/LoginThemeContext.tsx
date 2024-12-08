@@ -8,7 +8,7 @@ interface LoginThemeContextType {
 const LoginThemeContext = createContext<LoginThemeContextType | undefined>(undefined);
 
 export function LoginThemeProvider({ children }: { children: React.ReactNode }) {
-    const [isDarkMode, setIsDarkMode] = useState(false); // Default to light mode
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
     const toggleTheme = () => {
         setIsDarkMode(prev => !prev);

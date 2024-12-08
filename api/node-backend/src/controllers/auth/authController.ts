@@ -216,4 +216,94 @@ const loginWithOTP = async (req: Request, res: Response, next: NextFunction) => 
     }
 };
 
+export const verifyPhoneExists = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { phone } = req.body;
+
+        if (!phone) {
+            throw createHttpError(400, "Phone number is required");
+        }
+
+        // Format phone number to consistent format
+        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+
+        // Check if user exists with this phone number
+        const user = await prisma.user.findFirst({
+            where: { phone: formattedPhone }
+        });
+
+        if (!user) {
+            throw createHttpError(404, "No user found with this phone number");
+        }
+
+        res.json({
+            message: "Phone number verified",
+            data: {
+                userId: user.id,
+                phone: user.phone
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const loginWithPhone = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { phone, firebaseUid } = req.body;
+
+        if (!phone || !firebaseUid) {
+            throw createHttpError(400, "Phone number and Firebase UID are required");
+        }
+
+        // Format phone number
+        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+
+        // Find user by phone number
+        const user = await prisma.user.findFirst({
+            where: { phone: formattedPhone }
+        });
+
+        if (!user) {
+            throw createHttpError(404, "User not found");
+        }
+
+        // Update user's Firebase UID and mark phone as verified
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { 
+                firebaseUid,
+                phoneVerified: true
+            }
+        });
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                id: user.id,
+                username: user.username,
+                role: user.role 
+            },
+            process.env.JWT_SECRET || '',
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phone: user.phone,
+                userImageUrl: user.userImageUrl
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export { login, verifyToken, sendOTP, verifyOTP, loginWithOTP }; 

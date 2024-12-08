@@ -87,8 +87,8 @@ model User {
   lastName         String
   username         String        @unique
   email            String        @unique
-  password         String
-  role             String        @default("non-admin")
+  password         String?
+  role             String        @default("user")
   designation      String
   userImageUrl     String?
   policeId         String?
@@ -99,8 +99,7 @@ model User {
   crimeRecords     CrimeRecord[]
   phone            String?       @unique
   phoneVerified    Boolean       @default(false)
-  otpSecret        String?
-  otpExpiry        DateTime?
+  firebaseUid      String?       @unique
 }
 
 model Camera {

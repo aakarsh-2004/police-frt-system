@@ -7,9 +7,16 @@ import { useLoginTheme } from '../../context/LoginThemeContext';
 import { auth, getFirebaseErrorMessage } from '../../config/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { toast } from 'react-hot-toast';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+interface LocationState {
+    from: {
+        pathname: string;
+    };
+}
 
 export default function NewLoginPage() {
-    const { isDarkMode, toggleTheme } = useLoginTheme();
+    const { isDarkMode } = useLoginTheme();
     const [showPassword, setShowPassword] = useState(false);
     const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
     const [username, setUsername] = useState('');
@@ -20,9 +27,19 @@ export default function NewLoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [user, setUser] = useState<any>(null);
-    const { login, loginWithOTP } = useAuth();
+    const { login, loginWithOTP, loginWithPhone } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const from = (location.state as LocationState)?.from?.pathname || '/';
 
     const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (user) {
+            navigate(from, { replace: true });
+        }
+    }, [user, navigate, from]);
 
     // Initialize RecaptchaVerifier once when component mounts
     useEffect(() => {
@@ -118,38 +135,39 @@ export default function NewLoginPage() {
             setLoading(true);
             setError(null);
 
-            // Format phone number to E.164 format
+            // Format phone number
             const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-            console.log('Formatted phone:', formattedPhone);
 
-            // Send OTP
+            // First verify if phone exists in our database
+            await axios.post(`${config.apiUrl}/api/auth/verify-phone`, {
+                phone: formattedPhone
+            });
+
+            // If verification successful, send OTP
             const confirmationResult = await signInWithPhoneNumber(
                 auth, 
                 formattedPhone, 
                 recaptchaVerifier
             );
 
-            // Store confirmation result
             window.confirmationResult = confirmationResult;
             setOtpSent(true);
             toast.success('OTP sent successfully!');
 
         } catch (error: any) {
             console.error('Firebase error:', error);
-            const errorMessage = error.code 
-                ? getFirebaseErrorMessage(error.code)
-                : 'Failed to send OTP. Please try again.';
+            const errorMessage = error.response?.data?.message || 
+                (error.code ? getFirebaseErrorMessage(error.code) : 'Failed to send OTP');
             
             setError(errorMessage);
             toast.error(errorMessage);
-
+            
             // Reset recaptcha on error
             recaptchaVerifier.clear();
             const recaptchaElement = document.querySelector('#recaptcha');
             if (recaptchaElement) {
                 recaptchaElement.innerHTML = '';
             }
-            
         } finally {
             setLoading(false);
         }
@@ -168,21 +186,20 @@ export default function NewLoginPage() {
                 throw new Error('No confirmation result found');
             }
 
+            // Verify OTP with Firebase
             const result = await confirmationResult.confirm(otp);
+            const firebaseUser = result.user;
             
-            console.log(result);
+            // Login with backend using phone and Firebase UID
+            await loginWithPhone(phone, firebaseUser.uid);
             
-            // const user = result.user;
-            
-            // Call your backend to create/update user
-            // await loginWithOTP(phone, user.uid);
-            toast.success('Successfully verified!');
+            toast.success('Successfully logged in!');
+            navigate('/'); // Redirect to dashboard
 
         } catch (error: any) {
             console.error('Verification error:', error);
-            const errorMessage = error.code 
-                ? getFirebaseErrorMessage(error.code)
-                : 'Invalid OTP. Please try again.';
+            const errorMessage = error.response?.data?.message || 
+                (error.code ? getFirebaseErrorMessage(error.code) : 'Invalid OTP');
             
             setError(errorMessage);
             toast.error(errorMessage);

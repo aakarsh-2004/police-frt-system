@@ -23,7 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loginWithOTP = exports.verifyOTP = exports.sendOTP = exports.verifyToken = exports.login = void 0;
+exports.loginWithOTP = exports.verifyOTP = exports.sendOTP = exports.verifyToken = exports.login = exports.loginWithPhone = exports.verifyPhoneExists = void 0;
 const prisma_1 = require("../../lib/prisma");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
@@ -204,3 +204,79 @@ const loginWithOTP = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.loginWithOTP = loginWithOTP;
+const verifyPhoneExists = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { phone } = req.body;
+        if (!phone) {
+            throw (0, http_errors_1.default)(400, "Phone number is required");
+        }
+        // Format phone number to consistent format
+        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+        // Check if user exists with this phone number
+        const user = yield prisma_1.prisma.user.findFirst({
+            where: { phone: formattedPhone }
+        });
+        if (!user) {
+            throw (0, http_errors_1.default)(404, "No user found with this phone number");
+        }
+        res.json({
+            message: "Phone number verified",
+            data: {
+                userId: user.id,
+                phone: user.phone
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.verifyPhoneExists = verifyPhoneExists;
+const loginWithPhone = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { phone, firebaseUid } = req.body;
+        if (!phone || !firebaseUid) {
+            throw (0, http_errors_1.default)(400, "Phone number and Firebase UID are required");
+        }
+        // Format phone number
+        const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+        // Find user by phone number
+        const user = yield prisma_1.prisma.user.findFirst({
+            where: { phone: formattedPhone }
+        });
+        if (!user) {
+            throw (0, http_errors_1.default)(404, "User not found");
+        }
+        // Update user's Firebase UID and mark phone as verified
+        yield prisma_1.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                firebaseUid,
+                phoneVerified: true
+            }
+        });
+        // Generate JWT token
+        const token = jsonwebtoken_1.default.sign({
+            id: user.id,
+            username: user.username,
+            role: user.role
+        }, process.env.JWT_SECRET || '', { expiresIn: '24h' });
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phone: user.phone,
+                userImageUrl: user.userImageUrl
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.loginWithPhone = loginWithPhone;
