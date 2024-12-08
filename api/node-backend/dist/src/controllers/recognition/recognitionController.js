@@ -300,17 +300,14 @@ exports.getDetectionsByLocation = getDetectionsByLocation;
 const getDetectionDetails = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        const { imageUrl, personId } = req.query;
-        console.log("Finding detection with:", { imageUrl, personId });
-        if (!imageUrl || !personId) {
-            return next((0, http_errors_1.default)(400, "Image URL and Person ID are required"));
+        const { imageUrl } = req.query;
+        console.log("Finding detection with:", { imageUrl });
+        if (!imageUrl) {
+            return next((0, http_errors_1.default)(400, "Image URL is required"));
         }
         const detection = yield prisma_1.prisma.recognizedPerson.findFirst({
             where: {
-                AND: [
-                    { capturedImageUrl: imageUrl },
-                    { personId: personId }
-                ]
+                capturedImageUrl: imageUrl
             },
             include: {
                 person: {

@@ -32,23 +32,6 @@ const formatLocalDateTime = (dateTimeStr: string) => {
         dateTimeStr = dateTimeStr.split('T')[0] + ' ' + dateTimeStr.split('T')[1].split('.')[0];
         console.log(dateTimeStr);
         
-        // Handle ISO format (with T and Z)
-        // if (dateTimeStr.includes('T')) {
-        //     const isoDate = new Date(dateTimeStr);
-        //     console.log("isoDate", isoDate);
-            
-        //     return isoDate.toLocaleString('en-US', {
-        //         year: 'numeric',
-        //         month: 'short',
-        //         day: 'numeric',
-        //         hour: '2-digit',
-        //         minute: '2-digit',
-        //         second: '2-digit',
-        //         hour12: true
-        //     });
-        // }
-        
-        // Handle standard format (YYYY-MM-DD HH:mm:ss)
         const [date, time] = dateTimeStr.split(' ');
         if (!date || !time) {
             console.error('Invalid datetime format:', dateTimeStr);
@@ -96,7 +79,6 @@ export default function Alerts() {
         try {
             const response = await axios.get<{ data: Recognition[] }>(`${config.apiUrl}/api/recognitions/recent`);
             
-            // Log the raw date format
             console.log('First recognition:', response.data.data[0]);
             console.log('Raw recognition date:', response.data.data[0]?.capturedDateTime);
             

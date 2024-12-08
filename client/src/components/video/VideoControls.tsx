@@ -6,9 +6,30 @@ interface VideoControlsProps {
     onZoomOut: () => void;
     onRotate: () => void;
     onFullScreen: () => void;
+    containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-export default function VideoControls({ onZoomIn, onZoomOut, onRotate, onFullScreen }: VideoControlsProps) {
+export default function VideoControls({ 
+    onZoomIn, 
+    onZoomOut, 
+    onRotate, 
+    onFullScreen,
+    containerRef 
+}: VideoControlsProps) {
+
+    const handleFullScreen = useCallback(() => {
+        if (!containerRef?.current) return;
+
+        if (!document.fullscreenElement) {
+            containerRef.current.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+        onFullScreen();
+    }, [containerRef, onFullScreen]);
+
     return (
         <div className="absolute bottom-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
             <button 
@@ -44,7 +65,7 @@ export default function VideoControls({ onZoomIn, onZoomOut, onRotate, onFullScr
             <button 
                 onClick={(e) => {
                     e.stopPropagation();
-                    onFullScreen();
+                    handleFullScreen();
                 }}
                 className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
                 title="Full Screen"

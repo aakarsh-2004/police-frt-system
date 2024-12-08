@@ -45,12 +45,13 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
     const { id } = useParams();
 
     console.log("id", id);
+    console.log("imageUrl", imageUrl);
 
     useEffect(() => {
         const fetchDetectionDetails = async () => {
             try {
                 const response = await axios.get<{ data: DetectionDetails }>(
-                    `${config.apiUrl}/api/recognitions/details?imageUrl=${imageUrl}&personId=${id}`
+                    `${config.apiUrl}/api/recognitions/details?imageUrl=${imageUrl}`
                 );
 
                 console.log("url => ", `${config.apiUrl}/api/recognitions/details?imageUrl=${imageUrl}&personId=${id}`);
@@ -65,9 +66,7 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
             }
         };
 
-        if (id) {
-            fetchDetectionDetails();
-        }
+        fetchDetectionDetails();
     }, [id]);
 
     const imageStyle = {

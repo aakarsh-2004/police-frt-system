@@ -322,19 +322,16 @@ export const getDetectionsByLocation = async (req: Request, res: Response, next:
 
 export const getDetectionDetails = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { imageUrl, personId } = req.query;
-        console.log("Finding detection with:", { imageUrl, personId });
+        const { imageUrl } = req.query;
+        console.log("Finding detection with:", { imageUrl });
 
-        if (!imageUrl || !personId) {
-            return next(createHttpError(400, "Image URL and Person ID are required"));
+        if (!imageUrl) {
+            return next(createHttpError(400, "Image URL is required"));
         }
 
         const detection = await prisma.recognizedPerson.findFirst({
             where: {
-                AND: [
-                    { capturedImageUrl: imageUrl as string },
-                    { personId: personId as string }
-                ]
+                capturedImageUrl: imageUrl as string
             },
             include: {
                 person: {

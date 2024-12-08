@@ -35,51 +35,51 @@ const cameras: Camera[] = [
     {
         id: '1',
         name: 'Front Door Camera',
-        streamUrl: '/SIH-stock-vids/1.mp4',
+        streamUrl: '/videos/1.mp4',
         status: 'Active',
         lastMotion: '2 mins ago'
     },
     {
         id: '2',
         name: 'Back Door Camera',
-        streamUrl: '/SIH-stock-vids/2.mp4',
+        streamUrl: '/videos/2.mp4',
         status: 'Active',
         lastMotion: '5 mins ago'
     },
     {
         id: '3',
         name: 'Garage Camera',
-        streamUrl: '/SIH-stock-vids/3.mp4',
+        streamUrl: '/videos/3.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     },
     {
         id: '4',
         name: 'Side Entrance',
-        streamUrl: '/SIH-stock-vids/4.mp4',
+        streamUrl: '/videos/4.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     },
     {
         id: '5',
         name: 'Parking Area',
-        streamUrl: '/SIH-stock-vids/5.mp4',
+        streamUrl: '/videos/5.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     },
     {
         id: '6',
         name: 'Main Gate',
-        streamUrl: '/SIH-stock-vids/6.mp4',
+        streamUrl: '/videos/6.mp4',
         status: 'Active',
         lastMotion: '1 min ago'
     }
 ];
 
-const RTSP_STREAMS = [
-    'ws://localhost:8083/stream/a8d21378-0eac-4db4-a9ff-d73d19054d5e/channel/0/mse?uuid=a8d21378-0eac-4db4-a9ff-d73d19054d5e&channel=0',
-    'ws://localhost:8083/stream/f4604be9-bea2-44e1-af7c-609ae9a2f7c1/channel/0/mse?uuid=f4604be9-bea2-44e1-af7c-609ae9a2f7c1&channel=0',
-    'ws://localhost:8083/stream/60d0b153-545b-43c1-97ec-797161af2038/channel/0/mse?uuid=60d0b153-545b-43c1-97ec-797161af2038&channel=0',
+const SAMPLE_STREAMS = [
+    'ws://localhost:8083/stream/d44fa640-744c-4b5d-8f44-c69d18e814b8/channel/0/mse?uuid=d44fa640-744c-4b5d-8f44-c69d18e814b8&channel=0',
+    'ws://localhost:8083/stream/9421a179-e486-4705-b78d-02967abcb14c/channel/0/mse?uuid=9421a179-e486-4705-b78d-02967abcb14c&channel=0',
+    'ws://localhost:8083/stream/52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe/channel/0/mse?uuid=52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe&channel=0',
     'ws://localhost:8083/stream/94019b3f-4541-4100-ae81-bd7bc319e3c8/channel/0/mse?uuid=94019b3f-4541-4100-ae81-bd7bc319e3c8&channel=0',
     'ws://localhost:8083/stream/a52feeeb-8cc7-418b-ad88-ae757d5a6433/channel/0/mse?uuid=a52feeeb-8cc7-418b-ad88-ae757d5a6433&channel=0',
     'ws://localhost:8083/stream/c0220694-546b-49dd-8c77-93203ab904d5/channel/0/mse?uuid=c0220694-546b-49dd-8c77-93203ab904d5&channel=0'
@@ -106,7 +106,22 @@ export default function LiveMonitoring() {
     const mseRef1 = useRef<MediaSource | null>(null);
     const mseRef2 = useRef<MediaSource | null>(null);
 
-    const [videoControls, setVideoControls] = useState<Record<string, { zoom: number; rotation: number }>>({});
+    const [videoControls, setVideoControls] = useState<Record<string, {
+        zoom: number;
+        rotation: number;
+    }>>({});
+
+    const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+    // Initialize controls for each camera
+    useEffect(() => {
+        const initialControls: Record<string, { zoom: number; rotation: number }> = {};
+        SAMPLE_STREAMS.forEach((_, index) => {
+            const videoId = `mse-video-${index + 1}`;
+            initialControls[videoId] = { zoom: 1, rotation: 0 };
+        });
+        setVideoControls(initialControls);
+    }, []);
 
     const pushPacket = (
         mseQueue: React.MutableRefObject<ArrayBuffer[]>,
@@ -344,6 +359,12 @@ export default function LiveMonitoring() {
             formData.append('confidenceScore', detection.confidence.toString());
             formData.append('capturedImage', file);
 
+            // await axios.post(`${config.apiUrl}/api/recognitions`, formData, {
+            //     headers: {
+            //         'Content-Type': 'multipart/form-data',
+            //     },
+            // });
+
             setDetections(prev => {
                 const twentySecondsAgo = new Date(Date.now() - 20000);
                 const recentDetections = prev.filter(d => 
@@ -356,52 +377,64 @@ export default function LiveMonitoring() {
         }
     };
 
-    const getVideoStyle = (videoId: string) => {
-        const controls = videoControls[videoId] || { zoom: 100, rotation: 0 };
+    const getVideoStyle = (id: string) => {
+        const controls = videoControls[id] || { zoom: 1, rotation: 0 };
         return {
-            transform: `scale(${controls.zoom / 100}) rotate(${controls.rotation}deg)`,
-            transition: 'transform 0.3s ease'
+            transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`,
+            transition: 'transform 0.3s ease',
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain'
         };
     };
 
-    const handleZoomIn = (videoId: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [videoId]: {
-                ...prev[videoId] || { rotation: 0 },
-                zoom: Math.min((prev[videoId]?.zoom || 100) + 10, 200)
-            }
-        }));
+    const handleZoomIn = (id: string) => {
+        setVideoControls(prev => {
+            const currentControls = prev[id] || { zoom: 1, rotation: 0 };
+            return {
+                ...prev,
+                [id]: {
+                    ...currentControls,
+                    zoom: Math.min(currentControls.zoom + 0.1, 2)
+                }
+            };
+        });
     };
 
-    const handleZoomOut = (videoId: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [videoId]: {
-                ...prev[videoId] || { rotation: 0 },
-                zoom: Math.max((prev[videoId]?.zoom || 100) - 10, 50)
-            }
-        }));
+    const handleZoomOut = (id: string) => {
+        setVideoControls(prev => {
+            const currentControls = prev[id] || { zoom: 1, rotation: 0 };
+            return {
+                ...prev,
+                [id]: {
+                    ...currentControls,
+                    zoom: Math.max(currentControls.zoom - 0.1, 0.5)
+                }
+            };
+        });
     };
 
-    const handleRotate = (videoId: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [videoId]: {
-                ...prev[videoId] || { zoom: 100 },
-                rotation: ((prev[videoId]?.rotation || 0) + 90) % 360
-            }
-        }));
+    const handleRotate = (id: string) => {
+        setVideoControls(prev => {
+            const currentControls = prev[id] || { zoom: 1, rotation: 0 };
+            return {
+                ...prev,
+                [id]: {
+                    ...currentControls,
+                    rotation: (currentControls.rotation + 90) % 360
+                }
+            };
+        });
     };
 
-    const handleFullScreen = (videoId: string) => {
-        const element = document.getElementById(videoId)?.parentElement;
+    const handleFullScreen = (id: string) => {
+        const element = containerRefs.current[id];
         if (!element) return;
 
         if (document.fullscreenElement) {
             document.exitFullscreen();
         } else {
-            element.requestFullscreen();
+            element.requestFullscreen().catch(console.error);
         }
     };
 
@@ -437,27 +470,33 @@ export default function LiveMonitoring() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        {RTSP_STREAMS.map((streamUrl, index) => {
-                            const videoId = `video-${index + 1}`;
+                    <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {SAMPLE_STREAMS.map((streamUrl, index) => {
+                            const videoId = `mse-video-${index + 1}`;
                             return (
                                 <div 
                                     key={index} 
-                                    className="aspect-video relative dark:bg-gray-800 rounded-lg overflow-hidden group bg-black"
+                                    ref={el => containerRefs.current[videoId] = el}
+                                    className="aspect-video relative bg-gray-900 rounded-lg overflow-hidden group"
                                 >
                                     <div className="relative w-full h-full">
                                         <RTSPStream
                                             id={videoId}
                                             streamUrl={streamUrl}
-                                            fallbackIndex={index}
                                             style={getVideoStyle(videoId)}
                                         />
-                                        <VideoControls
-                                            onZoomIn={() => handleZoomIn(videoId)}
-                                            onZoomOut={() => handleZoomOut(videoId)}
-                                            onRotate={() => handleRotate(videoId)}
-                                            onFullScreen={() => handleFullScreen(videoId)}
-                                        />
+                                        
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="absolute bottom-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <VideoControls
+                                                    onZoomIn={() => handleZoomIn(videoId)}
+                                                    onZoomOut={() => handleZoomOut(videoId)}
+                                                    onRotate={() => handleRotate(videoId)}
+                                                    onFullScreen={() => handleFullScreen(videoId)}
+                                                />
+                                            </div>
+                                        </div>
+                                        
                                         <div className="absolute top-0 left-0 right-0 p-2 bg-gradient-to-b from-black/50 to-transparent">
                                             <div className="flex items-center justify-between text-white">
                                                 <span className="text-sm font-medium">Camera {index + 1}</span>

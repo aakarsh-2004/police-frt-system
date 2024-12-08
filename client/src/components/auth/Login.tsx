@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, User, Lock, Eye, EyeOff, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
 import config from '../../config/config';
 import { useLoginTheme } from '../../context/LoginThemeContext';
+import { auth, getFirebaseErrorMessage } from '../../config/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { toast } from 'react-hot-toast';
 
 export default function NewLoginPage() {
     const { isDarkMode, toggleTheme } = useLoginTheme();
@@ -16,7 +19,42 @@ export default function NewLoginPage() {
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [user, setUser] = useState<any>(null);
     const { login, loginWithOTP } = useAuth();
+
+    const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+
+    // Initialize RecaptchaVerifier once when component mounts
+    useEffect(() => {
+        // Clear any existing recaptcha elements
+        const existingRecaptcha = document.querySelector('#recaptcha');
+        if (existingRecaptcha) {
+            existingRecaptcha.innerHTML = '';
+        }
+
+        // Create new RecaptchaVerifier
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha', {
+            size: 'invisible',
+            callback: () => {
+                console.log('reCAPTCHA resolved');
+            },
+            'expired-callback': () => {
+                toast.error('reCAPTCHA expired. Please try again.');
+                setLoading(false);
+            }
+        });
+
+        setRecaptchaVerifier(verifier);
+
+        // Cleanup function
+        return () => {
+            verifier.clear();
+            const recaptchaElement = document.querySelector('#recaptcha');
+            if (recaptchaElement) {
+                recaptchaElement.innerHTML = '';
+            }
+        };
+    }, []);
 
     const handleCredentialsSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,21 +72,23 @@ export default function NewLoginPage() {
     };
 
     const handleSendOTP = async () => {
-        if (!phone) {
-            setError('Please enter your phone number');
-            return;
-        }
+        console.log("phone", phone);
+        
+        // if (!phone) {
+        //     setError('Please enter your phone number');
+        //     return;
+        // }
 
-        try {
-            setLoading(true);
-            setError(null);
-            await axios.post(`${config.apiUrl}/api/auth/send-otp`, { phone });
-            setOtpSent(true);
-        } catch (error: any) {
-            setError(error.response?.data?.message || 'Failed to send OTP. Please check your phone number.');
-        } finally {
-            setLoading(false);
-        }
+        // try {
+        //     setLoading(true);
+        //     setError(null);
+        //     await axios.post(`${config.apiUrl}/api/auth/send-otp`, { phone });
+        //     setOtpSent(true);
+        // } catch (error: any) {
+        //     setError(error.response?.data?.message || 'Failed to send OTP. Please check your phone number.');
+        // } finally {
+        //     setLoading(false);
+        // }
     };
 
     const handleVerifyOTP = async () => {
@@ -63,6 +103,89 @@ export default function NewLoginPage() {
             await loginWithOTP(phone, otp);
         } catch (error: any) {
             setError(error.response?.data?.message || 'Invalid OTP. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const sendFirebaseOTP = async () => {
+        if (!recaptchaVerifier) {
+            toast.error('reCAPTCHA not initialized. Please try again.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Format phone number to E.164 format
+            const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+            console.log('Formatted phone:', formattedPhone);
+
+            // Send OTP
+            const confirmationResult = await signInWithPhoneNumber(
+                auth, 
+                formattedPhone, 
+                recaptchaVerifier
+            );
+
+            // Store confirmation result
+            window.confirmationResult = confirmationResult;
+            setOtpSent(true);
+            toast.success('OTP sent successfully!');
+
+        } catch (error: any) {
+            console.error('Firebase error:', error);
+            const errorMessage = error.code 
+                ? getFirebaseErrorMessage(error.code)
+                : 'Failed to send OTP. Please try again.';
+            
+            setError(errorMessage);
+            toast.error(errorMessage);
+
+            // Reset recaptcha on error
+            recaptchaVerifier.clear();
+            const recaptchaElement = document.querySelector('#recaptcha');
+            if (recaptchaElement) {
+                recaptchaElement.innerHTML = '';
+            }
+            
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const verifyFirebaseOTP = async () => {
+        if (!otp) {
+            toast.error('Please enter OTP');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const confirmationResult = window.confirmationResult;
+            if (!confirmationResult) {
+                throw new Error('No confirmation result found');
+            }
+
+            const result = await confirmationResult.confirm(otp);
+            
+            console.log(result);
+            
+            // const user = result.user;
+            
+            // Call your backend to create/update user
+            // await loginWithOTP(phone, user.uid);
+            toast.success('Successfully verified!');
+
+        } catch (error: any) {
+            console.error('Verification error:', error);
+            const errorMessage = error.code 
+                ? getFirebaseErrorMessage(error.code)
+                : 'Invalid OTP. Please try again.';
+            
+            setError(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -183,7 +306,9 @@ export default function NewLoginPage() {
                                 <input
                                     type="text"
                                     value={loginMethod === 'password' ? username : phone}
-                                    onChange={(e) => loginMethod === 'password' ? setUsername(e.target.value) : setPhone(e.target.value)}
+                                    onChange={(e) => loginMethod === 'password' 
+                                        ? setUsername(e.target.value) 
+                                        : setPhone((e.target.value))}
                                     placeholder={loginMethod === 'password' ? 'Enter username...' : 'Enter phone number...'}
                                     className='w-full border pl-10 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all'
                                     disabled={loading}
@@ -230,9 +355,10 @@ export default function NewLoginPage() {
                             </div>
                         )}
 
+                        <div id="recaptcha" className="invisible"></div>
                         <button
                             type={loginMethod === 'password' ? 'submit' : 'button'}
-                            onClick={loginMethod === 'otp' ? (otpSent ? handleVerifyOTP : handleSendOTP) : undefined}
+                            onClick={loginMethod === 'otp' ? (otpSent ? verifyFirebaseOTP : sendFirebaseOTP) : undefined}
                             disabled={loading}
                             className='mt-4 bg-yellow-400 text-white rounded p-2 w-full hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
                         >
@@ -242,6 +368,7 @@ export default function NewLoginPage() {
                             )}
                         </button>
                     </form>
+
                 </div>
 
                 <div className='mt-auto'>

@@ -78,7 +78,7 @@ model RecognizedPerson {
   capturedDateTime DateTime @default(now())
   capturedImageUrl String
   confidenceScore  String
-  videos           Videos[]
+  videoUrl         String?
 }
 
 model User {
@@ -126,14 +126,6 @@ model Requests {
   imageData    String?
   createdAt    DateTime @default(now())
   approvedAt   DateTime @updatedAt
-}
-
-model Videos {
-  id                 Int              @id @default(autoincrement())
-  videoUrl           String
-  videoDate          DateTime         @default(now())
-  recognizedPersonId String
-  recognizedPerson   RecognizedPerson @relation(fields: [recognizedPersonId], references: [id])
 }
 
 model Notification {

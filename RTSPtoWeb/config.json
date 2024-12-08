@@ -29,6 +29,15 @@
     "webrtc_port_min": 0
   },
   "streams": {
+    "52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://192.168.1.4:8080/h264.sdp"
+        }
+      },
+      "name": "frt-3"
+    },
     "60d0b153-545b-43c1-97ec-797161af2038": {
       "channels": {
         "0": {
@@ -46,6 +55,15 @@
         }
       },
       "name": "lnct5"
+    },
+    "9421a179-e486-4705-b78d-02967abcb14c": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://192.168.1.9:8080/h264.sdp"
+        }
+      },
+      "name": "frt-2"
     },
     "a52feeeb-8cc7-418b-ad88-ae757d5a6433": {
       "channels": {
@@ -73,6 +91,15 @@
         }
       },
       "name": "lnct3"
+    },
+    "d44fa640-744c-4b5d-8f44-c69d18e814b8": {
+      "channels": {
+        "0": {
+          "debug": true,
+          "url": "rtsp://192.168.1.7:8080/h264.sdp"
+        }
+      },
+      "name": "home-test"
     },
     "f4604be9-bea2-44e1-af7c-609ae9a2f7c1": {
       "channels": {

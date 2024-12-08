@@ -6,7 +6,7 @@ interface DetectionListProps {
     detections: Detection[];
 }
 
-export default function DetectionList({ detections }: DetectionListProps) {
+export default function DetectionList({ detections = [] }: DetectionListProps) {
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden h-[calc(100vh-8rem)]">
             <div className="p-4 border-b bg-blue-900 text-white dark:border-gray-700">
