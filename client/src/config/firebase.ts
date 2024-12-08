@@ -1,4 +1,4 @@
-import { getAuth } from "firebase/auth";
+import { getAuth, RecaptchaVerifier } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
@@ -36,7 +36,7 @@ export const getFirebaseErrorMessage = (code: string) => {
 
 declare global {
     interface Window {
-        recaptchaVerifier: any;
+        recaptchaVerifier: RecaptchaVerifier;
         confirmationResult: any;
     }
 }

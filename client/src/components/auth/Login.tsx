@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Shield, User, Lock, Eye, EyeOff, Phone } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
@@ -32,7 +32,7 @@ export default function NewLoginPage() {
     const location = useLocation();
     const from = (location.state as LocationState)?.from?.pathname || '/';
 
-    const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+    const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
     // Redirect if already logged in
     useEffect(() => {
@@ -43,14 +43,14 @@ export default function NewLoginPage() {
 
     // Initialize RecaptchaVerifier once when component mounts
     useEffect(() => {
-        // Clear any existing recaptcha elements
-        const existingRecaptcha = document.querySelector('#recaptcha');
-        if (existingRecaptcha) {
-            existingRecaptcha.innerHTML = '';
+        // Cleanup any existing reCAPTCHA instances
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.clear();
+            delete window.recaptchaVerifier;
         }
 
-        // Create new RecaptchaVerifier
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha', {
+        // Create new reCAPTCHA instance
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha', {
             size: 'invisible',
             callback: () => {
                 console.log('reCAPTCHA resolved');
@@ -61,14 +61,11 @@ export default function NewLoginPage() {
             }
         });
 
-        setRecaptchaVerifier(verifier);
-
-        // Cleanup function
+        // Cleanup on unmount
         return () => {
-            verifier.clear();
-            const recaptchaElement = document.querySelector('#recaptcha');
-            if (recaptchaElement) {
-                recaptchaElement.innerHTML = '';
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                delete window.recaptchaVerifier;
             }
         };
     }, []);
@@ -126,16 +123,10 @@ export default function NewLoginPage() {
     };
 
     const sendFirebaseOTP = async () => {
-        if (!recaptchaVerifier) {
-            toast.error('reCAPTCHA not initialized. Please try again.');
-            return;
-        }
-
         try {
             setLoading(true);
             setError(null);
 
-            // Format phone number
             const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
             // First verify if phone exists in our database
@@ -143,11 +134,11 @@ export default function NewLoginPage() {
                 phone: formattedPhone
             });
 
-            // If verification successful, send OTP
+            // Send OTP
             const confirmationResult = await signInWithPhoneNumber(
-                auth, 
-                formattedPhone, 
-                recaptchaVerifier
+                auth,
+                formattedPhone,
+                window.recaptchaVerifier
             );
 
             window.confirmationResult = confirmationResult;
@@ -161,13 +152,6 @@ export default function NewLoginPage() {
             
             setError(errorMessage);
             toast.error(errorMessage);
-            
-            // Reset recaptcha on error
-            recaptchaVerifier.clear();
-            const recaptchaElement = document.querySelector('#recaptcha');
-            if (recaptchaElement) {
-                recaptchaElement.innerHTML = '';
-            }
         } finally {
             setLoading(false);
         }
@@ -181,20 +165,23 @@ export default function NewLoginPage() {
 
         try {
             setLoading(true);
-            const confirmationResult = window.confirmationResult;
-            if (!confirmationResult) {
+            
+            if (!window.confirmationResult) {
                 throw new Error('No confirmation result found');
             }
 
-            // Verify OTP with Firebase
-            const result = await confirmationResult.confirm(otp);
-            const firebaseUser = result.user;
+            // Verify OTP
+            const result = await window.confirmationResult.confirm(otp);
             
-            // Login with backend using phone and Firebase UID
-            await loginWithPhone(phone, firebaseUser.uid);
+            if (!result.user) {
+                throw new Error('No user data received');
+            }
+
+            // Login with backend
+            await loginWithPhone(phone, result.user.uid);
             
             toast.success('Successfully logged in!');
-            navigate('/'); // Redirect to dashboard
+            navigate('/');
 
         } catch (error: any) {
             console.error('Verification error:', error);
@@ -372,7 +359,7 @@ export default function NewLoginPage() {
                             </div>
                         )}
 
-                        <div id="recaptcha" className="invisible"></div>
+                        <div id="recaptcha" className="!invisible"></div>
                         <button
                             type={loginMethod === 'password' ? 'submit' : 'button'}
                             onClick={loginMethod === 'otp' ? (otpSent ? verifyFirebaseOTP : sendFirebaseOTP) : undefined}
