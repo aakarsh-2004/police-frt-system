@@ -200,13 +200,14 @@ export default function NewLoginPage() {
 
             // Verify OTP
             const result = await window.confirmationResult.confirm(otp);
+            console.log("result", result);
             
             if (!result.user) {
                 throw new Error('No user data received');
             }
 
             // Login with backend
-            await loginWithPhone(phone, result.user.uid);
+            // await loginWithPhone(phone, result.user.uid);
             
             toast.success('Successfully logged in!');
             navigate('/');
