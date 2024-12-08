@@ -181,10 +181,15 @@ export default function NewLoginPage() {
     };
 
     const verifyFirebaseOTP = async () => {
+        console.log("verifyFirebaseOTP");
+        
         if (!otp) {
             toast.error('Please enter OTP');
             return;
         }
+
+        console.log("otp", otp);
+        
 
         try {
             setLoading(true);
