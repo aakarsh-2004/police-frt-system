@@ -38,8 +38,13 @@ import { LoginThemeProvider } from './context/LoginThemeContext';
 emailjs.init(emailjsConfig.publicKey);
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
+
+  // Show nothing while checking auth state
+  if (isLoading) {
+    return null;
+  }
 
   // If no user, only allow access to login page
   if (!user) {

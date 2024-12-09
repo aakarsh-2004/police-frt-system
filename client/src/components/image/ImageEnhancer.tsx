@@ -486,7 +486,7 @@ export default function ImageEnhancer({
 
                             {/* Navigation Buttons */}
                             {images.length > 1 && (
-                                <>
+                                <div className=''>
                                     <button
                                         onClick={handlePrevImage}
                                         className={`absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white 
@@ -503,13 +503,12 @@ export default function ImageEnhancer({
                                     >
                                         <ChevronRight className="w-6 h-6" />
                                     </button>
-                                </>
+                                </div>
                             )}
                         </div>
 
-                        {/* Thumbnails */}
                         {images.length > 1 && (
-                            <div className="absolute -bottom-20 left-0 right-0 flex justify-center gap-2 overflow-x-auto px-4 py-2">
+                            <div className="absolute -bottom-30 left-0 right-0 flex justify-center gap-2 overflow-x-auto px-4 py-2 h-[200px]">
                                 {images.map((img, index) => (
                                     <button
                                         key={index}

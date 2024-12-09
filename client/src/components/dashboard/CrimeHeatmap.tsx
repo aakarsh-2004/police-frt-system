@@ -256,7 +256,7 @@ export default function CrimeHeatmap() {
                             Crime Heatmap
                         </h2>
                     </div>
-                    <div className="relative w-full h-[400px] rounded-lg overflow-hidden">
+                    <div className="relative w-full h-[600px] rounded-lg overflow-hidden">
                         <div
                             ref={mapContainerRef}
                             className="absolute inset-0"

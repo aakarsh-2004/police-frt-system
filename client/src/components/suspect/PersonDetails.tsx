@@ -19,6 +19,11 @@ interface Recognition {
         location: string;
         name: string;
     };
+    person: {
+        firstName: string;
+        lastName: string;
+        personImageUrl: string;
+    };
     videoUrl?: string | null;
 }
 
@@ -70,6 +75,7 @@ export default function PersonDetails() {
     const [uploadedImage, setUploadedImage] = useState<File | null>(null);
     const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Add form state
     const [formData, setFormData] = useState({
@@ -108,16 +114,20 @@ export default function PersonDetails() {
     useEffect(() => {
         const fetchPerson = async () => {
             try {
+                setLoading(true);
                 const response = await axios.get(`${config.apiUrl}/api/persons/${id}`);
                 setPerson(response.data.data);
             } catch (error) {
                 console.error('Error fetching person:', error);
+                setError('Failed to load person details');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchPerson();
+        if (id) {
+            fetchPerson();
+        }
     }, [id]);
 
     useEffect(() => {
@@ -394,8 +404,13 @@ export default function PersonDetails() {
         setSelectedImageIndex(newIndex);
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (!person) return <div>Person not found</div>;
+    if (loading) {
+        return <div className="p-6 text-center">Loading...</div>;
+    }
+
+    if (error || !person) {
+        return <div className="p-6 text-center text-red-500">{error || 'Person not found'}</div>;
+    }
 
     return (
         <div className="max-w-[2000px] mx-auto p-6">
@@ -505,20 +520,43 @@ export default function PersonDetails() {
                         <h2 className="text-xl font-semibold mb-4 dark:text-white">Recent Detections</h2>
                         {/* Add max height and scrolling */}
                         <div className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto">
-                            {person.recognizedPerson.map((recognition) => (
+                            {person.recognizedPerson.map((recognition, index) => (
                                 <div 
                                     key={recognition.id} 
                                     className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                                 >
                                     <div className="space-y-4">
-                                        {/* Detection Image */}
-                                        <div className="w-full aspect-video">
-                                            <img
-                                                src={recognition.capturedImageUrl}
-                                                alt="Detection"
-                                                className="w-full h-full object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
-                                                onClick={() => setSelectedImage(recognition.capturedImageUrl)}
-                                            />
+                                        <div className="grid grid-cols-2 gap-4 mb-3">
+                                            {/* Original Database Image */}
+                                            <div className="space-y-1">
+                                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
+                                                    Database Image
+                                                </span>
+                                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                                    <img
+                                                        src={person.personImageUrl}
+                                                        alt="Database"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Captured Image - Make this clickable */}
+                                            <div className="space-y-1">
+                                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
+                                                    Captured Image
+                                                </span>
+                                                <div 
+                                                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
+                                                    onClick={() => handleImageSelect(index)}
+                                                >
+                                                    <img
+                                                        src={recognition.capturedImageUrl}
+                                                        alt="Captured"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Detection Details */}
@@ -581,6 +619,27 @@ export default function PersonDetails() {
                 <VideoPlayer 
                     videoUrl={selectedVideo}
                     onClose={() => setSelectedVideo(null)}
+                />
+            )}
+
+            {/* Add ImageEnhancer modal */}
+            {selectedImageIndex !== null && (
+                <ImageEnhancer
+                    imageUrl={person.recognizedPerson[selectedImageIndex].capturedImageUrl}
+                    onClose={() => setSelectedImageIndex(null)}
+                    images={person.recognizedPerson.map(rec => rec.capturedImageUrl)}
+                    currentIndex={selectedImageIndex}
+                    onImageChange={handleImageChange}
+                    detectionInfo={{
+                        person: {
+                            firstName: person.firstName,
+                            lastName: person.lastName,
+                            personImageUrl: person.personImageUrl
+                        },
+                        capturedLocation: person.recognizedPerson[selectedImageIndex].camera.location,
+                        capturedDateTime: person.recognizedPerson[selectedImageIndex].capturedDateTime,
+                        confidenceScore: person.recognizedPerson[selectedImageIndex].confidenceScore
+                    }}
                 />
             )}
         </div>

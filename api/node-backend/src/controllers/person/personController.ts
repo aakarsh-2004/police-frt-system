@@ -38,7 +38,14 @@ const getPersonById = async (req: Request, res: Response, next: NextFunction) =>
                 missingPerson: true,
                 recognizedPerson: {
                     include: {
-                        camera: true
+                        camera: true,
+                        person: {
+                            select: {
+                                firstName: true,
+                                lastName: true,
+                                personImageUrl: true
+                            }
+                        }
                     },
                     orderBy: {
                         capturedDateTime: 'desc'
@@ -51,14 +58,14 @@ const getPersonById = async (req: Request, res: Response, next: NextFunction) =>
             return next(createHttpError(404, "Person not found"));
         }
 
-        res.status(200).json({
-            message: "Person fetched successfully",
+        res.json({
+            message: "Person details fetched successfully",
             data: person
         });
     } catch (error) {
-        next(createHttpError(500, "Error while fetching person by id " + error));
+        next(createHttpError(500, "Error fetching person details: " + error));
     }
-}
+};
 
 const createPerson = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {

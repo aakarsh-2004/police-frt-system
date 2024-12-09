@@ -39,32 +39,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            verifyToken(token);
-        } else {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const verifyToken = async (token: string) => {
-        try {
-            const response = await axios.get<VerifyResponse>(`${config.apiUrl}/api/auth/verify`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setUser(response.data.user);
-            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const errorMessage = error.response?.data?.message || 'Session expired';
-                toast.error(errorMessage);
+        const verifyAuth = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setIsLoading(false);
+                return;
             }
-            localStorage.removeItem('token');
-            delete axios.defaults.headers.common['Authorization'];
-        } finally {
-            setIsLoading(false);
-        }
-    };
+
+            try {
+                const response = await axios.get<VerifyResponse>(
+                    `${config.apiUrl}/api/auth/verify`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+                
+                setUser(response.data.user);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            } catch (error) {
+                localStorage.removeItem('token');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        verifyAuth();
+    }, []);
 
     const login = async (username: string, password: string) => {
         try {

@@ -245,7 +245,7 @@ export default function VideoPlayer({
 
                 {/* Video Navigation Thumbnails */}
                 {videos.length > 1 && !isFullscreen && (
-                    <div className="absolute -bottom-20 left-0 right-0 flex justify-center gap-2 overflow-x-auto">
+                    <div className="absolute -bottom-[10px] left-0 right-0 flex justify-center gap-2 overflow-x-auto">
                         {videos.map((video, index) => (
                             <button
                                 key={index}

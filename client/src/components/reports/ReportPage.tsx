@@ -261,8 +261,8 @@ export default function ReportsPage() {
                 {view === 'graphs' && (
                     <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Daily Detections Line Chart */}
-                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800">
-                            <h3 className="text-lg font-semibold mb-4">
+                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800 dark:text-black">
+                            <h3 className="text-lg font-semibold mb-4 dark:text-white">
                                 {currentLanguage === 'en' ? 'Daily Detections' : 'दैनिक ���हचान'}
                             </h3>
                             <div className="h-[300px]">
@@ -286,9 +286,8 @@ export default function ReportsPage() {
                             </div>
                         </div>
 
-                        {/* Detection Types Pie Chart */}
-                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800">
-                            <h3 className="text-lg font-semibold mb-4">
+                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800 dark:text-black">
+                            <h3 className="text-lg font-semibold mb-4 dark:text-white">
                                 {currentLanguage === 'en' ? 'Detection Types' : 'पहचान के प्रकार'}
                             </h3>
                             <div className="h-[300px]">
@@ -314,9 +313,8 @@ export default function ReportsPage() {
                             </div>
                         </div>
 
-                        {/* Top Locations Bar Chart */}
-                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800">
-                            <h3 className="text-lg font-semibold mb-4">
+                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800 dark:text-black">
+                            <h3 className="text-lg font-semibold mb-4 dark:text-white">
                                 {currentLanguage === 'en' ? 'Top Detection Locations' : 'शीर्ष पहचान स्थान'}
                             </h3>
                             <div className="h-[300px]">
@@ -332,9 +330,8 @@ export default function ReportsPage() {
                             </div>
                         </div>
 
-                        {/* Confidence Distribution */}
-                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800">
-                            <h3 className="text-lg font-semibold mb-4">
+                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800 dark:text-black">
+                            <h3 className="text-lg font-semibold mb-4 dark:text-white">
                                 {currentLanguage === 'en' ? 'Confidence Distribution' : 'विश्वास वितरण'}
                             </h3>
                             <div className="h-[300px]">

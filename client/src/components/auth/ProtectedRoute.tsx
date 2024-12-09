@@ -7,8 +7,13 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-    const { user } = useAuth();
+    const { user, isLoading } = useAuth();
     const location = useLocation();
+
+    // Show nothing while checking auth state
+    if (isLoading) {
+        return null;
+    }
 
     if (!user) {
         // Redirect to login while saving the attempted URL

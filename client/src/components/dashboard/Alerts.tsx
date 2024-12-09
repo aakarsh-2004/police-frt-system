@@ -157,7 +157,7 @@ export default function Alerts() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 hover:cursor-pointer" onClick={() => handleViewDetails(recognition.person.id)}>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-lg font-semibold dark:text-white">
                                         {recognition.person.firstName} {recognition.person.lastName}

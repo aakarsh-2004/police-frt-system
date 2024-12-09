@@ -49,7 +49,7 @@ export default function AlertsPage() {
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
     const navigate = useNavigate();
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const { currentLanguage } = useLanguage();
 
     const [filters, setFilters] = useState<FilterState>({
@@ -68,7 +68,6 @@ export default function AlertsPage() {
     const pageSize = 10;
 
     const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
     useEffect(() => {
         fetchAlerts(currentPage);
@@ -231,7 +230,7 @@ export default function AlertsPage() {
         });
     };
 
-    const handleImageSelect = (index: number) => {
+    const handleImageClick = (index: number) => {
         setSelectedImageIndex(index);
     };
 
@@ -396,7 +395,7 @@ export default function AlertsPage() {
                             <div className="grid grid-cols-2 gap-2 p-4">
                                 <div 
                                     className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
-                                    onClick={() => setSelectedImage(alert.person.personImageUrl)}
+                                    onClick={() => setSelectedImageIndex(index)}
                                 >
                                     <img
                                         src={alert.person.personImageUrl}
@@ -406,7 +405,7 @@ export default function AlertsPage() {
                                 </div>
                                 <div 
                                     className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer"
-                                    onClick={() => setSelectedImage(alert.capturedImageUrl)}
+                                    onClick={() => setSelectedImageIndex(index)}
                                 >
                                     <img
                                         src={alert.capturedImageUrl}
@@ -503,13 +502,6 @@ export default function AlertsPage() {
                 {loading && <div className="text-center mt-6">Loading...</div>}
             </div>
 
-            {selectedImage && (
-                <ImageEnhancer
-                    imageUrl={selectedImage}
-                    onClose={() => setSelectedImage(null)}
-                />
-            )}
-
             {selectedVideo && (
                 <VideoPlayer 
                     videoUrl={selectedVideo}
@@ -519,9 +511,9 @@ export default function AlertsPage() {
 
             {selectedImageIndex !== null && (
                 <ImageEnhancer
-                    imageUrl={alerts[selectedImageIndex].capturedImage}
+                    imageUrl={alerts[selectedImageIndex].capturedImageUrl}
                     onClose={() => setSelectedImageIndex(null)}
-                    images={alerts.map(alert => alert.capturedImage)}
+                    images={alerts.map(alert => alert.capturedImageUrl)}
                     currentIndex={selectedImageIndex}
                     onImageChange={handleImageChange}
                     detectionInfo={{

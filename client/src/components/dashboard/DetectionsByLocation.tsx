@@ -20,20 +20,6 @@ interface LocationStats {
     count: number;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-gray-800 p-4 border dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="font-medium text-gray-900 dark:text-white">{label}</p>
-                <p className="text-blue-600 dark:text-blue-400">
-                    {payload[0].value} detections
-                </p>
-            </div>
-        );
-    }
-    return null;
-};
-
 export default function DetectionsByLocation() {
     const [stats, setStats] = useState<LocationStats[]>([]);
     const [loading, setLoading] = useState(true);
@@ -95,29 +81,79 @@ export default function DetectionsByLocation() {
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800 h-[300px]">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold dark:text-white">
-                    {currentLanguage === 'en' ? 'Detections by Location' : 'स्थान के अनुसार पहचान'}
+        <div className="bg-white p-6 rounded-lg shadow-lg dark:bg-gray-800">
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold flex items-center space-x-2 dark:text-white">
+                    <ChartIcon className="w-5 h-5 text-blue-500" />
+                    <span>{currentLanguage === 'en' ? 'Detections by Location' : 'स्थान के अनुसार पहचान'}</span>
                 </h2>
             </div>
 
-            <div className="h-[calc(100%-4rem)] overflow-hidden">
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={stats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                        data={stats} 
+                        margin={{ 
+                            top: 20, 
+                            right: 30, 
+                            left: 20, 
+                            bottom: 70
+                        }}
+                    >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis 
                             dataKey="location" 
                             angle={-45}
                             textAnchor="end"
-                            height={60}
                             interval={0}
-                            tick={{ fontSize: 12 }}
+                            height={60}
+                            tick={{ 
+                                fontSize: 12,
+                                fill: isDarkMode ? '#9CA3AF' : '#4B5563'
+                            }}
                         />
-                        <YAxis />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="count" fill="#3B82F6">
-                            <LabelList dataKey="count" position="top" />
+                        <YAxis 
+                            tick={{ 
+                                fontSize: 12,
+                                fill: isDarkMode ? '#9CA3AF' : '#4B5563'
+                            }}
+                            label={{ 
+                                value: 'Number of Detections', 
+                                angle: -90, 
+                                position: 'insideLeft',
+                                style: { 
+                                    textAnchor: 'middle',
+                                    fill: isDarkMode ? '#9CA3AF' : '#4B5563'
+                                }
+                            }}
+                        />
+                        <Tooltip 
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-white p-2 rounded shadow-lg border dark:bg-gray-800 dark:border-gray-700">
+                                            <p className="text-sm font-medium dark:text-white">
+                                                {payload[0].payload.location}
+                                            </p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                {payload[0].value} detections
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+                        <Bar 
+                            dataKey="count" 
+                            fill={isDarkMode ? '#3B82F6' : '#2563EB'}
+                            radius={[4, 4, 0, 0]}
+                        >
+                            <LabelList 
+                                dataKey="count" 
+                                position="top" 
+                                fill={isDarkMode ? '#9CA3AF' : '#4B5563'}
+                            />
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>

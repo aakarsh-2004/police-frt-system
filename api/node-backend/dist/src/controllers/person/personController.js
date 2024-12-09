@@ -50,7 +50,14 @@ const getPersonById = (req, res, next) => __awaiter(void 0, void 0, void 0, func
                 missingPerson: true,
                 recognizedPerson: {
                     include: {
-                        camera: true
+                        camera: true,
+                        person: {
+                            select: {
+                                firstName: true,
+                                lastName: true,
+                                personImageUrl: true
+                            }
+                        }
                     },
                     orderBy: {
                         capturedDateTime: 'desc'
@@ -61,13 +68,13 @@ const getPersonById = (req, res, next) => __awaiter(void 0, void 0, void 0, func
         if (!person) {
             return next((0, http_errors_1.default)(404, "Person not found"));
         }
-        res.status(200).json({
-            message: "Person fetched successfully",
+        res.json({
+            message: "Person details fetched successfully",
             data: person
         });
     }
     catch (error) {
-        next((0, http_errors_1.default)(500, "Error while fetching person by id " + error));
+        next((0, http_errors_1.default)(500, "Error fetching person details: " + error));
     }
 });
 exports.getPersonById = getPersonById;
