@@ -79,7 +79,7 @@ const videoFeeds: VideoFeed[] = [
 
 // Add sample stream URLs
 const SAMPLE_STREAMS = [
-    'ws://localhost:8083/stream/d44fa640-744c-4b5d-8f44-c69d18e814b8/channel/0/mse?uuid=d44fa640-744c-4b5d-8f44-c69d18e814b8&channel=0',
+    'ws://dfe0-137-97-251-78.ngrok-free.app/stream/8622d5bf-afb1-422d-bd15-db23b8acfe87/channel/0/mse?uuid=8622d5bf-afb1-422d-bd15-db23b8acfe87&channel=0',
     'ws://localhost:8083/stream/9421a179-e486-4705-b78d-02967abcb14c/channel/0/mse?uuid=9421a179-e486-4705-b78d-02967abcb14c&channel=0',
     'ws://localhost:8083/stream/52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe/channel/0/mse?uuid=52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe&channel=0',
     'ws://localhost:8083/stream/94019b3f-4541-4100-ae81-bd7bc319e3c8/channel/0/mse?uuid=94019b3f-4541-4100-ae81-bd7bc319e3c8&channel=0',
@@ -88,18 +88,18 @@ const SAMPLE_STREAMS = [
 ];
 
 export default function LiveFeed() {
-    const [selectedFeed, setSelectedFeed] = useState(videoFeeds[0]);
+    const [selectedFeed, setSelectedFeed] = useState<VideoFeed>(videoFeeds[0]);
     const [showGrid, setShowGrid] = useState(true);
-    const [videoControls, setVideoControls] = useState<Record<string, {
-        zoom: number;
-        rotation: number;
-    }>>({});
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
 
-    const [selectedIndex, setSelectedIndex] = useState(0);
-    const [useFallback, setUseFallback] = useState(false);
+    const [videoControls, setVideoControls] = useState<Record<string, {
+        zoom: number;
+        rotation: number;
+    }>>({});
 
     // Initialize controls for each video
     useEffect(() => {
@@ -111,59 +111,60 @@ export default function LiveFeed() {
         setVideoControls(initialControls);
     }, []);
 
-    const handleZoomIn = (id: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [id]: {
-                ...prev[id],
-                zoom: Math.min((prev[id]?.zoom || 1) + 0.1, 2)
-            }
-        }));
-    };
-
-    const handleZoomOut = (id: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [id]: {
-                ...prev[id],
-                zoom: Math.max((prev[id]?.zoom || 1) - 0.1, 0.5)
-            }
-        }));
-    };
-
-    const handleRotate = (id: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [id]: {
-                ...prev[id],
-                rotation: ((prev[id]?.rotation || 0) + 90) % 360
-            }
-        }));
-    };
-
-    const handleFullScreen = (id: string) => {
-        const element = containerRefs.current[id];
-        if (!element) return;
-
-        if (document.fullscreenElement) {
-            document.exitFullscreen();
-        } else {
-            element.requestFullscreen().catch(console.error);
-        }
-    };
-
-    const getVideoStyle = (id: string) => {
-        const controls = videoControls[id] || { zoom: 1, rotation: 0 };
-        return {
-            transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`,
-            transition: 'transform 0.3s ease'
-        };
-    };
-
     const handleCameraClick = (feed: VideoFeed, index: number) => {
         setSelectedFeed(feed);
         setSelectedIndex(index);
         setShowGrid(false);
+    };
+
+    const handlePrevStream = () => {
+        const prevIndex = selectedIndex === 0 ? videoFeeds.length - 1 : selectedIndex - 1;
+        setSelectedIndex(prevIndex);
+        setSelectedFeed(videoFeeds[prevIndex]);
+    };
+
+    const handleNextStream = () => {
+        const nextIndex = selectedIndex === videoFeeds.length - 1 ? 0 : selectedIndex + 1;
+        setSelectedIndex(nextIndex);
+        setSelectedFeed(videoFeeds[nextIndex]);
+    };
+
+    // Video controls handlers
+    const handleZoomIn = (videoId: string) => {
+        setVideoControls(prev => ({
+            ...prev,
+            [videoId]: {
+                ...prev[videoId],
+                zoom: Math.min((prev[videoId]?.zoom || 1) + 0.1, 2)
+            }
+        }));
+    };
+
+    const handleZoomOut = (videoId: string) => {
+        setVideoControls(prev => ({
+            ...prev,
+            [videoId]: {
+                ...prev[videoId],
+                zoom: Math.max((prev[videoId]?.zoom || 1) - 0.1, 0.5)
+            }
+        }));
+    };
+
+    const handleRotate = (videoId: string) => {
+        setVideoControls(prev => ({
+            ...prev,
+            [videoId]: {
+                ...prev[videoId],
+                rotation: ((prev[videoId]?.rotation || 0) + 90) % 360
+            }
+        }));
+    };
+
+    const getVideoStyle = (videoId: string) => {
+        const controls = videoControls[videoId] || { zoom: 1, rotation: 0 };
+        return {
+            transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`
+        };
     };
 
     return (
@@ -226,68 +227,53 @@ export default function LiveFeed() {
                         className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden group"
                     >
                         <RTSPStream
-                            id={`video-${selectedIndex + 1}`}
+                            id={`single-video-${selectedIndex + 1}`}
                             streamUrl={SAMPLE_STREAMS[selectedIndex]}
-                            style={getVideoStyle(`video-${selectedIndex + 1}`)}
+                            style={getVideoStyle(`single-video-${selectedIndex + 1}`)}
                         />
                         
-                        <div className="absolute inset-0 z-20">
-                            <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <Shield className="w-5 h-5 text-amber-400 mr-2" />
-                                        <div>
-                                            <h2 className="text-white font-semibold">{selectedFeed.title}</h2>
-                                            <div className="flex items-center text-white/80 text-sm">
-                                                <MapPin className="w-4 h-4 mr-1" />
-                                                {selectedFeed.location}, {selectedFeed.area}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
-                                            {t('dashboard.liveFeed.live')}
-                                        </span>
-                                        <span className="text-white/80 text-sm flex items-center">
-                                            <Clock className="w-4 h-4 mr-1" />
-                                            {selectedFeed.timestamp}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-20">
                             <button
-                                onClick={() => {
-                                    const prevIndex = selectedIndex === 0 ? videoFeeds.length - 1 : selectedIndex - 1;
-                                    setSelectedIndex(prevIndex);
-                                    setSelectedFeed(videoFeeds[prevIndex]);
-                                }}
+                                onClick={handlePrevStream}
                                 className="p-2 bg-black/50 rounded-full text-white hover:bg-black/75 transition-colors"
                             >
                                 <ChevronLeft className="w-6 h-6" />
                             </button>
                             <button
-                                onClick={() => {
-                                    const nextIndex = selectedIndex === videoFeeds.length - 1 ? 0 : selectedIndex + 1;
-                                    setSelectedIndex(nextIndex);
-                                    setSelectedFeed(videoFeeds[nextIndex]);
-                                }}
+                                onClick={handleNextStream}
                                 className="p-2 bg-black/50 rounded-full text-white hover:bg-black/75 transition-colors"
                             >
                                 <ChevronRight className="w-6 h-6" />
                             </button>
                         </div>
 
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="absolute bottom-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <VideoControls
-                                    onZoomIn={() => handleZoomIn(`video-${selectedIndex + 1}`)}
-                                    onZoomOut={() => handleZoomOut(`video-${selectedIndex + 1}`)}
-                                    onRotate={() => handleRotate(`video-${selectedIndex + 1}`)}
-                                    onFullScreen={() => handleFullScreen(`video-${selectedIndex + 1}`)}
-                                />
+                        <div className="absolute bottom-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <VideoControls
+                                onZoomIn={() => handleZoomIn(`single-video-${selectedIndex + 1}`)}
+                                onZoomOut={() => handleZoomOut(`single-video-${selectedIndex + 1}`)}
+                                onRotate={() => handleRotate(`single-video-${selectedIndex + 1}`)}
+                                onFullScreen={() => {/* handle fullscreen */}}
+                            />
+                        </div>
+
+                        <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h2 className="text-white font-semibold">{selectedFeed.title}</h2>
+                                    <div className="flex items-center text-white/80 text-sm">
+                                        <MapPin className="w-4 h-4 mr-1" />
+                                        {selectedFeed.location}, {selectedFeed.area}
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <span className="px-2 py-1 bg-green-500/20 text-green-300 text-xs rounded-full border border-green-500/30">
+                                        {t('dashboard.liveFeed.live')}
+                                    </span>
+                                    <span className="text-white/80 text-sm flex items-center">
+                                        <Clock className="w-4 h-4 mr-1" />
+                                        {selectedFeed.timestamp}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
