@@ -1,4 +1,4 @@
-import { MapPin, AlertTriangle, Clock, Edit2, Trash2, Upload, ArrowRight } from 'lucide-react';
+import { MapPin, AlertTriangle, Clock, Edit2, Trash2, Upload, ArrowRight, ExternalLink } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -6,7 +6,8 @@ import config from '../../config/config';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import ImageEnhancer from '../image/ImageEnhancer';
-import SuspectMatches from './SuspectMatches';
+import VideoPlayer from '../video/VideoPlayer';
+import RecentVideos from '../video/RecentVideos';
 
 interface Recognition {
     id: number;
@@ -18,6 +19,7 @@ interface Recognition {
         location: string;
         name: string;
     };
+    videoUrl?: string | null;
 }
 
 interface Person {
@@ -66,6 +68,8 @@ export default function PersonDetails() {
     const [newImage, setNewImage] = useState<File | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+    const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
     // Add form state
     const [formData, setFormData] = useState({
@@ -93,7 +97,7 @@ export default function PersonDetails() {
     // Add loading state
     const [isSaving, setIsSaving] = useState(false);
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             console.log('Image selected:', file);
@@ -328,7 +332,7 @@ export default function PersonDetails() {
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={handleImageChange}
+                                onChange={handleFileChange}
                             />
                         </label>
                     </div>
@@ -372,12 +376,30 @@ export default function PersonDetails() {
         navigate(`/detections/${recognition.id}`);
     };
 
+    const recentVideos = person?.recognizedPerson
+        .filter(recognition => recognition.videoUrl)
+        .map(recognition => ({
+            id: recognition.id.toString(),
+            videoUrl: recognition.videoUrl!,
+            thumbnailUrl: recognition.capturedImageUrl,
+            capturedDateTime: recognition.capturedDateTime,
+            location: recognition.camera.location
+        })) || [];
+
+    const handleImageSelect = (index: number) => {
+        setSelectedImageIndex(index);
+    };
+
+    const handleImageChange = (newIndex: number) => {
+        setSelectedImageIndex(newIndex);
+    };
+
     if (loading) return <div>Loading...</div>;
     if (!person) return <div>Person not found</div>;
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
+        <div className="max-w-[2000px] mx-auto p-6">
+            <div className="flex justify-between items-center mb-6">
                 <button 
                     onClick={handleBack}
                     className="btn btn-secondary"
@@ -386,229 +408,181 @@ export default function PersonDetails() {
                 </button>
                 {renderEditButton()}
             </div>
-            <div className="max-w-[2000px] mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column - Person Details */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Basic Information */}
-                        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center space-x-6">
-                                    <div 
-                                        className="w-48 h-64 relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer dark:bg-gray-900 dark:border-gray-700"
-                                        onClick={() => setSelectedImage(person?.personImageUrl || null)}
-                                    >
-                                        <img
-                                            src={person?.personImageUrl}
-                                            alt={`${person?.firstName} ${person?.lastName}`}
-                                            className="w-full h-full object-contain"
-                                            style={{ 
-                                                objectPosition: 'center',
-                                                transform: 'scale(0.95)'
-                                            }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <h1 className="text-2xl font-bold">
-                                            {person.firstName} {person.lastName}
-                                        </h1>
-                                        <p className="text-gray-500">ID: {person.id}</p>
-                                    </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Person Details */}
+                <div className="lg:col-span-2">
+                    {/* Basic Information */}
+                    <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center space-x-6">
+                                <div 
+                                    className="w-48 h-64 relative bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer dark:bg-gray-900 dark:border-gray-700"
+                                    onClick={() => setSelectedImage(person?.personImageUrl || null)}
+                                >
+                                    <img
+                                        src={person?.personImageUrl}
+                                        alt={`${person?.firstName} ${person?.lastName}`}
+                                        className="w-full h-full object-contain"
+                                        style={{ 
+                                            objectPosition: 'center',
+                                            transform: 'scale(0.95)'
+                                        }}
+                                    />
                                 </div>
-                                {/* Status Badges */}
-                                <div className="flex flex-col space-y-2">
-                                    {/* Found Status Badge */}
+                                <div>
+                                    <h1 className="text-2xl font-bold">
+                                        {person.firstName} {person.lastName}
+                                    </h1>
+                                    <p className="text-gray-500">ID: {person.id}</p>
+                                </div>
+                            </div>
+                            {/* Status Badges */}
+                            <div className="flex flex-col space-y-2">
+                                {/* Found Status Badge */}
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                    person.type === 'suspect'
+                                        ? person.suspect?.foundStatus
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-red-100 text-red-800'
+                                        : person.missingPerson?.foundStatus
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-red-100 text-red-800'
+                                }`}>
+                                    {person.type === 'suspect'
+                                        ? person.suspect?.foundStatus ? 'CAUGHT' : 'AT LARGE'
+                                        : person.missingPerson?.foundStatus ? 'FOUND' : 'MISSING'
+                                    }
+                                </span>
+                                
+                                {/* Risk Level Badge (for suspects only) */}
+                                {person.type === 'suspect' && person.suspect?.riskLevel && (
                                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                        person.type === 'suspect'
-                                            ? person.suspect?.foundStatus
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
-                                            : person.missingPerson?.foundStatus
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
+                                        person.suspect.riskLevel === 'high' 
+                                            ? 'bg-red-100 text-red-800'
+                                            : person.suspect.riskLevel === 'medium' 
+                                                ? 'bg-yellow-100 text-yellow-800'
+                                                : 'bg-green-100 text-green-800'
                                     }`}>
-                                        {person.type === 'suspect'
-                                            ? person.suspect?.foundStatus ? 'CAUGHT' : 'AT LARGE'
-                                            : person.missingPerson?.foundStatus ? 'FOUND' : 'MISSING'
-                                        }
+                                        {person.suspect.riskLevel.toUpperCase()} Risk
                                     </span>
-                                    
-                                    {/* Risk Level Badge (for suspects only) */}
-                                    {person.type === 'suspect' && person.suspect?.riskLevel && (
-                                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                            person.suspect.riskLevel === 'high' 
-                                                ? 'bg-red-100 text-red-800'
-                                                : person.suspect.riskLevel === 'medium' 
-                                                    ? 'bg-yellow-100 text-yellow-800'
-                                                    : 'bg-green-100 text-green-800'
-                                        }`}>
-                                            {person.suspect.riskLevel.toUpperCase()} Risk
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h3 className="font-medium mb-2">Personal Information</h3>
-                                    <div className="space-y-2 text-sm">
-                                        <p><span className="text-gray-500">Age:</span> {person.age}</p>
-                                        <p><span className="text-gray-500">Gender:</span> {person.gender}</p>
-                                        <p><span className="text-gray-500">Nationality:</span> {person.nationality}</p>
-                                        <p><span className="text-gray-500">National ID:</span> {person.nationalId}</p>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="font-medium mb-2">Contact Information</h3>
-                                    <div className="space-y-2 text-sm">
-                                        <p><span className="text-gray-500">Email:</span> {person.email}</p>
-                                        <p><span className="text-gray-500">Phone:</span> {person.phone}</p>
-                                        <p><span className="text-gray-500">Address:</span> {person.address}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            {renderEditForm()}
-                        </div>
-
-                        {/* Suspect-specific Information */}
-                        {person.type === 'suspect' && person.suspect?.criminalRecord && (
-                            <div className="bg-white rounded-lg shadow-lg p-6">
-                                <h2 className="text-xl font-bold mb-4">Criminal History</h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <h3 className="font-medium">Crime Details</h3>
-                                        <div className="space-y-2 mt-2">
-                                            <p><span className="text-gray-500">Type:</span> {person.suspect.criminalRecord.crimeType}</p>
-                                            <p><span className="text-gray-500">Description:</span> {person.suspect.criminalRecord.crimeDescription}</p>
-                                            <p><span className="text-gray-500">Date:</span> {new Date(person.suspect.criminalRecord.crimeDate).toLocaleDateString()}</p>
-                                            <p><span className="text-gray-500">Location:</span> {person.suspect.criminalRecord.crimeLocation}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Hardcoded Additional Information */}
-                                    <div>
-                                        <h3 className="font-medium">Case Status</h3>
-                                        <div className="space-y-2 mt-2">
-                                            <p><span className="text-gray-500">Legal Status:</span> Under Investigation</p>
-                                            <p><span className="text-gray-500">Bail Status:</span> Not Eligible</p>
-                                            <p><span className="text-gray-500">Next Court Appearance:</span> Pending</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Missing Person-specific Information */}
-                        {person.type === 'missing-person' && person.missingPerson && (
-                            <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
-                                <h2 className="text-xl font-bold mb-4">Missing Person Details</h2>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <h3 className="font-medium mb-2">Last Known Information</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <p><span className="text-gray-500">Last Seen:</span> {new Date(person.missingPerson.lastSeenDate).toLocaleDateString()}</p>
-                                            <p><span className="text-gray-500">Location:</span> {person.missingPerson.lastSeenLocation}</p>
-                                            <p><span className="text-gray-500">Missing Since:</span> {new Date(person.missingPerson.missingSince).toLocaleDateString()}</p>
-                                            <p><span className="text-gray-500">Reported By:</span> {person.missingPerson.reportBy}</p>
-                                            <p><span className="text-gray-500">Status:</span> {person.missingPerson.foundStatus ? 'Found' : 'Missing'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Right Column - Detections with fixed height */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800">
-                            <h2 className="text-xl font-bold mb-4">Recent Detections</h2>
-                            {/* Add max height and scrolling */}
-                            <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                                {person.recognizedPerson.map((recognition) => (
-                                    <div 
-                                        key={recognition.id} 
-                                        className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all"
-                                    >
-                                        <div className="flex space-x-6">
-                                            {/* Larger Image Container */}
-                                            <div className="w-40 h-40 flex-shrink-0">
-                                                <img
-                                                    src={recognition.capturedImageUrl}
-                                                    alt="Detection"
-                                                    className="w-full h-full object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
-                                                    onClick={() => setSelectedImage(recognition.capturedImageUrl)}
-                                                />
-                                            </div>
-
-                                            {/* Detection Details */}
-                                            <div className="flex-1 space-y-3">
-                                                <div className="flex items-center space-x-2">
-                                                    <MapPin className="w-5 h-5 text-blue-500" />
-                                                    <span className="text-base text-gray-700 dark:text-gray-300">
-                                                        {recognition.camera?.location || 'Unknown Location'}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-center space-x-2">
-                                                    <Clock className="w-5 h-5 text-green-500" />
-                                                    <span className="text-base text-gray-700 dark:text-gray-300">
-                                                        {new Date(recognition.capturedDateTime).toLocaleString()}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-center space-x-2">
-                                                    <AlertTriangle className="w-5 h-5 text-amber-500" />
-                                                    <span className="text-base text-gray-700 dark:text-gray-300">
-                                                        Match Confidence: {parseFloat(recognition.confidenceScore).toFixed(2)}%
-                                                    </span>
-                                                </div>
-
-                                                {recognition.camera?.name && (
-                                                    <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                                        Camera: {recognition.camera.name}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {person.recognizedPerson.length === 0 && (
-                                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                        <div className="flex flex-col items-center space-y-3">
-                                            <AlertTriangle className="w-12 h-12 text-gray-400 dark:text-gray-500" />
-                                            <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
-                                                No detections recorded
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                This person has not been detected by any cameras yet.
-                                            </p>
-                                        </div>
-                                    </div>
                                 )}
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <h3 className="font-medium mb-2">Personal Information</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="text-gray-500">Age:</span> {person.age}</p>
+                                    <p><span className="text-gray-500">Gender:</span> {person.gender}</p>
+                                    <p><span className="text-gray-500">Nationality:</span> {person.nationality}</p>
+                                    <p><span className="text-gray-500">National ID:</span> {person.nationalId}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-medium mb-2">Contact Information</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="text-gray-500">Email:</span> {person.email}</p>
+                                    <p><span className="text-gray-500">Phone:</span> {person.phone}</p>
+                                    <p><span className="text-gray-500">Address:</span> {person.address}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {renderEditForm()}
+                    </div>
+
+                    {/* Recent Videos Section */}
+                    <div className="mt-6">
+                        <RecentVideos videos={recentVideos} />
+                    </div>
+                </div>
+
+                {/* Right Column - Recent Detections */}
+                <div className="lg:col-span-1">
+                    <div className="bg-white rounded-lg shadow-lg p-6 dark:bg-gray-800 sticky top-24">
+                        <h2 className="text-xl font-semibold mb-4 dark:text-white">Recent Detections</h2>
+                        {/* Add max height and scrolling */}
+                        <div className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto">
+                            {person.recognizedPerson.map((recognition) => (
+                                <div 
+                                    key={recognition.id} 
+                                    className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
+                                >
+                                    <div className="space-y-4">
+                                        {/* Detection Image */}
+                                        <div className="w-full aspect-video">
+                                            <img
+                                                src={recognition.capturedImageUrl}
+                                                alt="Detection"
+                                                className="w-full h-full object-cover rounded-lg cursor-pointer shadow-md hover:shadow-lg transition-shadow"
+                                                onClick={() => setSelectedImage(recognition.capturedImageUrl)}
+                                            />
+                                        </div>
+
+                                        {/* Detection Details */}
+                                        <div className="space-y-3">
+                                            <div className="flex items-center space-x-2">
+                                                <MapPin className="w-4 h-4 text-blue-500" />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                    {recognition.camera?.location || 'Unknown Location'}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center space-x-2">
+                                                <Clock className="w-4 h-4 text-green-500" />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                    {new Date(recognition.capturedDateTime).toLocaleString()}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center space-x-2">
+                                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                    Match Confidence: {parseFloat(recognition.confidenceScore).toFixed(2)}%
+                                                </span>
+                                            </div>
+
+                                            {recognition.videoUrl && (
+                                                <button 
+                                                    onClick={() => setSelectedVideo(recognition.videoUrl!)}
+                                                    className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                                                >
+                                                    <ExternalLink className="w-4 h-4 mr-1" />
+                                                    View Detection Video
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {person.recognizedPerson.length === 0 && (
+                                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <AlertTriangle className="w-12 h-12 mx-auto mb-2" />
+                                    <p>No detections recorded</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Image Enhancer Modal */}
+            {/* Modals */}
             {selectedImage && (
                 <ImageEnhancer
                     imageUrl={selectedImage}
-                    personId={id}
                     onClose={() => setSelectedImage(null)}
                 />
             )}
 
-            <SuspectMatches 
-                suspectId={id} 
-                person={{
-                    firstName: person.firstName,
-                    lastName: person.lastName,
-                    personImageUrl: person.personImageUrl // The stored image URL
-                }}
-            />
+            {selectedVideo && (
+                <VideoPlayer 
+                    videoUrl={selectedVideo}
+                    onClose={() => setSelectedVideo(null)}
+                />
+            )}
         </div>
     );
 } 

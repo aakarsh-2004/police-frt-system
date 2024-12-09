@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import {
     SlidersHorizontal, ZoomIn, ZoomOut, RotateCcw,
     Sun, Contrast, Focus, Download, Share2, Wand2, X,
-    Mail
+    Mail, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -26,11 +26,31 @@ interface DetectionDetails {
 interface ImageEnhancerProps {
     imageUrl: string;
     onClose: () => void;
+    images?: string[];
+    currentIndex?: number;
+    onImageChange?: (index: number) => void;
+    detectionInfo?: {
+        person: {
+            firstName: string;
+            lastName: string;
+            personImageUrl: string;
+        };
+        capturedLocation: string;
+        capturedDateTime: string;
+        confidenceScore: string;
+    };
 }
 
 type Tab = 'enhance' | 'ai' | 'share';
 
-export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps) {
+export default function ImageEnhancer({ 
+    imageUrl, 
+    onClose, 
+    images = [], 
+    currentIndex = 0,
+    onImageChange,
+    detectionInfo 
+}: ImageEnhancerProps) {
     const [activeTab, setActiveTab] = useState<Tab>('enhance');
     const [brightness, setBrightness] = useState(100);
     const [contrast, setContrast] = useState(100);
@@ -130,24 +150,24 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
     console.log("detectionDetails", detectionDetails);
     const handleEmailShare = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!detectionDetails) return;
+        if (!detectionInfo) return;
         
 
         setIsSending(true);
         try {
-            const formattedDate = new Date(detectionDetails.capturedDateTime).toLocaleString('en-US', {
+            const formattedDate = new Date(detectionInfo.capturedDateTime).toLocaleString('en-US', {
                 dateStyle: 'medium',
                 timeStyle: 'medium'
             });
 
             const templateParams = {
                 to_email: recipientEmail,
-                person_name: `${detectionDetails.person.firstName} ${detectionDetails.person.lastName}`,
-                location: detectionDetails.capturedLocation,
+                person_name: `${detectionInfo.person.firstName} ${detectionInfo.person.lastName}`,
+                location: detectionInfo.capturedLocation,
                 detection_time: formattedDate,
-                original_image: detectionDetails.person.personImageUrl,
-                captured_image: detectionDetails.capturedImageUrl,
-                confidence: `${detectionDetails.confidenceScore}`
+                original_image: detectionInfo.person.personImageUrl,
+                captured_image: imageUrl,
+                confidence: detectionInfo.confidenceScore
             };
 
             console.log('Sending email with params:', templateParams);
@@ -167,6 +187,20 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
             toast.error('Failed to share detection');
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const handlePrevImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onImageChange && currentIndex > 0) {
+            onImageChange(currentIndex - 1);
+        }
+    };
+
+    const handleNextImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onImageChange && currentIndex < images.length - 1) {
+            onImageChange(currentIndex + 1);
         }
     };
 
@@ -398,8 +432,9 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
     );
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 dark:bg-gray-800">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl p-6 pb-24 relative">
+                {/* Tabs */}
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex space-x-4">
                         <button
@@ -439,7 +474,8 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-2 bg-gray-100 rounded-lg overflow-hidden dark:bg-gray-900">
+                    {/* Main Image Area */}
+                    <div className="md:col-span-2 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden relative">
                         <div className="relative aspect-video">
                             <img
                                 src={imageUrl}
@@ -447,9 +483,53 @@ export default function ImageEnhancer({ imageUrl, onClose }: ImageEnhancerProps)
                                 className="w-full h-full object-contain transition-all duration-200"
                                 style={imageStyle}
                             />
+
+                            {/* Navigation Buttons */}
+                            {images.length > 1 && (
+                                <>
+                                    <button
+                                        onClick={handlePrevImage}
+                                        className={`absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white 
+                                            hover:bg-black/70 transition-colors ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        disabled={currentIndex === 0}
+                                    >
+                                        <ChevronLeft className="w-6 h-6" />
+                                    </button>
+                                    <button
+                                        onClick={handleNextImage}
+                                        className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white 
+                                            hover:bg-black/70 transition-colors ${currentIndex === images.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        disabled={currentIndex === images.length - 1}
+                                    >
+                                        <ChevronRight className="w-6 h-6" />
+                                    </button>
+                                </>
+                            )}
                         </div>
+
+                        {/* Thumbnails */}
+                        {images.length > 1 && (
+                            <div className="absolute -bottom-20 left-0 right-0 flex justify-center gap-2 overflow-x-auto px-4 py-2">
+                                {images.map((img, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => onImageChange?.(index)}
+                                        className={`w-16 h-16 rounded overflow-hidden border-2 transition-colors flex-shrink-0 ${
+                                            index === currentIndex ? 'border-blue-500' : 'border-transparent'
+                                        }`}
+                                    >
+                                        <img
+                                            src={img}
+                                            alt={`Thumbnail ${index + 1}`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
+                    {/* Controls Panel */}
                     <div className="space-y-6">
                         {activeTab === 'enhance' && renderEnhanceTab()}
                         {activeTab === 'ai' && renderAITab()}

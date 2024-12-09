@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Filter, Clock, MapPin, ArrowRight, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { AlertTriangle, Filter, Clock, MapPin, ArrowRight, ChevronLeft, ChevronRight, Calendar, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
@@ -8,6 +8,7 @@ import config from '../../config/config';
 import ImageEnhancer from '../../components/image/ImageEnhancer';
 import { formatDistanceToNow, format } from 'date-fns';
 import { enUS, hi } from 'date-fns/locale';
+import VideoPlayer from '../video/VideoPlayer';
 
 interface Alert {
     id: string;
@@ -32,6 +33,7 @@ interface Alert {
         name: string;
         location: string;
     };
+    videoUrl?: string | null;
 }
 
 interface FilterState {
@@ -64,6 +66,9 @@ export default function AlertsPage() {
     const [totalPages, setTotalPages] = useState(0);
     const [totalAlerts, setTotalAlerts] = useState(0);
     const pageSize = 10;
+
+    const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
     useEffect(() => {
         fetchAlerts(currentPage);
@@ -226,6 +231,23 @@ export default function AlertsPage() {
         });
     };
 
+    const handleImageSelect = (index: number) => {
+        setSelectedImageIndex(index);
+    };
+
+    const handleImageChange = (newIndex: number) => {
+        setSelectedImageIndex(newIndex);
+    };
+
+    // Get all images from alerts for the slider
+    const allImages = alerts.map(alert => ({
+        imageUrl: alert.capturedImage,
+        person: alert.person,
+        location: alert.camera.location,
+        dateTime: alert.capturedDateTime,
+        confidence: alert.confidenceScore
+    }));
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -335,7 +357,7 @@ export default function AlertsPage() {
                 )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {alerts.map((alert) => (
+                    {alerts.map((alert, index) => (
                         <div key={alert.id} className="bg-white rounded-lg shadow-lg overflow-hidden dark:bg-gray-800">
                             <div className="p-4 border-b dark:border-gray-700">
                                 <div className="flex items-center justify-between">
@@ -412,6 +434,15 @@ export default function AlertsPage() {
                                             </span>
                                         </span>
                                     </div>
+                                    {alert.videoUrl && (
+                                        <button 
+                                            onClick={() => setSelectedVideo(alert.videoUrl!)}
+                                            className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center mt-1"
+                                        >
+                                            <ExternalLink className="w-4 h-4 mr-1" />
+                                            {currentLanguage === 'en' ? 'View Detection Video' : 'वीडियो देखें'}
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="mt-3 flex justify-end">
                                     <button
@@ -476,6 +507,33 @@ export default function AlertsPage() {
                 <ImageEnhancer
                     imageUrl={selectedImage}
                     onClose={() => setSelectedImage(null)}
+                />
+            )}
+
+            {selectedVideo && (
+                <VideoPlayer 
+                    videoUrl={selectedVideo}
+                    onClose={() => setSelectedVideo(null)}
+                />
+            )}
+
+            {selectedImageIndex !== null && (
+                <ImageEnhancer
+                    imageUrl={alerts[selectedImageIndex].capturedImage}
+                    onClose={() => setSelectedImageIndex(null)}
+                    images={alerts.map(alert => alert.capturedImage)}
+                    currentIndex={selectedImageIndex}
+                    onImageChange={handleImageChange}
+                    detectionInfo={{
+                        person: {
+                            firstName: alerts[selectedImageIndex].person.firstName,
+                            lastName: alerts[selectedImageIndex].person.lastName,
+                            personImageUrl: alerts[selectedImageIndex].person.personImageUrl
+                        },
+                        capturedLocation: alerts[selectedImageIndex].camera.location,
+                        capturedDateTime: alerts[selectedImageIndex].capturedDateTime,
+                        confidenceScore: alerts[selectedImageIndex].confidenceScore
+                    }}
                 />
             )}
         </div>

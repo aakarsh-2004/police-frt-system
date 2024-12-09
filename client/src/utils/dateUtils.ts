@@ -2,6 +2,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { enUS, hi } from 'date-fns/locale';
 
 export const formatDateTime = (dateString: string, language: string = 'en') => {
+    dateString = dateString.split('T')[0] + ' ' + dateString.split('T')[1].split('.')[0];
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {

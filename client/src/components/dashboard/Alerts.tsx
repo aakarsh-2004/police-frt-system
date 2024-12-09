@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, MapPin, Clock, ArrowRight } from 'lucide-react';
+import { AlertTriangle, MapPin, Clock, ArrowRight, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import axios from 'axios';
 import config from '../../config/config';
 import { formatDateTime, getTimeAgo } from '../../utils/dateUtils';
 import ImageEnhancer from '../image/ImageEnhancer';
+import VideoPlayer from '../video/VideoPlayer';
 
 interface Recognition {
     id: string;
@@ -23,6 +24,7 @@ interface Recognition {
         name: string;
         location: string;
     };
+    videoUrl?: string | null;
 }
 
 const formatLocalDateTime = (dateTimeStr: string) => {
@@ -65,7 +67,7 @@ const formatLocalDateTime = (dateTimeStr: string) => {
 export default function Alerts() {
     const [recognitions, setRecognitions] = useState<Recognition[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const navigate = useNavigate();
     const { currentLanguage } = useLanguage();
 
@@ -94,6 +96,14 @@ export default function Alerts() {
         navigate(`/person/${personId}`);
     };
 
+    const handleImageSelect = (index: number) => {
+        setSelectedImageIndex(index);
+    };
+
+    const handleImageChange = (newIndex: number) => {
+        setSelectedImageIndex(newIndex);
+    };
+
     if (loading) {
         return (
             <div className="animate-pulse">
@@ -116,7 +126,7 @@ export default function Alerts() {
                 </h2>
             </div>
             <div className="space-y-4 overflow-y-auto h-[calc(100%-4rem)] pr-2">
-                {recognitions.map((recognition) => (
+                {recognitions.map((recognition, index) => (
                     <div
                         key={recognition.id}
                         className="border rounded-lg p-4 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
@@ -128,7 +138,7 @@ export default function Alerts() {
                                         src={recognition.person.personImageUrl}
                                         alt={`${recognition.person.firstName} ${recognition.person.lastName}`}
                                         className="w-full h-full object-cover cursor-pointer"
-                                        onClick={() => setSelectedImage(recognition.person.personImageUrl)}
+                                        onClick={() => handleImageSelect(index)}
                                     />
                                     <div className="text-xs text-center mt-1 font-medium text-gray-600 dark:text-gray-400">
                                         Original
@@ -139,7 +149,7 @@ export default function Alerts() {
                                         src={recognition.capturedImageUrl}
                                         alt="Captured"
                                         className="w-full h-full object-cover cursor-pointer"
-                                        onClick={() => setSelectedImage(recognition.capturedImageUrl)}
+                                        onClick={() => handleImageSelect(index)}
                                     />
                                     <div className="text-xs text-center mt-1 font-medium text-gray-600 dark:text-gray-400">
                                         Captured
@@ -188,6 +198,15 @@ export default function Alerts() {
                                 </div>
                             </div>
                         </div>
+                        {recognition.videoUrl && (
+                            <button 
+                                onClick={() => setSelectedImageIndex(index)}
+                                className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center mt-1"
+                            >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                View Video
+                            </button>
+                        )}
                     </div>
                 ))}
 
@@ -198,10 +217,19 @@ export default function Alerts() {
                 )}
             </div>
 
-            {selectedImage && (
+            {selectedImageIndex !== null && (
                 <ImageEnhancer
-                    imageUrl={selectedImage}
-                    onClose={() => setSelectedImage(null)}
+                    imageUrl={recognitions[selectedImageIndex].capturedImageUrl}
+                    onClose={() => setSelectedImageIndex(null)}
+                    images={recognitions.map(r => r.capturedImageUrl)}
+                    currentIndex={selectedImageIndex}
+                    onImageChange={handleImageChange}
+                    detectionInfo={{
+                        person: recognitions[selectedImageIndex].person,
+                        capturedLocation: recognitions[selectedImageIndex].camera.location,
+                        capturedDateTime: recognitions[selectedImageIndex].capturedDateTime,
+                        confidenceScore: recognitions[selectedImageIndex].confidenceScore
+                    }}
                 />
             )}
         </div>
