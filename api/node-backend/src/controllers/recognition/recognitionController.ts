@@ -212,7 +212,6 @@ export const getAllRecognitionsForReport = async (req: Request, res: Response, n
 
 export const getRecognitionStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Get all recognitions with person and camera details
         const recognitions = await prisma.recognizedPerson.findMany({
             include: {
                 person: {
@@ -232,7 +231,6 @@ export const getRecognitionStats = async (req: Request, res: Response, next: Nex
             }
         });
 
-        // Get daily trends (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -248,20 +246,17 @@ export const getRecognitionStats = async (req: Request, res: Response, next: Nex
             }
         });
 
-        // Format daily trends
         const dailyStats = dailyTrends.map(day => ({
             date: new Date(day.capturedDateTime).toISOString().split('T')[0],
             count: day._count.id
         }));
 
-        // Count detections by person type
         const typeStats = recognitions.reduce((acc: Record<string, number>, curr) => {
             const type = curr.person.type;
             acc[type] = (acc[type] || 0) + 1;
             return acc;
         }, {});
 
-        // Get unique locations and their detection counts
         const locationMap = new Map<string, {
             location: string;
             cameraName: string;
@@ -283,12 +278,10 @@ export const getRecognitionStats = async (req: Request, res: Response, next: Nex
             }
         });
 
-        // Convert to array and sort by detection count
         const locationStats = Array.from(locationMap.values())
             .sort((a, b) => b.detectionCount - a.detectionCount)
-            .slice(0, 5); // Get top 5 locations
+            .slice(0, 5); 
 
-        // Calculate percentages
         const totalDetections = recognitions.length;
         const typeBreakdown = Object.entries(typeStats).map(([type, count]) => ({
             type,

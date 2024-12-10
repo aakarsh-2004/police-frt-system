@@ -77,7 +77,6 @@ const getPersonStats = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
 exports.getPersonStats = getPersonStats;
 const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Get daily trends for last 7 days
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const daily = yield prisma_1.prisma.recognizedPerson.findMany({
@@ -93,14 +92,12 @@ const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0,
                 capturedDateTime: 'desc'
             }
         });
-        // Group by type
         const byType = yield prisma_1.prisma.person.groupBy({
             by: ['type'],
             _count: {
                 id: true
             }
         });
-        // Get top locations
         const byLocation = yield prisma_1.prisma.recognizedPerson.findMany({
             take: 5,
             select: {
@@ -114,13 +111,11 @@ const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0,
                 capturedDateTime: 'desc'
             }
         });
-        // Group by confidence ranges with proper parsing
         const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
             select: {
                 confidenceScore: true
             }
         });
-        // Initialize confidence ranges
         const confidenceRanges = {
             '90-100': 0,
             '80-89': 0,
@@ -128,14 +123,11 @@ const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0,
             '60-69': 0,
             'Below 60': 0
         };
-        // Process each recognition's confidence score
         recognitions.forEach(rec => {
-            // Parse the confidence score and handle invalid values
             const confidence = parseFloat(rec.confidenceScore);
             if (isNaN(confidence)) {
-                return; // Skip invalid confidence scores
+                return;
             }
-            // Categorize into ranges
             if (confidence >= 90) {
                 confidenceRanges['90-100']++;
             }
@@ -152,15 +144,13 @@ const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0,
                 confidenceRanges['Below 60']++;
             }
         });
-        // Convert to array format for the chart
         const confidenceData = Object.entries(confidenceRanges)
-            .filter(([_, count]) => count > 0) // Only include ranges with data
+            .filter(([_, count]) => count > 0)
             .map(([range, count]) => ({
             confidenceScore: range,
             _count: { id: count }
         }))
             .sort((a, b) => {
-            // Custom sort to maintain range order
             const getMinValue = (range) => {
                 if (range === 'Below 60')
                     return 0;
@@ -168,18 +158,15 @@ const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0,
             };
             return getMinValue(b.confidenceScore) - getMinValue(a.confidenceScore);
         });
-        // Group daily detections by date
         const dailyGroups = daily.reduce((acc, curr) => {
             const date = new Date(curr.capturedDateTime).toISOString().split('T')[0];
             acc[date] = (acc[date] || 0) + 1;
             return acc;
         }, {});
-        // Convert to array format for charts
         const dailyData = Object.entries(dailyGroups).map(([date, count]) => ({
             capturedDateTime: date,
             _count: { id: count }
         }));
-        // Format location data
         const locationCounts = byLocation.reduce((acc, curr) => {
             var _a;
             const location = ((_a = curr.camera) === null || _a === void 0 ? void 0 : _a.location) || 'Unknown';
@@ -208,32 +195,29 @@ const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0,
 exports.getDetectionTrends = getDetectionTrends;
 const getStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Get total persons by type
         const personTypeStats = yield prisma_1.prisma.person.groupBy({
             by: ['type'],
             _count: {
                 id: true
             }
         });
-        // Calculate total and percentages
         const totalPersons = personTypeStats.reduce((acc, curr) => acc + curr._count.id, 0);
         const typeStats = personTypeStats.map(stat => ({
             type: stat.type,
             count: stat._count.id,
             percentage: Math.round((stat._count.id / totalPersons) * 100)
         }));
-        // Get location detection counts
         const locationStats = yield prisma_1.prisma.recognizedPerson.groupBy({
             by: ['cameraId'],
             _count: {
-                personId: true // Count unique persons
+                personId: true
             },
             orderBy: {
                 _count: {
                     personId: 'desc'
                 }
             },
-            take: 5, // Top 5 locations
+            take: 5,
             include: {
                 camera: {
                     select: {
@@ -243,7 +227,6 @@ const getStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function*
                 }
             }
         });
-        // Format location stats
         const topLocations = locationStats.map(stat => ({
             location: stat.camera.location,
             cameraName: stat.camera.name,

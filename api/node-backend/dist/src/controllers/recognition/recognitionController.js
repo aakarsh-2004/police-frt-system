@@ -198,7 +198,6 @@ const getAllRecognitionsForReport = (req, res, next) => __awaiter(void 0, void 0
 exports.getAllRecognitionsForReport = getAllRecognitionsForReport;
 const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        // Get all recognitions with person and camera details
         const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
             include: {
                 person: {
@@ -217,7 +216,6 @@ const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0
                 capturedDateTime: 'desc'
             }
         });
-        // Get daily trends (last 7 days)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const dailyTrends = yield prisma_1.prisma.recognizedPerson.groupBy({
@@ -231,18 +229,15 @@ const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0
                 id: true
             }
         });
-        // Format daily trends
         const dailyStats = dailyTrends.map(day => ({
             date: new Date(day.capturedDateTime).toISOString().split('T')[0],
             count: day._count.id
         }));
-        // Count detections by person type
         const typeStats = recognitions.reduce((acc, curr) => {
             const type = curr.person.type;
             acc[type] = (acc[type] || 0) + 1;
             return acc;
         }, {});
-        // Get unique locations and their detection counts
         const locationMap = new Map();
         recognitions.forEach(rec => {
             const location = rec.camera.location;
@@ -258,11 +253,9 @@ const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0
                 });
             }
         });
-        // Convert to array and sort by detection count
         const locationStats = Array.from(locationMap.values())
             .sort((a, b) => b.detectionCount - a.detectionCount)
-            .slice(0, 5); // Get top 5 locations
-        // Calculate percentages
+            .slice(0, 5);
         const totalDetections = recognitions.length;
         const typeBreakdown = Object.entries(typeStats).map(([type, count]) => ({
             type,

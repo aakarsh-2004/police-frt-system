@@ -66,7 +66,6 @@ export const getPersonStats = async (req: Request, res: Response, next: NextFunc
 
 export const getDetectionTrends = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Get daily trends for last 7 days
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -84,7 +83,6 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
             }
         });
 
-        // Group by type
         const byType = await prisma.person.groupBy({
             by: ['type'],
             _count: {
@@ -92,7 +90,6 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
             }
         });
 
-        // Get top locations
         const byLocation = await prisma.recognizedPerson.findMany({
             take: 5,
             select: {
@@ -107,14 +104,12 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
             }
         });
 
-        // Group by confidence ranges with proper parsing
         const recognitions = await prisma.recognizedPerson.findMany({
             select: {
                 confidenceScore: true
             }
         });
 
-        // Initialize confidence ranges
         const confidenceRanges = {
             '90-100': 0,
             '80-89': 0,
@@ -123,15 +118,12 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
             'Below 60': 0
         };
 
-        // Process each recognition's confidence score
         recognitions.forEach(rec => {
-            // Parse the confidence score and handle invalid values
             const confidence = parseFloat(rec.confidenceScore);
             if (isNaN(confidence)) {
-                return; // Skip invalid confidence scores
+                return;
             }
 
-            // Categorize into ranges
             if (confidence >= 90) {
                 confidenceRanges['90-100']++;
             } else if (confidence >= 80) {
@@ -145,15 +137,13 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
             }
         });
 
-        // Convert to array format for the chart
         const confidenceData = Object.entries(confidenceRanges)
-            .filter(([_, count]) => count > 0) // Only include ranges with data
+            .filter(([_, count]) => count > 0)
             .map(([range, count]) => ({
                 confidenceScore: range,
                 _count: { id: count }
             }))
             .sort((a, b) => {
-                // Custom sort to maintain range order
                 const getMinValue = (range: string) => {
                     if (range === 'Below 60') return 0;
                     return parseInt(range.split('-')[0]);
@@ -161,20 +151,17 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
                 return getMinValue(b.confidenceScore) - getMinValue(a.confidenceScore);
             });
 
-        // Group daily detections by date
         const dailyGroups = daily.reduce((acc: Record<string, number>, curr) => {
             const date = new Date(curr.capturedDateTime).toISOString().split('T')[0];
             acc[date] = (acc[date] || 0) + 1;
             return acc;
         }, {});
 
-        // Convert to array format for charts
         const dailyData = Object.entries(dailyGroups).map(([date, count]) => ({
             capturedDateTime: date,
             _count: { id: count }
         }));
 
-        // Format location data
         const locationCounts = byLocation.reduce((acc: Record<string, number>, curr) => {
             const location = curr.camera?.location || 'Unknown';
             acc[location] = (acc[location] || 0) + 1;
@@ -203,7 +190,6 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
 
 export const getStats = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        // Get total persons by type
         const personTypeStats = await prisma.person.groupBy({
             by: ['type'],
             _count: {
@@ -211,7 +197,6 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
             }
         });
 
-        // Calculate total and percentages
         const totalPersons = personTypeStats.reduce((acc, curr) => acc + curr._count.id, 0);
         const typeStats = personTypeStats.map(stat => ({
             type: stat.type,
@@ -219,18 +204,17 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
             percentage: Math.round((stat._count.id / totalPersons) * 100)
         }));
 
-        // Get location detection counts
         const locationStats = await prisma.recognizedPerson.groupBy({
             by: ['cameraId'],
             _count: {
-                personId: true // Count unique persons
+                personId: true
             },
             orderBy: {
                 _count: {
                     personId: 'desc'
                 }
             },
-            take: 5, // Top 5 locations
+            take: 5,
             include: {
                 camera: {
                     select: {
@@ -241,7 +225,6 @@ export const getStats = async (req: Request, res: Response, next: NextFunction) 
             }
         });
 
-        // Format location stats
         const topLocations = locationStats.map(stat => ({
             location: stat.camera.location,
             cameraName: stat.camera.name,

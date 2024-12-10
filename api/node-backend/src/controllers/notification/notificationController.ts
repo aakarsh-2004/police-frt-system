@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../lib/prisma";
 import createHttpError from "http-errors";
+import axios from "axios";
 
 export const getNotifications = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -123,5 +124,31 @@ export const createNotification = async (
         });
     } catch (error) {
         console.error('Error creating notification:', error);
+    }
+};
+
+export const sendWhatsAppNotification = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { phoneNumber, message } = req.body;
+        
+        // Format phone number
+        const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+        
+        // Make request to TextMeBot API
+        const response = await axios.get('http://api.textmebot.com/send.php', {
+            params: {
+                recipient: formattedPhone,
+                apikey: 'WP4fS76mtyUw', // Consider moving this to environment variables
+                text: message
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'WhatsApp message sent successfully'
+        });
+    } catch (error) {
+        console.error('Error sending WhatsApp message:', error);
+        next(createHttpError(500, "Failed to send WhatsApp message"));
     }
 }; 

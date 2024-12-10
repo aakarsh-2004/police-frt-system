@@ -8,4 +8,5 @@ notificationRouter.use(auth_1.authMiddleware);
 notificationRouter.get('/', notificationController_1.getNotifications);
 notificationRouter.put('/:id/read', notificationController_1.markAsRead);
 notificationRouter.put('/mark-all-read', notificationController_1.markAllAsRead);
+notificationRouter.post('/whatsapp', notificationController_1.sendWhatsAppNotification);
 exports.default = notificationRouter;

@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     SlidersHorizontal, ZoomIn, ZoomOut, RotateCcw,
     Sun, Contrast, Focus, Download, Share2, Wand2, X,
-    Mail, ChevronLeft, ChevronRight
+    Mail, ChevronLeft, ChevronRight, MessageCircle
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import emailjs from '@emailjs/browser';
 import config from '../../config/config';
+import { formatDate } from 'date-fns';
+import { formatDateTime } from '../../utils/dateUtils';
 
 interface DetectionDetails {
     id: string;
@@ -63,9 +65,20 @@ export default function ImageEnhancer({
     const [detectionDetails, setDetectionDetails] = useState<DetectionDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const { id } = useParams();
+    const [showShareDialog, setShowShareDialog] = useState(false);
+    const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const phoneInputRef = useRef<HTMLInputElement>(null);
 
     console.log("id", id);
     console.log("imageUrl", imageUrl);
+
+    useEffect(() => {
+        if(showWhatsAppDialog) {
+            phoneInputRef.current?.focus();
+            console.log(phoneInputRef);
+        }
+    }, [showWhatsAppDialog])
 
     useEffect(() => {
         const fetchDetectionDetails = async () => {
@@ -203,6 +216,32 @@ export default function ImageEnhancer({
             onImageChange(currentIndex + 1);
         }
     };
+
+    const handleWhatsappShare = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!phoneNumber.trim() || !detectionInfo) return;
+
+        try {
+            const message = `Detection Alert: Person named ${detectionInfo.person.firstName} ${detectionInfo.person.lastName} detected at ${detectionInfo.capturedLocation} on ${formatDateTime(detectionInfo.capturedDateTime)}`;
+
+            const response = await axios.post(`${config.apiUrl}/api/notifications/whatsapp`, {
+                phoneNumber: `+91${phoneNumber}`,
+                message
+            });
+
+            if (response.data?.success) {
+                toast.success('WhatsApp message sent successfully');
+                setShowWhatsAppDialog(false);
+                setPhoneNumber('');
+            } else {
+                toast.error('Failed to send WhatsApp message');
+            }
+        } catch (error) {
+            console.error('Error sharing detection:', error);
+            toast.error('Failed to send WhatsApp message');
+        }
+    };
+
 
     const renderEnhanceTab = () => (
         <div className="space-y-6">
@@ -426,7 +465,98 @@ export default function ImageEnhancer({
                             )}
                         </button>
                     </form>
+
+                    <div className="flex space-x-4 mt-4">
+                        <button
+                            onClick={() => setShowShareDialog(true)}
+                            className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            <Mail className="w-4 h-4 mr-2" />
+                            Share via Email
+                        </button>
+
+                        <button
+                            onClick={() => setShowWhatsAppDialog(true)}
+                            className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        >
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            Share via WhatsApp
+                        </button>
+                    </div>
                 </div>
+            </div>
+        </div>
+    );
+
+    const renderWhatsAppDialog = () => (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold dark:text-white">
+                        Share via WhatsApp
+                    </h3>
+                    <button
+                        onClick={() => {
+                            setShowWhatsAppDialog(false);
+                            setPhoneNumber('');
+                        }}
+                        className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleWhatsappShare}>
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+                            Phone Number
+                        </label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                +91
+                            </span>
+                            <input
+                                ref={phoneInputRef}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                maxLength={10}
+                                value={phoneNumber}
+                                onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    setPhoneNumber(value);
+                                }}
+                                className="block w-full pl-12 pr-3 py-2 border rounded-md 
+                                    focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                                    dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                placeholder="Enter 10-digit number"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setShowWhatsAppDialog(false);
+                                setPhoneNumber('');
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 
+                                rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={phoneNumber.length !== 10}
+                            className="px-4 py-2 text-sm font-medium text-white bg-green-600 
+                                rounded-lg hover:bg-green-700 disabled:opacity-50 
+                                disabled:cursor-not-allowed"
+                        >
+                            Share
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );
@@ -550,6 +680,7 @@ export default function ImageEnhancer({
                     </div>
                 </div>
             </div>
+            {showWhatsAppDialog && renderWhatsAppDialog()}
         </div>
     );
 }

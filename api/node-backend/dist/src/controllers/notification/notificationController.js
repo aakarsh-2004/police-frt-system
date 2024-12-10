@@ -12,9 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createNotification = exports.markAllAsRead = exports.markAsRead = exports.getNotifications = void 0;
+exports.sendWhatsAppNotification = exports.createNotification = exports.markAllAsRead = exports.markAsRead = exports.getNotifications = void 0;
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
+const axios_1 = __importDefault(require("axios"));
 const getNotifications = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -115,3 +116,27 @@ const createNotification = (message, type, userId) => __awaiter(void 0, void 0, 
     }
 });
 exports.createNotification = createNotification;
+const sendWhatsAppNotification = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { phoneNumber, message } = req.body;
+        // Format phone number
+        const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+        // Make request to TextMeBot API
+        const response = yield axios_1.default.get('http://api.textmebot.com/send.php', {
+            params: {
+                recipient: formattedPhone,
+                apikey: 'WP4fS76mtyUw', // Consider moving this to environment variables
+                text: message
+            }
+        });
+        res.json({
+            success: true,
+            message: 'WhatsApp message sent successfully'
+        });
+    }
+    catch (error) {
+        console.error('Error sending WhatsApp message:', error);
+        next((0, http_errors_1.default)(500, "Failed to send WhatsApp message"));
+    }
+});
+exports.sendWhatsAppNotification = sendWhatsAppNotification;
