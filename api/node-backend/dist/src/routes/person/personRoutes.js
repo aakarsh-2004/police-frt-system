@@ -19,6 +19,7 @@ personRouter.get('/search', personController_1.searchPersons);
 personRouter.get('/', personController_1.getAllPersons);
 personRouter.get('/:id', personController_1.getPersonById);
 personRouter.get('/:id/locations', personController_1.getPersonLocationStats);
+personRouter.get('/:personId/cameras', personController_1.getPersonCameraLocations);
 // Protected routes
 personRouter.use(auth_1.authMiddleware);
 personRouter.post('/', upload.single('personImage'), // Match the field name with frontend

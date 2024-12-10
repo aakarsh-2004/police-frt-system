@@ -7,12 +7,12 @@ interface RTSPStreamProps {
 }
 
 const FALLBACK_VIDEOS = [
-    '/SIH-stock-vids/1.mp4',
-    '/SIH-stock-vids/2.mp4',
-    '/SIH-stock-vids/3.mp4',
-    '/SIH-stock-vids/4.mp4',
-    '/SIH-stock-vids/5.mp4',
-    '/SIH-stock-vids/6.mp4'
+    'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857049/video-streams/qxwoko7wc4uw3tmitofu.mp4',
+    'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857048/video-streams/brxmrj94ban8ogy11joz.mp4',
+    'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857067/video-streams/c07yrolk5pgjzzozkav9.mp4',
+    'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857059/video-streams/xtyafumvlaumv1qwx8zi.mp4',
+    'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857059/video-streams/ooo5zlaghvpaasfkelr7.mp4',
+    'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857040/video-streams/of4txl6av0jqrdhgtzmb.mp4'
 ];
 
 export default function RTSPStream({ streamUrl, id, style }: RTSPStreamProps) {

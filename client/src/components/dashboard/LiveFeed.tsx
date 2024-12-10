@@ -23,7 +23,7 @@ interface VideoFeed {
 const videoFeeds: VideoFeed[] = [
     {
         id: '1',
-        url: '/SIH-stock-vids/1.mp4',
+        url: 'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857049/video-streams/qxwoko7wc4uw3tmitofu.mp4',
         title: 'Live Camera',
         location: 'Zone 1, MP Nagar',
         area: 'Bhopal, Madhya Pradesh',
@@ -32,7 +32,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '2',
-        url: '/SIH-stock-vids/2.mp4',
+        url: 'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857048/video-streams/brxmrj94ban8ogy11joz.mp4',
         title: 'New Market Area',
         location: 'TT Nagar',
         area: 'Bhopal, Madhya Pradesh',
@@ -41,7 +41,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '3',
-        url: '/SIH-stock-vids/3.mp4',
+        url: 'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857067/video-streams/c07yrolk5pgjzzozkav9.mp4',
         title: 'Habibganj Railway Station',
         location: 'Railway Station Area',
         area: 'Bhopal, Madhya Pradesh',
@@ -50,7 +50,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '4',
-        url: '/SIH-stock-vids/4.mp4',
+        url: 'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857059/video-streams/xtyafumvlaumv1qwx8zi.mp4',
         title: 'DB Mall Entrance',
         location: 'Arera Colony',
         area: 'Bhopal, Madhya Pradesh',
@@ -59,7 +59,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '5',
-        url: '/SIH-stock-vids/5.mp4',
+        url: 'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857059/video-streams/ooo5zlaghvpaasfkelr7.mp4',
         title: 'BHEL Gate',
         location: 'BHEL Township',
         area: 'Bhopal, Madhya Pradesh',
@@ -68,7 +68,7 @@ const videoFeeds: VideoFeed[] = [
     },
     {
         id: '6',
-        url: '/SIH-stock-vids/6.mp4',
+        url: 'https://res.cloudinary.com/dwbr9hz8y/video/upload/v1733857040/video-streams/of4txl6av0jqrdhgtzmb.mp4',
         title: 'Bittan Market',
         location: 'Bittan Market Area',
         area: 'Bhopal, Madhya Pradesh',

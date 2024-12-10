@@ -289,10 +289,19 @@ export const getRecognitionStats = async (req: Request, res: Response, next: Nex
             percentage: Math.round((count / totalDetections) * 100)
         }));
 
+        const successfulMatches = await prisma.recognizedPerson.count({
+            where: {
+                confidenceScore: {
+                    gte: "50"
+                }
+            }
+        });
+
         res.json({
             message: "Recognition stats retrieved successfully",
             data: {
                 totalDetections,
+                successfulMatches,
                 byType: typeBreakdown,
                 topLocations: locationStats.map(loc => ({
                     location: loc.location,

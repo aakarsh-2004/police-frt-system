@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = exports.getPersonLocationStats = exports.getPersonStats = exports.resolvePerson = void 0;
+exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = exports.getPersonCameraLocations = exports.getPersonLocationStats = exports.getPersonStats = exports.resolvePerson = void 0;
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
@@ -505,3 +505,38 @@ const getPersonLocationStats = (req, res, next) => __awaiter(void 0, void 0, voi
     }
 });
 exports.getPersonLocationStats = getPersonLocationStats;
+const getPersonCameraLocations = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { personId } = req.params;
+        const detections = yield prisma_1.prisma.recognizedPerson.findMany({
+            where: {
+                personId
+            },
+            select: {
+                camera: {
+                    select: {
+                        id: true,
+                        name: true,
+                        location: true,
+                        latitude: true,
+                        longitude: true,
+                        status: true,
+                        streamUrl: true,
+                        nearestPoliceStation: true
+                    }
+                }
+            },
+            distinct: ['cameraId']
+        });
+        // Extract unique cameras and remove duplicates
+        const uniqueCameras = Array.from(new Map(detections.map(d => [d.camera.id, d.camera])).values());
+        res.json({
+            message: "Person's camera locations fetched successfully",
+            data: uniqueCameras
+        });
+    }
+    catch (error) {
+        next((0, http_errors_1.default)(500, "Error fetching person's camera locations"));
+    }
+});
+exports.getPersonCameraLocations = getPersonCameraLocations;

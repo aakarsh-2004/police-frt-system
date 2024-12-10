@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -7,6 +7,8 @@ import config from '../../config/config';
 import { useTheme } from '../../context/themeContext';
 import ImageEnhancer from '../image/ImageEnhancer';
 import DetectedPersons from './DetectedPersons';
+import { debounce } from 'lodash';
+import { toast } from 'react-hot-toast';
 
 interface LocationFilter {
     city: string;
@@ -155,6 +157,9 @@ export default function MapView() {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [selectedDetection, setSelectedDetection] = useState<any>(null);
     const [detectedPersons, setDetectedPersons] = useState<DetectedPerson[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Person[]>([]);
+    const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
     // First, create a ref to store markers
     const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
@@ -346,6 +351,75 @@ export default function MapView() {
         } catch (error) {
             console.error('Error handling camera click:', error);
         }
+    };
+
+    // Add this new function to handle search
+    const handleSearch = useCallback(
+        debounce(async (query: string) => {
+            if (!query.trim()) {
+                setSearchResults([]);
+                return;
+            }
+
+            try {
+                const response = await axios.get(`${config.apiUrl}/api/persons/search`, {
+                    params: { query }
+                });
+                setSearchResults(response.data.data);
+            } catch (error) {
+                console.error('Error searching persons:', error);
+                toast.error('Error searching persons');
+            }
+        }, 300),
+        []
+    );
+
+    // Add this function to handle person selection
+    const handlePersonSelect = async (person: Person) => {
+        try {
+            setSelectedPerson(person);
+            setSearchQuery(`${person.firstName} ${person.lastName}`);
+            setSearchResults([]); // Clear dropdown
+
+            // Fetch cameras where this person was detected
+            const response = await axios.get(`${config.apiUrl}/api/persons/${person.id}/cameras`);
+            const personCameras = response.data.data;
+
+            // Update cameras state to only show relevant cameras
+            setCameras(personCameras);
+
+            // Update markers on the map
+            if (mapRef.current) {
+                // Remove existing markers
+                markers.current.forEach(marker => marker.remove());
+                markers.current = [];
+
+                // Add new markers for filtered cameras
+                personCameras.forEach(camera => {
+                    const marker = createMarker(camera);
+                    marker.addTo(mapRef.current!);
+                    markers.current.push(marker);
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching person cameras:', error);
+            toast.error('Error fetching camera locations');
+        }
+    };
+
+    // Update the search input's onChange handler
+    const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value;
+        setSearchQuery(query);
+        handleSearch(query);
+    };
+
+    // Add this to clear search and reset view
+    const clearSearch = () => {
+        setSearchQuery('');
+        setSearchResults([]);
+        setSelectedPerson(null);
+        fetchCameras(); // Your existing function to fetch all cameras
     };
 
     return (

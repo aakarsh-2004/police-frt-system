@@ -568,4 +568,43 @@ export const getPersonLocationStats = async (req: Request, res: Response, next: 
     }
 };
 
-export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, searchPersons, getPersonStats };
+export const getPersonCameraLocations = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { personId } = req.params;
+
+        const detections = await prisma.recognizedPerson.findMany({
+            where: {
+                personId
+            },
+            select: {
+                camera: {
+                    select: {
+                        id: true,
+                        name: true,
+                        location: true,
+                        latitude: true,
+                        longitude: true,
+                        status: true,
+                        streamUrl: true,
+                        nearestPoliceStation: true
+                    }
+                }
+            },
+            distinct: ['cameraId']
+        });
+
+        // Extract unique cameras and remove duplicates
+        const uniqueCameras = Array.from(
+            new Map(detections.map(d => [d.camera.id, d.camera])).values()
+        );
+
+        res.json({
+            message: "Person's camera locations fetched successfully",
+            data: uniqueCameras
+        });
+    } catch (error) {
+        next(createHttpError(500, "Error fetching person's camera locations"));
+    }
+};
+
+export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, searchPersons, getPersonStats, getPersonLocationStats, getPersonCameraLocations };
