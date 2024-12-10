@@ -38,6 +38,43 @@ interface DetectionTrends {
     }>;
 }
 
+interface DailyStats {
+    date: string;
+    count: number;
+}
+
+interface TypeStats {
+    type: string;
+    count: number;
+    percentage: number;
+}
+
+interface LocationStats {
+    location: string;
+    cameraName: string;
+    count: number;
+    percentage: number;
+}
+
+interface Stats {
+    totalDetections: number;
+    byType: Array<{
+        type: string;
+        count: number;
+        percentage: number;
+    }>;
+    topLocations: Array<{
+        location: string;
+        cameraName: string;
+        count: number;
+        percentage: number;
+    }>;
+    dailyStats: Array<{
+        date: string;
+        count: number;
+    }>;
+}
+
 const recentReports: RecentReport[] = [
     {
         id: '1',
@@ -70,10 +107,11 @@ const recentReports: RecentReport[] = [
 
 export default function ReportsPage() {
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
+    const [stats, setStats] = useState<Stats>({
         totalDetections: 0,
-        successfulMatches: 0,
-        averageConfidence: 0
+        byType: [],
+        topLocations: [],
+        dailyStats: []
     });
     const { currentLanguage } = useLanguage();
     const [trends, setTrends] = useState<DetectionTrends | null>(null);
@@ -123,6 +161,39 @@ export default function ReportsPage() {
         }
     };
 
+    const formatDataForCharts = () => {
+        if (!stats) return null;
+
+        return {
+            detectionTypes: {
+                labels: stats.byType.map(stat => 
+                    stat.type === 'suspect' ? 'Suspects' : 'Missing Persons'
+                ),
+                datasets: [{
+                    data: stats.byType.map(stat => stat.percentage),
+                    backgroundColor: ['#EF4444', '#F59E0B']
+                }]
+            },
+            topLocations: {
+                labels: stats.topLocations.map(loc => loc.location),
+                datasets: [{
+                    label: 'Detections',
+                    data: stats.topLocations.map(loc => loc.count),
+                    backgroundColor: '#3B82F6'
+                }]
+            },
+            dailyTrends: {
+                labels: stats.dailyStats.map(day => new Date(day.date).toLocaleDateString()),
+                datasets: [{
+                    label: 'Daily Detections',
+                    data: stats.dailyStats.map(day => day.count),
+                    borderColor: '#10B981',
+                    tension: 0.4
+                }]
+            }
+        };
+    };
+
     return (
         <div className="p-6">
             <div className="max-w-[2000px] mx-auto">
@@ -145,7 +216,7 @@ export default function ReportsPage() {
                             {view === 'reports' ? (
                                 <>
                                     <BarChart3 className="w-4 h-4" />
-                                    <span>{currentLanguage === 'en' ? 'Show Graphs' : 'ग्राफ़ दिखाएं'}</span>
+                                    <span>{currentLanguage === 'en' ? 'Show Analytics' : 'विश्लेषण दिखाएं'}</span>
                                 </>
                             ) : (
                                 <>
@@ -178,22 +249,22 @@ export default function ReportsPage() {
                             <div className="bg-white rounded-lg shadow-lg p-4 dark:bg-gray-800">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-gray-600 dark:text-gray-400">
-                                        {currentLanguage === 'en' ? 'Successful Matches' : 'सफल मिलान'}
+                                        {currentLanguage === 'en' ? 'Suspects Detected' : 'पहचाने गए संदिग्ध'}
                                     </h3>
                                 </div>
                                 <p className="text-2xl font-bold">
-                                    {loading ? '...' : stats.successfulMatches.toLocaleString()}
+                                    {loading ? '...' : stats.byType.find(t => t.type === 'suspect')?.count.toLocaleString() || '0'}
                                 </p>
                             </div>
 
                             <div className="bg-white rounded-lg shadow-lg p-4 dark:bg-gray-800">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-gray-600 dark:text-gray-400">
-                                        {currentLanguage === 'en' ? 'Average Confidence' : 'औसत विश्व��स स्तर'}
+                                        {currentLanguage === 'en' ? 'Missing Persons Found' : 'मिले हुए लापता व्यक्ति'}
                                     </h3>
                                 </div>
                                 <p className="text-2xl font-bold">
-                                    {loading ? '...' : `${stats.averageConfidence.toFixed(1)}%`}
+                                    {loading ? '...' : stats.byType.find(t => t.type === 'missing-person')?.count.toLocaleString() || '0'}
                                 </p>
                             </div>
                         </div>
@@ -236,7 +307,7 @@ export default function ReportsPage() {
                                                             <FileText className="w-4 h-4 mr-1 dark:text-gray-400" />
                                                             {currentLanguage === 'en' ? 
                                                                 `${report.detections} detections, ${report.matches} matches` :
-                                                                `${report.detections} पहचान, ${report.matches} म��लान`
+                                                                `${report.detections} पहचान, ${report.matches} मिलान`
                                                             }
                                                         </div>
                                                     </div>
@@ -263,7 +334,7 @@ export default function ReportsPage() {
                         {/* Daily Detections Line Chart */}
                         <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800 dark:text-black">
                             <h3 className="text-lg font-semibold mb-4 dark:text-white">
-                                {currentLanguage === 'en' ? 'Daily Detections' : 'दैनिक ���हचान'}
+                                {currentLanguage === 'en' ? 'Daily Detections' : 'दैनिक पहचान'}
                             </h3>
                             <div className="h-[300px]">
                                 <ResponsiveContainer width="100%" height="100%">

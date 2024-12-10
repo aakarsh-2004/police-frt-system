@@ -198,32 +198,28 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
 exports.updateUser = updateUser;
 const deleteUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const deletedBy = req.user;
     try {
-        const result = yield prisma_1.prisma.$transaction((prisma) => __awaiter(void 0, void 0, void 0, function* () {
-            const user = yield prisma.user.findUnique({
-                where: { id }
-            });
-            if (!user) {
-                throw (0, http_errors_1.default)(404, "User not found");
+        const user = yield prisma_1.prisma.user.findUnique({
+            where: { id },
+            select: {
+                firstName: true,
+                lastName: true,
+                role: true
             }
-            if (user.userImageUrl) {
-                const userSplit = user.userImageUrl.split('/');
-                const lastTwo = userSplit.slice(-2);
-                if (lastTwo.length === 2) {
-                    const userImageSplit = `${lastTwo[0]}/${lastTwo[1].split('.')[0]}`;
-                    yield cloudinary_1.default.uploader.destroy(userImageSplit);
-                }
-            }
-            const deletedUser = yield prisma.user.delete({
-                where: { id }
-            });
-            const { password: _ } = deletedUser, userWithoutPassword = __rest(deletedUser, ["password"]);
-            return userWithoutPassword;
-        }));
-        res.status(200).json(result);
+        });
+        if (!user) {
+            return next((0, http_errors_1.default)(404, "User not found"));
+        }
+        yield prisma_1.prisma.user.delete({
+            where: { id }
+        });
+        // Create notification for user deletion
+        yield (0, notificationController_1.createNotification)(`User ${user.firstName} ${user.lastName} (${user.role}) was deleted by ${deletedBy === null || deletedBy === void 0 ? void 0 : deletedBy.firstName} ${deletedBy === null || deletedBy === void 0 ? void 0 : deletedBy.lastName}`, 'user_deleted');
+        res.json({ message: "User deleted successfully" });
     }
     catch (error) {
-        next((0, http_errors_1.default)(500, "Error while deleting user " + error));
+        next((0, http_errors_1.default)(500, "Error deleting user: " + error));
     }
 });
 exports.deleteUser = deleteUser;

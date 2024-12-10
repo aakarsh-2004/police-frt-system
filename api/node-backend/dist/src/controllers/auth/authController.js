@@ -46,7 +46,8 @@ const login = (req, res, next) => __awaiter(void 0, void 0, void 0, function* ()
                 firstName: true,
                 lastName: true,
                 email: true,
-                role: true
+                role: true,
+                userImageUrl: true
             }
         });
         if (!user) {

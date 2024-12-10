@@ -91,43 +91,6 @@ export default function NewLoginPage() {
         }
     };
 
-    const handleSendOTP = async () => {
-        console.log("phone", phone);
-        
-        // if (!phone) {
-        //     setError('Please enter your phone number');
-        //     return;
-        // }
-
-        // try {
-        //     setLoading(true);
-        //     setError(null);
-        //     await axios.post(`${config.apiUrl}/api/auth/send-otp`, { phone });
-        //     setOtpSent(true);
-        // } catch (error: any) {
-        //     setError(error.response?.data?.message || 'Failed to send OTP. Please check your phone number.');
-        // } finally {
-        //     setLoading(false);
-        // }
-    };
-
-    const handleVerifyOTP = async () => {
-        if (!otp) {
-            setError('Please enter OTP');
-            return;
-        }
-
-        try {
-            setLoading(true);
-            setError(null);
-            await loginWithOTP(phone, otp);
-        } catch (error: any) {
-            setError(error.response?.data?.message || 'Invalid OTP. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const sendFirebaseOTP = async () => {
         try {
             setLoading(true);
@@ -139,15 +102,12 @@ export default function NewLoginPage() {
 
             const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
-            // First verify if phone exists in our database
             await axios.post(`${config.apiUrl}/api/auth/verify-phone`, {
                 phone: formattedPhone
             });
 
-            // Render reCAPTCHA widget if needed
             await window.recaptchaVerifier.render();
 
-            // Send OTP
             const confirmationResult = await signInWithPhoneNumber(
                 auth,
                 formattedPhone,
@@ -207,7 +167,7 @@ export default function NewLoginPage() {
             }
 
             // Login with backend
-            // await loginWithPhone(phone, result.user.uid);
+            await loginWithPhone(phone, result.user.uid);
             
             toast.success('Successfully logged in!');
             navigate('/');

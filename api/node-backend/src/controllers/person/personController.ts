@@ -277,48 +277,60 @@ const updatePerson = async (req: Request, res: Response, next: NextFunction) => 
     }
 };
 
-const deletePerson = async (req: Request, res: Response, next: NextFunction) => {
+const deletePerson = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { id } = req.params;
+    const deletedBy = req.user;
 
     try {
-        const person = await prisma.person.findUnique({
-            where: { id },
-            include: {
-                suspect: true,
-                missingPerson: true
-            }
-        });
-
-        if (!person) {
-            throw createHttpError(404, "Person not found");
-        }
-
+        // Use transaction to ensure all related records are deleted
         await prisma.$transaction(async (tx) => {
-            if (person.type === 'suspect' && person.suspect) {
+            const person = await tx.person.findUnique({
+                where: { id },
+                include: {
+                    suspect: true,
+                    missingPerson: true,
+                    recognizedPerson: true
+                }
+            });
+
+            if (!person) {
+                throw createHttpError(404, "Person not found");
+            }
+
+            // Delete related records first
+            if (person.recognizedPerson.length > 0) {
+                await tx.recognizedPerson.deleteMany({
+                    where: { personId: id }
+                });
+            }
+
+            if (person.suspect) {
                 await tx.suspect.delete({
                     where: { personId: id }
                 });
-            } else if (person.type === 'missing-person' && person.missingPerson) {
+            }
+
+            if (person.missingPerson) {
                 await tx.missingPerson.delete({
                     where: { personId: id }
                 });
             }
 
-            await tx.recognizedPerson.deleteMany({
-                where: { personId: id }
-            });
-
+            // Finally delete the person
             await tx.person.delete({
                 where: { id }
             });
+
+            // Create notification for person deletion
+            await createNotification(
+                `${person.type === 'suspect' ? 'Suspect' : 'Missing Person'} ${person.firstName} ${person.lastName} was deleted by ${deletedBy?.firstName} ${deletedBy?.lastName}`,
+                'person_deleted'
+            );
         });
 
-        res.json({
-            message: "Person deleted successfully",
-            data: person
-        });
+        res.json({ message: "Person deleted successfully" });
     } catch (error) {
-        console.error('Delete error:', error);
+        console.error('Error in deletePerson:', error);
         next(createHttpError(500, "Error deleting person: " + error));
     }
 };
@@ -480,6 +492,79 @@ export const getPersonStats = async (req: Request, res: Response, next: NextFunc
     } catch (error) {
         console.error('Error getting person stats:', error);
         next(createHttpError(500, "Error getting person stats: " + error));
+    }
+};
+
+export const getPersonLocationStats = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+
+        // Get all recognitions for this person with camera details
+        const recognitions = await prisma.recognizedPerson.findMany({
+            where: {
+                personId: id
+            },
+            select: {
+                capturedDateTime: true,
+                camera: {
+                    select: {
+                        id: true,
+                        name: true,
+                        location: true
+                    }
+                }
+            },
+            orderBy: {
+                capturedDateTime: 'desc'
+            }
+        });
+
+        // Create a Map to store unique locations and their details
+        const locationMap = new Map<string, {
+            location: string;
+            detectionCount: number;
+            lastDetected: Date;
+        }>();
+
+        // Process recognitions to get unique locations and counts
+        recognitions.forEach(recognition => {
+            const location = recognition.camera.location;
+            const current = locationMap.get(location);
+            
+            if (current) {
+                // Update existing location
+                current.detectionCount += 1;
+                if (new Date(recognition.capturedDateTime) > current.lastDetected) {
+                    current.lastDetected = new Date(recognition.capturedDateTime);
+                }
+            } else {
+                // Add new location
+                locationMap.set(location, {
+                    location,
+                    detectionCount: 1,
+                    lastDetected: new Date(recognition.capturedDateTime)
+                });
+            }
+        });
+
+        // Convert Map to array and format the response
+        const locationStats = {
+            totalLocations: locationMap.size,
+            locations: Array.from(locationMap.values()).map(stat => ({
+                location: stat.location,
+                detectionCount: stat.detectionCount,
+                lastDetected: stat.lastDetected.toISOString()
+            })).sort((a, b) => b.detectionCount - a.detectionCount) // Sort by detection count
+        };
+
+        res.json({
+            message: "Person location statistics fetched successfully",
+            data: locationStats
+        });
+
+    } catch (error) {
+        console.error('Error in getPersonLocationStats:', error);
+        next(createHttpError(500, "Error fetching person location stats"));
     }
 };
 

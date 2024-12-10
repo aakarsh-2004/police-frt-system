@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 );
                 
                 setUser(response.data.user);
+                
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             } catch (error) {
                 localStorage.removeItem('token');

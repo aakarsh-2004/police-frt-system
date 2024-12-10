@@ -5,8 +5,20 @@ import { authenticateAdmin } from "../../middleware/authenticateAdmin";
 import multer from "multer";
 import path from "path";
 
+// Configure multer for image uploads
 const upload = multer({
-    dest: path.resolve(__dirname, '../../../public/uploads')
+    dest: path.resolve(__dirname, '../../../public/uploads'),
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        // Accept only images
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(null, false);
+        }
+    }
 });
 
 const requestRouter = Router();
@@ -14,13 +26,11 @@ const requestRouter = Router();
 // Apply auth middleware to all routes
 requestRouter.use(authMiddleware);
 
-// Get all requests - admin only
-requestRouter.get('/', authenticateAdmin, getAllRequests);
 
-// Create request - any authenticated user
-requestRouter.post('/', upload.single('personImageUrl'), createRequest);
+requestRouter.post('/', upload.single('personImage'), createRequest);
+requestRouter.get('/', getAllRequests);
 
-// Approve/reject requests - admin only
+
 requestRouter.put('/:id/approve', authenticateAdmin, approveRequest);
 requestRouter.put('/:id/reject', authenticateAdmin, rejectRequest);
 

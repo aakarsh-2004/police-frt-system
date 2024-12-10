@@ -91,7 +91,11 @@ export default function App() {
                 <Route path="/suspects/new" element={<AddPerson />} />
                 <Route path="/search" element={<SearchLookup />} />
                 <Route path="/alerts" element={<AlertsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/reports" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                } />
                 <Route path="/mapview" element={<MapView />} />
                 <Route path="/users" element={
                   <ProtectedRoute allowedRoles={['admin']}>
@@ -100,7 +104,7 @@ export default function App() {
                 } />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/requests" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'non-admin']}>
                     <RequestsPage />
                   </ProtectedRoute>
                 } />

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Camera, ChevronLeft, ChevronRight, MapPin, Clock, Shield } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, MapPin, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
 import RTSPStream from '../monitoring/RTSPStream';
@@ -91,79 +91,97 @@ export default function LiveFeed() {
     const [selectedFeed, setSelectedFeed] = useState<VideoFeed>(videoFeeds[0]);
     const [showGrid, setShowGrid] = useState(true);
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const videoRef = useRef<HTMLVideoElement>(null);
     const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const { t } = useTranslation();
     const { currentLanguage } = useLanguage();
+    const [streamKey, setStreamKey] = useState(0);
 
     const [videoControls, setVideoControls] = useState<Record<string, {
         zoom: number;
         rotation: number;
-    }>>({});
-
-    // Initialize controls for each video
-    useEffect(() => {
+    }>>(() => {
+        // Initialize controls for all possible videos
         const initialControls: Record<string, { zoom: number; rotation: number }> = {};
+        
+        // Initialize for grid view
         videoFeeds.forEach((_, index) => {
-            const videoId = `video-${index + 1}`;
-            initialControls[videoId] = { zoom: 1, rotation: 0 };
+            initialControls[`grid-video-${index + 1}`] = { zoom: 1, rotation: 0 };
         });
-        setVideoControls(initialControls);
-    }, []);
+        
+        // Initialize for single view
+        videoFeeds.forEach((_, index) => {
+            initialControls[`single-video-${index + 1}`] = { zoom: 1, rotation: 0 };
+        });
+        
+        return initialControls;
+    });
 
     const handleCameraClick = (feed: VideoFeed, index: number) => {
         setSelectedFeed(feed);
         setSelectedIndex(index);
         setShowGrid(false);
+        setStreamKey(prev => prev + 1);
     };
 
     const handlePrevStream = () => {
         const prevIndex = selectedIndex === 0 ? videoFeeds.length - 1 : selectedIndex - 1;
         setSelectedIndex(prevIndex);
         setSelectedFeed(videoFeeds[prevIndex]);
+        setStreamKey(prev => prev + 1);
     };
 
     const handleNextStream = () => {
         const nextIndex = selectedIndex === videoFeeds.length - 1 ? 0 : selectedIndex + 1;
         setSelectedIndex(nextIndex);
         setSelectedFeed(videoFeeds[nextIndex]);
+        setStreamKey(prev => prev + 1);
     };
 
     // Video controls handlers
     const handleZoomIn = (videoId: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [videoId]: {
-                ...prev[videoId],
-                zoom: Math.min((prev[videoId]?.zoom || 1) + 0.1, 2)
-            }
-        }));
+        setVideoControls(prev => {
+            const currentControls = prev[videoId] || { zoom: 1, rotation: 0 };
+            return {
+                ...prev,
+                [videoId]: {
+                    ...currentControls,
+                    zoom: Math.min(currentControls.zoom + 0.1, 2)
+                }
+            };
+        });
     };
 
     const handleZoomOut = (videoId: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [videoId]: {
-                ...prev[videoId],
-                zoom: Math.max((prev[videoId]?.zoom || 1) - 0.1, 0.5)
-            }
-        }));
+        setVideoControls(prev => {
+            const currentControls = prev[videoId] || { zoom: 1, rotation: 0 };
+            return {
+                ...prev,
+                [videoId]: {
+                    ...currentControls,
+                    zoom: Math.max(currentControls.zoom - 0.1, 0.5)
+                }
+            };
+        });
     };
 
     const handleRotate = (videoId: string) => {
-        setVideoControls(prev => ({
-            ...prev,
-            [videoId]: {
-                ...prev[videoId],
-                rotation: ((prev[videoId]?.rotation || 0) + 90) % 360
-            }
-        }));
+        setVideoControls(prev => {
+            const currentControls = prev[videoId] || { zoom: 1, rotation: 0 };
+            return {
+                ...prev,
+                [videoId]: {
+                    ...currentControls,
+                    rotation: (currentControls.rotation + 90) % 360
+                }
+            };
+        });
     };
 
     const getVideoStyle = (videoId: string) => {
         const controls = videoControls[videoId] || { zoom: 1, rotation: 0 };
         return {
-            transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`
+            transform: `scale(${controls.zoom}) rotate(${controls.rotation}deg)`,
+            transition: 'transform 0.3s ease'
         };
     };
 
@@ -205,6 +223,7 @@ export default function LiveFeed() {
                             onClick={() => handleCameraClick(feed, index)}
                         >
                             <RTSPStream
+                                key={`grid-${index}`}
                                 id={`grid-video-${index + 1}`}
                                 streamUrl={SAMPLE_STREAMS[index]}
                                 style={getVideoStyle(`grid-video-${index + 1}`)}
@@ -227,6 +246,7 @@ export default function LiveFeed() {
                         className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden group"
                     >
                         <RTSPStream
+                            key={`single-${streamKey}`}
                             id={`single-video-${selectedIndex + 1}`}
                             streamUrl={SAMPLE_STREAMS[selectedIndex]}
                             style={getVideoStyle(`single-video-${selectedIndex + 1}`)}
@@ -252,7 +272,12 @@ export default function LiveFeed() {
                                 onZoomIn={() => handleZoomIn(`single-video-${selectedIndex + 1}`)}
                                 onZoomOut={() => handleZoomOut(`single-video-${selectedIndex + 1}`)}
                                 onRotate={() => handleRotate(`single-video-${selectedIndex + 1}`)}
-                                onFullScreen={() => {/* handle fullscreen */}}
+                                onFullScreen={() => {
+                                    const videoContainer = containerRefs.current[`video-${selectedIndex + 1}`];
+                                    if (videoContainer?.requestFullscreen) {
+                                        videoContainer.requestFullscreen();
+                                    }
+                                }}
                             />
                         </div>
 

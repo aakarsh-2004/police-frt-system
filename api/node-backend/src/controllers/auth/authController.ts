@@ -25,7 +25,8 @@ const login = async (req: Request, res: Response, next: NextFunction) => {
                 firstName: true,
                 lastName: true,
                 email: true,
-                role: true
+                role: true,
+                userImageUrl: true
             }
         });
 

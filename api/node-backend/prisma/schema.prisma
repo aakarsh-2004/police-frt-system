@@ -125,6 +125,8 @@ model Requests {
   imageData    String?
   createdAt    DateTime @default(now())
   approvedAt   DateTime @updatedAt
+  rejectedBy   String?
+  rejectedAt   DateTime?
 }
 
 model Notification {

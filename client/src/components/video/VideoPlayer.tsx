@@ -163,6 +163,7 @@ export default function VideoPlayer({
                             maxHeight: isFullscreen ? '100vh' : 'auto',
                             maxWidth: isFullscreen ? '100vw' : 'auto'
                         }}
+                        autoPlay={true}
                     >
                         Your browser does not support video playback.
                     </video>

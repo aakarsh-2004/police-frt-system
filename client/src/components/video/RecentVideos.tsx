@@ -88,14 +88,14 @@ export default function RecentVideos({ videos }: RecentVideosProps) {
                                     </div>
                                     
                                     {/* Video Info */}
-                                    <div className="p-3 text-white dark:bg-gray-900">
+                                    <div className="p-3 dark:text-white dark:bg-gray-900 bg-gray-100 text-black">
                                         <p className="text-sm">
                                             {formatDateTime(video.capturedDateTime)}
                                         </p>
-                                        <p className='text-[10px] text-gray-400/80 group-hover:text-gray-400 transition-colors duration-200'>
+                                        <p className='text-[10px] dark:text-gray-400/80 group-hover:text-gray-400 transition-colors duration-200'>
                                             {getTimeAgo(video.capturedDateTime)}
                                         </p>
-                                        <p className="text-md text-gray-400/80 group-hover:text-gray-400 mt-1 transition-colors duration-200">
+                                        <p className="text-md dark:text-gray-400/80 group-hover:text-gray-400 mt-1 transition-colors duration-200">
                                             {video.location}
                                         </p>
                                     </div>

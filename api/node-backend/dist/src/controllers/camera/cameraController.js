@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateCameraStatus = exports.deleteCamera = exports.updateCamera = exports.createCamera = exports.getCameraById = exports.getAllCameras = void 0;
+exports.getCameraDetections = exports.updateCameraStatus = exports.deleteCamera = exports.updateCamera = exports.createCamera = exports.getCameraById = exports.getAllCameras = void 0;
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const getAllCameras = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
@@ -46,8 +46,7 @@ const getCameraById = (req, res, next) => __awaiter(void 0, void 0, void 0, func
                     },
                     orderBy: {
                         capturedDateTime: 'desc'
-                    },
-                    take: 5
+                    }
                 },
                 _count: {
                     select: {
@@ -149,3 +148,91 @@ const updateCameraStatus = (req, res, next) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.updateCameraStatus = updateCameraStatus;
+const getCameraDetections = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        // Get all recognitions with related data
+        const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
+            where: { cameraId: id },
+            include: {
+                person: {
+                    include: {
+                        suspect: true,
+                        missingPerson: true
+                    }
+                },
+                camera: true
+            },
+            orderBy: { capturedDateTime: 'desc' }
+        });
+        // Format recent detections for the slider
+        const recentDetections = recognitions.slice(0, 10).map(recognition => ({
+            id: recognition.id,
+            personName: `${recognition.person.firstName} ${recognition.person.lastName}`,
+            personType: recognition.person.type,
+            personImageUrl: recognition.person.personImageUrl,
+            capturedImageUrl: recognition.capturedImageUrl,
+            capturedDateTime: recognition.capturedDateTime,
+            confidenceScore: recognition.confidenceScore,
+            location: recognition.camera.location
+        }));
+        // Get unique persons with their latest detections
+        const uniquePersonsMap = new Map();
+        recognitions.forEach(recognition => {
+            var _a, _b, _c, _d, _e;
+            const person = recognition.person;
+            const existingPerson = uniquePersonsMap.get(person.id);
+            if (!existingPerson || new Date(recognition.capturedDateTime) > new Date(existingPerson.capturedDateTime)) {
+                uniquePersonsMap.set(person.id, {
+                    id: person.id,
+                    firstName: person.firstName,
+                    lastName: person.lastName,
+                    age: person.age,
+                    type: person.type,
+                    personImageUrl: person.personImageUrl,
+                    gender: person.gender,
+                    nationality: person.nationality,
+                    capturedImageUrl: recognition.capturedImageUrl,
+                    capturedDateTime: recognition.capturedDateTime,
+                    confidenceScore: recognition.confidenceScore,
+                    location: recognition.camera.location,
+                    riskLevel: (_a = person.suspect) === null || _a === void 0 ? void 0 : _a.riskLevel,
+                    foundStatus: ((_b = person.suspect) === null || _b === void 0 ? void 0 : _b.foundStatus) || ((_c = person.missingPerson) === null || _c === void 0 ? void 0 : _c.foundStatus),
+                    lastSeenDate: (_d = person.missingPerson) === null || _d === void 0 ? void 0 : _d.lastSeenDate,
+                    lastSeenLocation: (_e = person.missingPerson) === null || _e === void 0 ? void 0 : _e.lastSeenLocation
+                });
+            }
+        });
+        // Get total detections for each person
+        const detectedPersons = yield Promise.all(Array.from(uniquePersonsMap.entries()).map((_a) => __awaiter(void 0, [_a], void 0, function* ([personId, personData]) {
+            const totalDetections = yield prisma_1.prisma.recognizedPerson.count({
+                where: {
+                    personId: personId,
+                    cameraId: id
+                }
+            });
+            return Object.assign(Object.assign({}, personData), { totalDetections });
+        })));
+        // Prepare stats
+        const stats = {
+            totalDetections: recognitions.length,
+            suspects: detectedPersons.filter(p => p.type === 'suspect').length,
+            missingPersons: detectedPersons.filter(p => p.type === 'missing-person').length,
+            recentDetections
+        };
+        console.log('API Response:', {
+            detectedPersons,
+            stats
+        });
+        res.json({
+            message: "Camera detections fetched successfully",
+            data: detectedPersons,
+            stats
+        });
+    }
+    catch (error) {
+        console.error('Error in getCameraDetections:', error);
+        next((0, http_errors_1.default)(500, "Error fetching camera detections: " + error));
+    }
+});
+exports.getCameraDetections = getCameraDetections;

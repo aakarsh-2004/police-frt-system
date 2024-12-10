@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import config from '../../config/config';
 import NotificationDropdown from '../notification/NotificationDropdown';
+import NotificationBadge from '../notification/NotificationBadge';
 
 interface SearchResult {
     id: string;
@@ -29,6 +30,7 @@ export default function Navbar() {
     const { currentLanguage, changeLanguage } = useLanguage();
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [imageError, setImageError] = useState(false);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -111,6 +113,11 @@ export default function Navbar() {
     const handleNewPerson = () => {
         navigate('/suspects/new');
     };
+
+    // Reset image error when user changes
+    useEffect(() => {
+        setImageError(false);
+    }, [user]);
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-900 to-blue-800 dark:from-gray-900 dark:to-gray-800 text-white shadow-lg">
@@ -215,7 +222,7 @@ export default function Navbar() {
                             <HelpCircle className="w-6 h-6" />
                         </button>
 
-                        <NotificationDropdown />
+                        <NotificationBadge />
 
                         <button 
                             onClick={toggleLanguage}
@@ -231,20 +238,13 @@ export default function Navbar() {
                                 className="flex items-center space-x-3 hover:text-amber-400 transition-colors"
                             >
                                 <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-amber-400 bg-amber-500 flex items-center justify-center">
-                                    {user?.userImageUrl ? (
+                                    {user?.userImageUrl && !imageError ? (
                                         <img 
                                             src={user.userImageUrl}
                                             alt={`${user.firstName} ${user.lastName}`}
                                             className="w-full h-full object-cover"
                                             style={{ objectPosition: 'center' }}
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.style.display = 'none';
-                                                target.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                                                const icon = document.createElement('div');
-                                                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-white"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
-                                                target.parentElement?.appendChild(icon);
-                                            }}
+                                            onError={() => setImageError(true)}
                                         />
                                     ) : (
                                         <UserIcon className="w-5 h-5 text-white" />

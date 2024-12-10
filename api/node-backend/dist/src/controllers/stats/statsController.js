@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDetectionTrends = exports.getPersonStats = exports.getRecognitionStats = void 0;
+exports.getStats = exports.getDetectionTrends = exports.getPersonStats = exports.getRecognitionStats = void 0;
 const prisma_1 = require("../../lib/prisma");
 const date_fns_1 = require("date-fns");
 const http_errors_1 = __importDefault(require("http-errors"));
@@ -206,3 +206,63 @@ const getDetectionTrends = (req, res, next) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.getDetectionTrends = getDetectionTrends;
+const getStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Get total persons by type
+        const personTypeStats = yield prisma_1.prisma.person.groupBy({
+            by: ['type'],
+            _count: {
+                id: true
+            }
+        });
+        // Calculate total and percentages
+        const totalPersons = personTypeStats.reduce((acc, curr) => acc + curr._count.id, 0);
+        const typeStats = personTypeStats.map(stat => ({
+            type: stat.type,
+            count: stat._count.id,
+            percentage: Math.round((stat._count.id / totalPersons) * 100)
+        }));
+        // Get location detection counts
+        const locationStats = yield prisma_1.prisma.recognizedPerson.groupBy({
+            by: ['cameraId'],
+            _count: {
+                personId: true // Count unique persons
+            },
+            orderBy: {
+                _count: {
+                    personId: 'desc'
+                }
+            },
+            take: 5, // Top 5 locations
+            include: {
+                camera: {
+                    select: {
+                        location: true,
+                        name: true
+                    }
+                }
+            }
+        });
+        // Format location stats
+        const topLocations = locationStats.map(stat => ({
+            location: stat.camera.location,
+            cameraName: stat.camera.name,
+            uniquePersons: stat._count.personId
+        }));
+        res.json({
+            message: "Stats retrieved successfully",
+            data: {
+                personTypes: {
+                    total: totalPersons,
+                    breakdown: typeStats
+                },
+                topLocations
+            }
+        });
+    }
+    catch (error) {
+        console.error('Error getting stats:', error);
+        next((0, http_errors_1.default)(500, "Error getting stats"));
+    }
+});
+exports.getStats = getStats;

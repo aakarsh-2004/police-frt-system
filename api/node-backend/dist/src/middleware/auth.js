@@ -52,11 +52,6 @@ const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                 return res.status(401).json({ message: 'User not found' });
             }
             req.user = user;
-            // Verify admin role for admin routes
-            if (req.baseUrl.includes('/api/requests') && user.role !== 'admin') {
-                console.log('Non-admin user attempting to access admin route');
-                return res.status(403).json({ message: 'Admin access required' });
-            }
             next();
         }
         catch (jwtError) {

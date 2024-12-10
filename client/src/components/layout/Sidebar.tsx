@@ -19,12 +19,12 @@ const menuItems = [
     { id: 'suspects', icon: User, translationKey: 'nav.suspects', path: '/suspects' },
     { id: 'search', icon: Search, translationKey: 'nav.search', path: '/search' },
     { id: 'alerts', icon: Bell, translationKey: 'nav.alerts', path: '/alerts' },
-    { id: 'reports', icon: FileText, translationKey: 'nav.reports', path: '/reports' },
+    { id: 'reports', icon: FileText, translationKey: 'nav.reports', path: '/reports', adminOnly: true },
     { id: 'mapview', icon: MapPin, translationKey: 'nav.mapview', path: '/mapview' },
     { id: 'tutorial', icon: GraduationCap, translationKey: 'nav.tutorialTraining', path: '/tutorial' },
-    { id: 'users', icon: Users, translationKey: 'nav.users', path: '/users' },
+    { id: 'users', icon: Users, translationKey: 'nav.users', path: '/users', adminOnly: true },
     { id: 'settings', icon: Settings, translationKey: 'nav.settings', path: '/settings' },
-    { id: 'requests', icon: Clock, translationKey: 'nav.requests', path: '/requests', adminOnly: true }
+    { id: 'requests', icon: Clock, translationKey: 'nav.requests', path: '/requests'}
 ];
 
 export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
@@ -44,8 +44,16 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
     );
 
     const handleNavigation = (page: string) => {
-        onPageChange(page);
-        navigate(`${page === 'dashboard' ? '/' : `/${page}`}`);
+        if (page === 'suspects/new') {
+            navigate('/suspects/new', { 
+                state: { 
+                    defaultType: 'suspect'
+                }
+            });
+        } else {
+            onPageChange(page);
+            navigate(`${page === 'dashboard' ? '/' : `/${page}`}`);
+        }
     };
 
     // Get current active page from path

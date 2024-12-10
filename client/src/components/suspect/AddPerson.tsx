@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import { Upload } from 'lucide-react';
 import config from '../../config/config';
+import { useAuth } from '../../context/AuthContext';
+import axiosInstance from '../../config/axios';
+
+interface LocationState {
+    defaultType?: 'suspect' | 'missing-person';
+}
 
 export default function AddPerson() {
+    const { user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const { defaultType } = (location.state as LocationState) || {};
     const [loading, setLoading] = useState(false);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [formData, setFormData] = useState({
@@ -15,7 +24,7 @@ export default function AddPerson() {
         age: '',
         dateOfBirth: '',
         address: '',
-        type: 'suspect' as 'suspect' | 'missing-person',
+        type: defaultType || 'suspect' as 'suspect' | 'missing-person',
         riskLevel: 'low',
         lastSeenDate: '',
         lastSeenLocation: '',
@@ -26,6 +35,13 @@ export default function AddPerson() {
         nationality: '',
         nationalId: ''
     });
+
+    useEffect(() => {
+        if (!user) {
+            toast.error('Please login to add a person');
+            navigate('/login');
+        }
+    }, [user, navigate]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -42,28 +58,20 @@ export default function AddPerson() {
         try {
             const submitData = new FormData();
             
-            // Basic Information
             submitData.append('firstName', formData.firstName);
             submitData.append('lastName', formData.lastName);
-            submitData.append('age', formData.age.toString());
-            submitData.append('dateOfBirth', new Date(formData.dateOfBirth).toISOString());
+            submitData.append('age', formData.age);
+            submitData.append('dateOfBirth', formData.dateOfBirth);
             submitData.append('address', formData.address);
             submitData.append('type', formData.type);
             submitData.append('gender', formData.gender);
-            submitData.append('status', 'active');
+            submitData.append('email', formData.email);
+            submitData.append('phone', formData.phone);
+            submitData.append('nationalId', formData.nationalId);
+            submitData.append('nationality', formData.nationality);
 
-            // Contact and Identity Information
-            submitData.append('email', formData.email || '');
-            submitData.append('phone', formData.phone || '');
-            submitData.append('nationalId', formData.nationalId || '');
-            submitData.append('nationality', formData.nationality || '');
-
-            // Type-specific fields
             if (formData.type === 'suspect') {
-                submitData.append('suspect', JSON.stringify({
-                    riskLevel: formData.riskLevel,
-                    foundStatus: false
-                }));
+                submitData.append('riskLevel', formData.riskLevel);
             }
 
             if (formData.type === 'missing-person') {
@@ -74,38 +82,38 @@ export default function AddPerson() {
                 }));
             }
 
-            // Image
             if (selectedImage) {
-                submitData.append('personImageUrl', selectedImage);
+                submitData.append('personImage', selectedImage);
             }
 
-            // Debug log
-            const formDataObject: Record<string, any> = {};
-            submitData.forEach((value, key) => {
-                formDataObject[key] = value;
-            });
-            console.log('Sending data:', formDataObject);
-
-            const response = await axios.post<{ message: string; data: { id: string } }>(
-                `${config.apiUrl}/api/persons`,
-                submitData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
+            if (user?.role !== 'admin') {
+                const response = await axiosInstance.post(
+                    '/api/requests',
+                    submitData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
                     }
-                }
-            );
-
-            toast.success(`${formData.type === 'suspect' ? 'Suspect' : 'Missing Person'} added successfully`);
-            navigate(`/person/${response.data.data.id}`);
-        } catch (error) {
-            console.error('Error adding person:', error);
-            if (axios.isAxiosError(error)) {
-                console.error('Error response:', error.response?.data);
-                toast.error(error.response?.data?.message || 'Failed to add person');
+                );
+                toast.success('Request submitted successfully');
+                navigate('/requests');
             } else {
-                toast.error('Failed to add person');
+                const response = await axios.post(
+                    `${config.apiUrl}/api/persons`,
+                    submitData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
+                );
+                toast.success(`${formData.type === 'suspect' ? 'Suspect' : 'Missing Person'} added successfully`);
+                navigate(`/person/${response.data.data.id}`);
             }
+        } catch (error) {
+            console.error('Error:', error);
+            toast.error('Failed to submit request');
         } finally {
             setLoading(false);
         }
@@ -114,7 +122,9 @@ export default function AddPerson() {
     return (
         <div className="p-6">
             <div className="max-w-3xl mx-auto">
-                <h1 className="text-2xl font-bold mb-6">Add New Person</h1>
+                <h1 className="text-2xl font-bold mb-6">
+                    Add New {formData.type === 'suspect' ? 'Suspect' : 'Missing Person'}
+                </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="bg-white rounded-lg shadow p-6 dark:bg-gray-800">
@@ -350,7 +360,7 @@ export default function AddPerson() {
                             className="btn btn-primary"
                             disabled={loading}
                         >
-                            {loading ? 'Adding...' : `Add ${formData.type === 'suspect' ? 'Suspect' : 'Missing Person'}`}
+                            {user?.role === 'admin' ? (loading ? 'Adding...' : `Add ${formData.type === 'suspect' ? 'Suspect' : 'Missing Person'}`) : (loading ? 'Adding...' : 'Submit Request')}
                         </button>
                     </div>
                 </form>

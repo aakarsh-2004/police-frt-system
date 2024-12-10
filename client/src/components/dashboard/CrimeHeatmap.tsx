@@ -203,9 +203,9 @@ export default function CrimeHeatmap() {
                             closeOnClick: false
                         })
                             .setHTML(`
-                                <div class="p-2 dark:text-black">
+                                <div class="p-2 dark:text-white">
                                     <h3 class="font-bold">${camera.name}</h3>
-                                    <p class="text-sm text-gray-600">${camera.location}</p>
+                                    <p class="text-sm text-gray-500">${camera.location}</p>
                                     <p class="text-sm font-medium mt-1">
                                         Total Detections: ${camera.stats?.totalDetections || 0}
                                     </p>

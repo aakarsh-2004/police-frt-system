@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { prisma } from "../../lib/prisma";
 import createHttpError from "http-errors";
 import { createNotification } from "../notification/notificationController";
+import cloudinary from "../../config/cloudinary";
+import fs from "fs";
 
 export const getAllRequests = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -42,40 +44,47 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
             return next(createHttpError(401, "Unauthorized"));
         }
 
-        // Convert the request body to a string
-        const personData = JSON.stringify(req.body);
-        const imageData = req.file ? JSON.stringify(req.file) : null;
+        const personData = req.body;
+        let imageUrl = null;
 
-        console.log('Creating request with data:', {
-            personData,
-            imageData,
-            userId: user.id
-        });
+        // Handle image upload
+        if (req.file) {
+            try {
+                // Upload to Cloudinary
+                const result = await cloudinary.uploader.upload(req.file.path, {
+                    folder: 'requests',
+                    resource_type: 'image'
+                });
+                imageUrl = result.secure_url;
 
+                // Clean up local file
+                fs.unlink(req.file.path, (err) => {
+                    if (err) console.error('Error deleting local file:', err);
+                });
+            } catch (uploadError) {
+                console.error('Error uploading to Cloudinary:', uploadError);
+                return next(createHttpError(500, "Error uploading image"));
+            }
+        }
+
+        // Create request with image data
         const request = await prisma.requests.create({
             data: {
                 requestedBy: user.id,
                 status: 'pending',
-                personData,
-                imageData
-            },
-            include: {
-                user: true
+                personData: JSON.stringify({
+                    ...personData,
+                    personImageUrl: imageUrl // Store image URL in personData
+                }),
+                imageData: imageUrl // Store Cloudinary URL directly in imageData
             }
         });
 
-        // Create notification for admins
-        await createNotification(
-            `New person request from ${user.firstName} ${user.lastName}`,
-            'request'
-        );
-
         res.status(201).json({
-            message: "Request submitted successfully",
+            message: "Request created successfully",
             data: request
         });
     } catch (error) {
-        console.error('Error in createRequest:', error);
         next(createHttpError(500, "Error creating request: " + error));
     }
 };
@@ -103,47 +112,63 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
             return next(createHttpError(400, "Invalid person data format"));
         }
 
-        // Extract fields specific to different models
-        const {
-            riskLevel,
-            lastSeenDate,
-            lastSeenLocation,
-            missingSince,
-            reportBy,
-            ...basicPersonData
-        } = personData;
+        // Parse image data if exists
+        let imageData;
+        if (request.imageData) {
+            try {
+                imageData = JSON.parse(request.imageData);
+                personData.personImageUrl = imageData.path; 
+            } catch (parseError) {
+                console.error('Error parsing image data:', parseError);
+            }
+        }
 
-        // Create the person first
+        // Parse missing person data if exists
+        let missingPersonData;
+        if (personData.missingPerson) {
+            try {
+                missingPersonData = JSON.parse(personData.missingPerson);
+            } catch (parseError) {
+                console.error('Error parsing missing person data:', parseError);
+                return next(createHttpError(400, "Invalid missing person data format"));
+            }
+        }
+
+        // Create the person with image URL
         const person = await prisma.person.create({
             data: {
-                ...basicPersonData,
-                age: parseInt(basicPersonData.age),
-                dateOfBirth: new Date(basicPersonData.dateOfBirth),
-                personImageUrl: request.imageData ? JSON.parse(request.imageData).path : null
+                firstName: personData.firstName,
+                lastName: personData.lastName,
+                age: parseInt(personData.age),
+                dateOfBirth: new Date(personData.dateOfBirth),
+                address: personData.address,
+                type: personData.type,
+                gender: personData.gender,
+                email: personData.email,
+                phone: personData.phone,
+                nationalId: personData.nationalId,
+                nationality: personData.nationality,
+                personImageUrl: personData.personImageUrl, // Use the image URL from parsed data
+                ...(personData.type === 'missing-person' && missingPersonData ? {
+                    missingPerson: {
+                        create: {
+                            lastSeenDate: new Date(missingPersonData.lastSeenDate),
+                            lastSeenLocation: missingPersonData.lastSeenLocation,
+                            missingSince: new Date(missingPersonData.lastSeenDate),
+                            foundStatus: false,
+                            reportBy: missingPersonData.reportBy
+                        }
+                    }
+                } : personData.type === 'suspect' ? {
+                    suspect: {
+                        create: {
+                            riskLevel: personData.riskLevel || 'low',
+                            foundStatus: false
+                        }
+                    }
+                } : {})
             }
         });
-
-        // Create related records based on person type
-        if (personData.type === 'suspect') {
-            await prisma.suspect.create({
-                data: {
-                    personId: person.id,
-                    riskLevel: riskLevel || 'low',
-                    foundStatus: false
-                }
-            });
-        } else if (personData.type === 'missing-person') {
-            await prisma.missingPerson.create({
-                data: {
-                    personId: person.id,
-                    lastSeenDate: new Date(lastSeenDate),
-                    lastSeenLocation: lastSeenLocation,
-                    missingSince: new Date(missingSince || lastSeenDate),
-                    foundStatus: false,
-                    reportBy: reportBy
-                }
-            });
-        }
 
         // Update request status
         await prisma.requests.update({
@@ -173,17 +198,35 @@ export const approveRequest = async (req: Request, res: Response, next: NextFunc
 
 export const rejectRequest = async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
+    const { rejectedBy } = req.body;
 
     try {
+        const request = await prisma.requests.findUnique({
+            where: { id }
+        });
+
+        if (!request) {
+            return next(createHttpError(404, "Request not found"));
+        }
+
         await prisma.requests.update({
             where: { id },
             data: {
-                status: 'rejected'
+                status: 'rejected',
+                rejectedBy,
+                rejectedAt: new Date()
             }
         });
 
+        // Create notification
+        await createNotification(
+            `Person request rejected by admin`,
+            'request_rejected'
+        );
+
         res.json({ message: "Request rejected successfully" });
     } catch (error) {
+        console.error('Error in rejectRequest:', error);
         next(createHttpError(500, "Error rejecting request: " + error));
     }
 }; 

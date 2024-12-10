@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Search, Filter } from 'lucide-react';
+import { MapPin, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import axios from 'axios';
 import config from '../../config/config';
 import { useTheme } from '../../context/themeContext';
+import ImageEnhancer from '../image/ImageEnhancer';
+import DetectedPersons from './DetectedPersons';
 
 interface LocationFilter {
     city: string;
@@ -54,6 +56,26 @@ interface CameraDetails {
     stats?: CameraStats;
 }
 
+interface DetectedPerson {
+    id: string;
+    firstName: string;
+    lastName: string;
+    age: number;
+    type: string;
+    personImageUrl: string;
+    capturedImageUrl: string;
+    capturedDateTime: string;
+    confidenceScore: string;
+    location: string;
+    gender: string;
+    nationality: string;
+    riskLevel?: string;
+    foundStatus?: boolean;
+    lastSeenDate?: string;
+    lastSeenLocation?: string;
+    totalDetections: number;
+}
+
 const BHOPAL_BOUNDS = {
     north: 23.3300, 
     south: 23.1600, 
@@ -87,6 +109,35 @@ const locations = [
 
 console.log(locations);
 
+// Add helper functions before the component
+const updateMarkerStyle = (el: HTMLElement, camera: CameraDetails, isSelected: boolean) => {
+    el.style.backgroundColor = isSelected ? '#EF4444' : (camera.status === 'active' ? '#4CAF50' : '#9E9E9E');
+    el.style.width = isSelected ? '28px' : '24px';
+    el.style.height = isSelected ? '28px' : '24px';
+    el.style.border = isSelected ? '3px solid #FEE2E2' : '2px solid white';
+    el.style.boxShadow = isSelected ? '0 0 0 2px rgba(239, 68, 68, 0.3)' : 'none';
+    el.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
+};
+
+const createCustomMarker = (camera: CameraDetails, isSelected: boolean) => {
+    const el = document.createElement('div');
+    el.className = 'custom-marker transition-all duration-300';
+    el.style.borderRadius = '50%';
+    el.style.cursor = 'pointer';
+    
+    // Apply initial styles
+    updateMarkerStyle(el, camera, isSelected);
+    
+    return el;
+};
+
+// Add this function to create a marker element with dynamic color
+const createMarkerElement = (isSelected: boolean) => {
+    const el = document.createElement('div');
+    el.className = `camera-marker ${isSelected ? 'selected' : ''}`;
+    return el;
+};
+
 export default function MapView() {
     const [filters, setFilters] = useState<LocationFilter>({
         city: '',
@@ -100,6 +151,16 @@ export default function MapView() {
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const [selectedCamera, setSelectedCamera] = useState<CameraDetails | null>(null);
     const { isDarkMode } = useTheme();
+    const sliderRef = useRef<HTMLDivElement>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [selectedDetection, setSelectedDetection] = useState<any>(null);
+    const [detectedPersons, setDetectedPersons] = useState<DetectedPerson[]>([]);
+
+    // First, create a ref to store markers
+    const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+
+    console.log("selected camera", selectedCamera);
+    
 
     // Fetch cameras from the database
     useEffect(() => {
@@ -119,166 +180,171 @@ export default function MapView() {
         fetchCameras();
     }, []);
 
+    const fetchCameraDetails = async (cameraId: string) => {
+        try {
+            const [cameraResponse, detectionsResponse] = await Promise.all([
+                axios.get<CameraDetails>(`${config.apiUrl}/api/cameras/${cameraId}`),
+                axios.get(`${config.apiUrl}/api/cameras/${cameraId}/detections`)
+            ]);
+
+            console.log('Camera Details:', cameraResponse.data);
+            console.log('Detections Response:', detectionsResponse.data);
+
+            if (cameraResponse.data) {
+                // Merge the stats from detections response with camera details
+                const cameraWithStats = {
+                    ...cameraResponse.data,
+                    stats: detectionsResponse.data.stats
+                };
+                setSelectedCamera(cameraWithStats);
+                
+                // Set detected persons
+                if (detectionsResponse.data.data) {
+                    setDetectedPersons(detectionsResponse.data.data);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching camera data:', error);
+        }
+    };
+
+    // First, set the access token
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYWFrYXJzaC0yMDA0IiwiYSI6ImNtNDhrdXhycjAwb2gycXMyZjljdTl0MnIifQ.6L9i8t_eW3gubSsF7HmXwg';
+
+    // Add useEffect for map initialization
     useEffect(() => {
         if (!mapContainerRef.current) return;
 
-        mapboxgl.accessToken = "pk.eyJ1IjoiYWFrYXJzaC0yMDA0IiwiYSI6ImNtNDhrdXhycjAwb2gycXMyZjljdTl0MnIifQ.6L9i8t_eW3gubSsF7HmXwg";
-
+        // Initialize map
         const map = new mapboxgl.Map({
             container: mapContainerRef.current,
-            style: isDarkMode ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
+            style: 'mapbox://styles/mapbox/dark-v11',
             center: BHOPAL_CENTER,
             zoom: 12,
-            pitch: 45,
-            bearing: -17.6,
-            antialias: true,
-            scrollZoom: true,
-            boxZoom: true,
-            dragRotate: true,
-            dragPan: true,
-            keyboard: true,
-            doubleClickZoom: true,
-            touchZoomRotate: true,
-            renderWorldCopies: false,
             maxBounds: [
-                [BHOPAL_BOUNDS.west - 0.1, BHOPAL_BOUNDS.south - 0.1],
-                [BHOPAL_BOUNDS.east + 0.1, BHOPAL_BOUNDS.north + 0.1]
+                [BHOPAL_BOUNDS.west, BHOPAL_BOUNDS.south], // SW
+                [BHOPAL_BOUNDS.east, BHOPAL_BOUNDS.north]  // NE
             ]
         });
 
+        // Save map instance to ref
         mapRef.current = map;
 
+        // Add navigation controls
         map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-        // Wait for style to load before adding terrain
-        map.on('style.load', () => {
-            // Add terrain source
-            map.addSource('mapbox-dem', {
-                'type': 'raster-dem',
-                'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                'tileSize': 512,
-                'maxzoom': 14
-            });
-
-            // Add terrain layer
-            map.setTerrain({
-                'source': 'mapbox-dem',
-                'exaggeration': 1.5
-            });
-
-            // Add 3D buildings layer
-            map.addLayer({
-                'id': '3d-buildings',
-                'source': 'composite',
-                'source-layer': 'building',
-                'filter': ['==', 'extrude', 'true'],
-                'type': 'fill-extrusion',
-                'minzoom': 12,
-                'paint': {
-                    'fill-extrusion-color': '#242424',
-                    'fill-extrusion-height': [
-                        'interpolate',
-                        ['linear'],
-                        ['zoom'],
-                        12, 0,
-                        12.5, ['get', 'height']
-                    ],
-                    'fill-extrusion-opacity': 0.6
-                }
-            });
-        });
-
-        // Add markers after map loads
+        // Load cameras when map is ready
         map.on('load', () => {
-            cameras.forEach(camera => {
-                const coordinates: [number, number] = [
-                    parseFloat(camera.longitude),
-                    parseFloat(camera.latitude)
-                ];
+            fetchCameraDe();
+        });
 
-                const el = document.createElement('div');
-                el.className = 'custom-marker';
-                el.style.backgroundColor = camera.status === 'active' ? '#4CAF50' : '#9E9E9E';
+        // Cleanup
+        return () => {
+            map.remove();
+            mapRef.current = null;
+        };
+    }, []);
 
-                el.addEventListener('click', () => {
-                    fetchCameraDetails(camera.id);
-                });
+    // Update the useEffect for markers
+    useEffect(() => {
+        if (!mapRef.current || !cameras.length) return;
 
-                const marker = new mapboxgl.Marker({
-                    element: el,
-                    anchor: 'bottom',
-                    offset: [0, -10]
-                })
-                    .setLngLat(coordinates)
-                    .setPopup(
-                        new mapboxgl.Popup({
-                            offset: 25,
-                            closeButton: false,
-                            closeOnClick: false
-                        })
-                            .setHTML(`
-                                <div class="p-2 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-lg">
-                                    <h3 class="font-bold">${camera.name}</h3>
-                                    <p class="text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}">${camera.location}</p>
-                                    <p class="text-xs mt-1">
-                                        <span class="px-2 py-1 rounded-full ${
-                                            camera.status === 'active' 
-                                                ? isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'
-                                                : isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
-                                        }">
-                                            ${camera.status.toUpperCase()}
-                                        </span>
-                                    </p>
-                                </div>
-                            `)
-                    )
-                    .addTo(map);
+        // Clear existing markers
+        Object.values(markersRef.current).forEach(marker => marker.remove());
+        markersRef.current = {};
 
-                if (marker && marker.getPopup()) {
-                    el.addEventListener('mouseenter', () => marker.getPopup()?.addTo(map));
-                    el.addEventListener('mouseleave', () => marker.getPopup()?.remove());
-                }
+        // Add new markers
+        cameras.forEach(camera => {
+            const el = createMarkerElement(selectedCamera?.id === camera.id);
+            
+            // Create popup
+            const popup = new mapboxgl.Popup({
+                offset: 25,
+                closeButton: false,
+                closeOnClick: false
+            })
+            .setHTML(`
+                <div class="p-3 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-lg min-w-[200px]">
+                    <h3 class="font-bold text-sm">${camera.name}</h3>
+                    <p class="text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}">${camera.location}</p>
+                    <p class="text-xs mt-1">
+                        <span class="px-2 py-1 rounded-full ${
+                            camera.status === 'active' 
+                                ? isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'
+                                : isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
+                        }">
+                            ${camera.status.toUpperCase()}
+                        </span>
+                    </p>
+                </div>
+            `);
+
+            // Create marker
+            const marker = new mapboxgl.Marker({
+                element: el,
+                anchor: 'bottom'
+            })
+            .setLngLat([parseFloat(camera.longitude), parseFloat(camera.latitude)])
+            .setPopup(popup)
+            .addTo(mapRef.current!);
+
+            // Store marker reference
+            markersRef.current[camera.id] = marker;
+
+            // Add hover events
+            el.addEventListener('mouseenter', () => {
+                marker.getPopup().addTo(mapRef.current!);
+            });
+            
+            el.addEventListener('mouseleave', () => {
+                marker.getPopup().remove();
+            });
+
+            // Add click handler
+            el.addEventListener('click', () => {
+                handleCameraClick(camera);
             });
         });
+    }, [cameras, isDarkMode, selectedCamera]); // Add selectedCamera to dependencies
 
-        map.on('dragstart', () => {
-            map.getCanvas().style.cursor = 'grabbing';
-        });
-
-        map.on('dragend', () => {
-            map.getCanvas().style.cursor = '';
-        });
-
-        map.on('movestart', () => {
-            map.getCanvas().style.imageRendering = 'auto';
-        });
-
-        map.on('moveend', () => {
-            map.getCanvas().style.imageRendering = 'auto';
-        });
-
-        return () => map.remove();
-    }, [cameras, isDarkMode]);
-
-    const createCustomMarker = () => {
-        const el = document.createElement('div');
-        el.className = 'custom-marker';
-        el.style.width = '24px';
-        el.style.height = '24px';
-        el.style.backgroundImage = 'url(/marker-icon.png)';
-        el.style.backgroundSize = 'cover';
-        el.style.cursor = 'pointer';
-        return el;
+    const slideLeft = () => {
+        if (sliderRef.current) {
+            sliderRef.current.scrollBy({
+                left: -200,
+                behavior: 'smooth'
+            });
+        }
     };
 
-    const fetchCameraDetails = async (cameraId: string) => {
+    const slideRight = () => {
+        if (sliderRef.current) {
+            sliderRef.current.scrollBy({
+                left: 200,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const handleImageClick = (detection: any) => {
+        setSelectedImage(detection.capturedImageUrl);
+        setSelectedDetection({
+            person: {
+                firstName: detection.personName?.split(' ')[0] || '',
+                lastName: detection.personName?.split(' ')[1] || '',
+                personImageUrl: detection.personImageUrl
+            },
+            capturedLocation: detection.location,
+            capturedDateTime: detection.capturedDateTime,
+            confidenceScore: detection.confidenceScore
+        });
+    };
+
+    // Update handleCameraClick
+    const handleCameraClick = async (camera: CameraDetails) => {
         try {
-            const response = await axios.get(`${config.apiUrl}/api/cameras/${cameraId}`);
-            if (response.data) {
-                setSelectedCamera(response.data);
-            }
+            await fetchCameraDetails(camera.id);
         } catch (error) {
-            console.error('Error fetching camera details:', error);
+            console.error('Error handling camera click:', error);
         }
     };
 
@@ -471,24 +537,80 @@ export default function MapView() {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-6 border-t pt-4">
-                                                <h4 className="text-lg font-medium mb-4 dark:text-white">Recent Detections</h4>
-                                                <div className="grid grid-cols-5 gap-4">
+                                        </>
+                                    )}
+                                </div>
+                            )}
+
+                            {selectedCamera && (
+                                <>
+                                    {/* DetectedPersons component - Now first */}
+                                    <DetectedPersons 
+                                        detections={detectedPersons} 
+                                        onImageClick={(detection) => {
+                                            setSelectedImage(detection.capturedImageUrl);
+                                            setSelectedDetection({
+                                                person: {
+                                                    firstName: detection.firstName,
+                                                    lastName: detection.lastName,
+                                                    personImageUrl: detection.personImageUrl
+                                                },
+                                                capturedLocation: detection.location,
+                                                capturedDateTime: detection.capturedDateTime,
+                                                confidenceScore: detection.confidenceScore
+                                            });
+                                        }}
+                                    />
+
+                                    {/* Recent Detections - Now second */}
+                                    {selectedCamera.stats && (
+                                        <div className="mt-6 border-t pt-4">
+                                            <h4 className="text-lg font-medium mb-4 dark:text-white">Recent Detections</h4>
+                                            
+                                            <div className="relative">
+                                                {/* Navigation Buttons */}
+                                                <button 
+                                                    onClick={slideLeft}
+                                                    className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition-colors"
+                                                >
+                                                    <ChevronLeft className="w-5 h-5" />
+                                                </button>
+                                                
+                                                <button 
+                                                    onClick={slideRight}
+                                                    className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition-colors"
+                                                >
+                                                    <ChevronRight className="w-5 h-5" />
+                                                </button>
+
+                                                {/* Slider Container */}
+                                                <div 
+                                                    ref={sliderRef}
+                                                    className="flex overflow-x-auto space-x-4 scrollbar-hide scroll-smooth"
+                                                >
                                                     {selectedCamera.stats.recentDetections.map((detection) => (
-                                                        <div key={detection.id} className="space-y-2">
-                                                            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                                                        <div 
+                                                            key={detection.id}
+                                                            className="flex-none w-48"
+                                                        >
+                                                            <div 
+                                                                className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer"
+                                                                onClick={() => handleImageClick(detection)}
+                                                            >
                                                                 <img
                                                                     src={detection.capturedImageUrl}
                                                                     alt={detection.personName}
                                                                     className="w-full h-full object-cover"
                                                                 />
                                                             </div>
-                                                            <div className="text-xs">
-                                                                <p className="font-medium dark:text-white">{detection.personName}</p>
-                                                                <p className="text-gray-500 dark:text-gray-400">
+                                                            <div className="mt-2 space-y-1">
+                                                                <p className="font-medium text-sm dark:text-white truncate">
+                                                                    {detection.personName}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                     {new Date(detection.capturedDateTime).toLocaleString()}
                                                                 </p>
-                                                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                                                <span className={`inline-block px-2 py-1 rounded-full text-xs ${
                                                                     detection.personType === 'suspect'
                                                                         ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                                                                         : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
@@ -500,14 +622,25 @@ export default function MapView() {
                                                     ))}
                                                 </div>
                                             </div>
-                                        </>
+                                        </div>
                                     )}
-                                </div>
+                                </>
                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {selectedImage && selectedDetection && (
+                <ImageEnhancer
+                    imageUrl={selectedImage}
+                    onClose={() => {
+                        setSelectedImage(null);
+                        setSelectedDetection(null);
+                    }}
+                    detectionInfo={selectedDetection}
+                />
+            )}
         </div>
     );
 }

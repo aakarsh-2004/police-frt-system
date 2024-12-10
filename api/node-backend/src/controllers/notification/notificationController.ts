@@ -8,18 +8,23 @@ export const getNotifications = async (req: Request, res: Response, next: NextFu
         const notifications = await prisma.notification.findMany({
             orderBy: {
                 createdAt: 'desc'
+            },
+            where: {
+                NOT: {
+                    readBy: {
+                        has: userId
+                    }
+                }
             }
         });
 
-        // Mark which notifications are read by this user
-        const processedNotifications = notifications.map(notification => ({
-            ...notification,
-            isRead: notification.readBy.includes(userId || '')
-        }));
-
         res.json({
             message: "Notifications fetched successfully",
-            data: processedNotifications
+            data: notifications.map(notification => ({
+                ...notification,
+                read: notification.readBy.includes(userId || ''),
+                createdAt: notification.createdAt.toISOString()
+            }))
         });
     } catch (error) {
         next(createHttpError(500, "Error fetching notifications: " + error));
@@ -35,12 +40,21 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
             throw createHttpError(401, "Unauthorized");
         }
 
+        const notification = await prisma.notification.findUnique({
+            where: { id }
+        });
+
+        if (!notification) {
+            throw createHttpError(404, "Notification not found");
+        }
+
+        // Add userId to readBy array if not already present
+        const updatedReadBy = [...new Set([...notification.readBy, userId])];
+
         await prisma.notification.update({
             where: { id },
             data: {
-                readBy: {
-                    push: userId
-                }
+                readBy: updatedReadBy
             }
         });
 
@@ -50,16 +64,64 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const createNotification = async (message: string, type: string) => {
+export const markAllAsRead = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+
+        if (!userId) {
+            throw createHttpError(401, "Unauthorized");
+        }
+
+        const notifications = await prisma.notification.findMany({
+            where: {
+                NOT: {
+                    readBy: {
+                        has: userId
+                    }
+                }
+            }
+        });
+
+        await Promise.all(
+            notifications.map(notification => 
+                prisma.notification.update({
+                    where: { id: notification.id },
+                    data: {
+                        readBy: [...new Set([...notification.readBy, userId])]
+                    }
+                })
+            )
+        );
+
+        res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+        next(createHttpError(500, "Error marking all notifications as read: " + error));
+    }
+};
+
+export type NotificationType = 
+    | 'request_approved'
+    | 'request_rejected'
+    | 'person_deleted'
+    | 'user_deleted'
+    | 'person_added'
+    | 'user_added';
+
+export const createNotification = async (
+    message: string,
+    type: NotificationType,
+    userId?: string
+) => {
     try {
         await prisma.notification.create({
             data: {
                 message,
                 type,
-                readBy: []
+                read: false,
+                readBy: userId ? [userId] : []
             }
         });
     } catch (error) {
-        console.error("Error creating notification:", error);
+        console.error('Error creating notification:', error);
     }
 }; 

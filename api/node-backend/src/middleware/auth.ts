@@ -59,13 +59,6 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
             }
 
             req.user = user;
-
-            // Verify admin role for admin routes
-            if (req.baseUrl.includes('/api/requests') && user.role !== 'admin') {
-                console.log('Non-admin user attempting to access admin route');
-                return res.status(403).json({ message: 'Admin access required' });
-            }
-
             next();
         } catch (jwtError) {
             console.error('JWT verification error:', jwtError);

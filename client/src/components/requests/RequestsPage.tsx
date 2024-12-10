@@ -20,6 +20,7 @@ interface Request {
 export default function RequestsPage() {
     const [requests, setRequests] = useState<Request[]>([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const { user } = useAuth();
 
     useEffect(() => {
@@ -54,6 +55,7 @@ export default function RequestsPage() {
 
     const handleApprove = async (id: string) => {
         try {
+            setActionLoading(id);
             const token = localStorage.getItem('token');
             await axiosInstance.put(`/api/requests/${id}/approve`, {
                 approvedBy: user?.id
@@ -63,26 +65,28 @@ export default function RequestsPage() {
                 }
             });
             toast.success('Request approved successfully');
-            fetchRequests();
+            await fetchRequests();
         } catch (error) {
             console.error('Error approving request:', error);
             toast.error('Failed to approve request');
+        } finally {
+            setActionLoading(null);
         }
     };
 
     const handleReject = async (id: string) => {
         try {
-            const token = localStorage.getItem('token');
-            await axiosInstance.put(`/api/requests/${id}/reject`, null, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            setActionLoading(id);
+            await axiosInstance.put(`/api/requests/${id}/reject`, {
+                rejectedBy: user?.id
             });
             toast.success('Request rejected successfully');
-            fetchRequests();
+            await fetchRequests();
         } catch (error) {
             console.error('Error rejecting request:', error);
             toast.error('Failed to reject request');
+        } finally {
+            setActionLoading(null);
         }
     };
 
@@ -149,21 +153,41 @@ export default function RequestsPage() {
                                             </div>
                                         </div>
 
-                                        {request.status === 'pending' && (
+                                        {(request.status === 'pending' && user?.role === 'admin') && (
                                             <div className="mt-4 flex justify-end space-x-2">
                                                 <button
                                                     onClick={() => handleReject(request.id)}
                                                     className="btn btn-secondary flex items-center"
+                                                    disabled={actionLoading === request.id}
                                                 >
-                                                    <X className="w-4 h-4 mr-1" />
-                                                    Reject
+                                                    {actionLoading === request.id ? (
+                                                        <>
+                                                            <div className="w-4 h-4 mr-1 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                            Rejecting...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <X className="w-4 h-4 mr-1" />
+                                                            Reject
+                                                        </>
+                                                    )}
                                                 </button>
                                                 <button
                                                     onClick={() => handleApprove(request.id)}
                                                     className="btn btn-primary flex items-center"
+                                                    disabled={actionLoading === request.id}
                                                 >
-                                                    <Check className="w-4 h-4 mr-1" />
-                                                    Approve
+                                                    {actionLoading === request.id ? (
+                                                        <>
+                                                            <div className="w-4 h-4 mr-1 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            Approving...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Check className="w-4 h-4 mr-1" />
+                                                            Approve
+                                                        </>
+                                                    )}
                                                 </button>
                                             </div>
                                         )}

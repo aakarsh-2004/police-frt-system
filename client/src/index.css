@@ -206,13 +206,13 @@
 }
 
 /* Add to your existing CSS */
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
-
 .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
 
 .content-wrapper {
@@ -373,4 +373,66 @@
     width: 100vw !important;
     height: 100vh !important;
     object-fit: contain;
+}
+
+.camera-marker {
+    width: 24px;
+    height: 24px;
+    background-color: #3B82F6;
+    border: 3px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.camera-marker:hover {
+    transform: scale(1.2);
+    background-color: #2563EB;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.camera-marker.selected {
+    background-color: #EF4444; /* Red color for selected state */
+    transform: scale(1.2);
+}
+
+.camera-marker.selected:hover {
+    background-color: #DC2626; /* Darker red on hover */
+}
+
+.dark .camera-marker {
+    border-color: #1f2937;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Add these styles for the popup */
+.mapboxgl-popup {
+    z-index: 1;
+}
+
+.mapboxgl-popup-content {
+    padding: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .mapboxgl-popup-content {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.mapboxgl-popup-tip {
+    display: none;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }

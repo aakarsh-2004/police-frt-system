@@ -198,33 +198,95 @@ const getAllRecognitionsForReport = (req, res, next) => __awaiter(void 0, void 0
 exports.getAllRecognitionsForReport = getAllRecognitionsForReport;
 const getRecognitionStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const totalDetections = yield prisma_1.prisma.recognizedPerson.count();
-        const successfulMatches = yield prisma_1.prisma.recognizedPerson.count({
-            where: {
-                confidenceScore: {
-                    gte: '50'
+        // Get all recognitions with person and camera details
+        const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
+            include: {
+                person: {
+                    select: {
+                        type: true
+                    }
+                },
+                camera: {
+                    select: {
+                        location: true,
+                        name: true
+                    }
                 }
+            },
+            orderBy: {
+                capturedDateTime: 'desc'
             }
         });
-        const allRecognitions = yield prisma_1.prisma.recognizedPerson.findMany({
-            select: {
-                confidenceScore: true
+        // Get daily trends (last 7 days)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const dailyTrends = yield prisma_1.prisma.recognizedPerson.groupBy({
+            by: ['capturedDateTime'],
+            where: {
+                capturedDateTime: {
+                    gte: sevenDaysAgo
+                }
+            },
+            _count: {
+                id: true
             }
         });
-        const averageConfidence = allRecognitions.length > 0
-            ? allRecognitions.reduce((acc, curr) => acc + parseFloat(curr.confidenceScore), 0) / allRecognitions.length
-            : 0;
+        // Format daily trends
+        const dailyStats = dailyTrends.map(day => ({
+            date: new Date(day.capturedDateTime).toISOString().split('T')[0],
+            count: day._count.id
+        }));
+        // Count detections by person type
+        const typeStats = recognitions.reduce((acc, curr) => {
+            const type = curr.person.type;
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+        }, {});
+        // Get unique locations and their detection counts
+        const locationMap = new Map();
+        recognitions.forEach(rec => {
+            const location = rec.camera.location;
+            const current = locationMap.get(location);
+            if (current) {
+                current.detectionCount += 1;
+            }
+            else {
+                locationMap.set(location, {
+                    location: rec.camera.location,
+                    cameraName: rec.camera.name,
+                    detectionCount: 1
+                });
+            }
+        });
+        // Convert to array and sort by detection count
+        const locationStats = Array.from(locationMap.values())
+            .sort((a, b) => b.detectionCount - a.detectionCount)
+            .slice(0, 5); // Get top 5 locations
+        // Calculate percentages
+        const totalDetections = recognitions.length;
+        const typeBreakdown = Object.entries(typeStats).map(([type, count]) => ({
+            type,
+            count,
+            percentage: Math.round((count / totalDetections) * 100)
+        }));
         res.json({
-            message: "Stats fetched successfully",
+            message: "Recognition stats retrieved successfully",
             data: {
                 totalDetections,
-                successfulMatches,
-                averageConfidence: parseFloat(averageConfidence.toFixed(1))
+                byType: typeBreakdown,
+                topLocations: locationStats.map(loc => ({
+                    location: loc.location,
+                    cameraName: loc.cameraName,
+                    count: loc.detectionCount,
+                    percentage: Math.round((loc.detectionCount / totalDetections) * 100)
+                })),
+                dailyStats: dailyStats
             }
         });
     }
     catch (error) {
-        next((0, http_errors_1.default)(500, "Error fetching recognition stats: " + error));
+        console.error('Error in getRecognitionStats:', error);
+        next((0, http_errors_1.default)(500, "Error getting recognition stats"));
     }
 });
 exports.getRecognitionStats = getRecognitionStats;

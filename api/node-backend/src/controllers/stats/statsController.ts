@@ -199,4 +199,68 @@ export const getDetectionTrends = async (req: Request, res: Response, next: Next
         console.error("Error in getDetectionTrends:", error);
         next(createHttpError(500, "Error fetching detection trends: " + error));
     }
+};
+
+export const getStats = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // Get total persons by type
+        const personTypeStats = await prisma.person.groupBy({
+            by: ['type'],
+            _count: {
+                id: true
+            }
+        });
+
+        // Calculate total and percentages
+        const totalPersons = personTypeStats.reduce((acc, curr) => acc + curr._count.id, 0);
+        const typeStats = personTypeStats.map(stat => ({
+            type: stat.type,
+            count: stat._count.id,
+            percentage: Math.round((stat._count.id / totalPersons) * 100)
+        }));
+
+        // Get location detection counts
+        const locationStats = await prisma.recognizedPerson.groupBy({
+            by: ['cameraId'],
+            _count: {
+                personId: true // Count unique persons
+            },
+            orderBy: {
+                _count: {
+                    personId: 'desc'
+                }
+            },
+            take: 5, // Top 5 locations
+            include: {
+                camera: {
+                    select: {
+                        location: true,
+                        name: true
+                    }
+                }
+            }
+        });
+
+        // Format location stats
+        const topLocations = locationStats.map(stat => ({
+            location: stat.camera.location,
+            cameraName: stat.camera.name,
+            uniquePersons: stat._count.personId
+        }));
+
+        res.json({
+            message: "Stats retrieved successfully",
+            data: {
+                personTypes: {
+                    total: totalPersons,
+                    breakdown: typeStats
+                },
+                topLocations
+            }
+        });
+
+    } catch (error) {
+        console.error('Error getting stats:', error);
+        next(createHttpError(500, "Error getting stats"));
+    }
 }; 

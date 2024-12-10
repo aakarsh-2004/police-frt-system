@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import ImageEnhancer from '../image/ImageEnhancer';
 import VideoPlayer from '../video/VideoPlayer';
 import RecentVideos from '../video/RecentVideos';
+import { formatDateTime, getTimeAgo } from '../../utils/dateUtils';
 
 interface Recognition {
     id: number;
@@ -63,6 +64,17 @@ interface Person {
     recognizedPerson: Recognition[];
 }
 
+interface LocationStat {
+    location: string;
+    detectionCount: number;
+    lastDetected: string;
+}
+
+interface LocationStats {
+    totalLocations: number;
+    locations: LocationStat[];
+}
+
 export default function PersonDetails() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -102,6 +114,9 @@ export default function PersonDetails() {
 
     // Add loading state
     const [isSaving, setIsSaving] = useState(false);
+
+    // Add state for location stats
+    const [locationStats, setLocationStats] = useState<LocationStats | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -153,6 +168,23 @@ export default function PersonDetails() {
             });
         }
     }, [person]);
+
+    // Add function to fetch location stats
+    const fetchLocationStats = async () => {
+        try {
+            const response = await axios.get(`${config.apiUrl}/api/persons/${id}/locations`);
+            setLocationStats(response.data.data);
+        } catch (error) {
+            console.error('Error fetching location stats:', error);
+        }
+    };
+
+    // Call this in useEffect
+    useEffect(() => {
+        if (id) {
+            fetchLocationStats();
+        }
+    }, [id]);
 
     const handleBack = () => {
         navigate(-1);
@@ -512,6 +544,46 @@ export default function PersonDetails() {
                     <div className="mt-6">
                         <RecentVideos videos={recentVideos} />
                     </div>
+
+                    {/* Location Statistics */}
+                    <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+                        <h3 className="text-lg font-semibold mb-4 dark:text-white">Location Statistics</h3>
+                        
+                        {locationStats && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-gray-600 dark:text-gray-400">Total Locations Detected</span>
+                                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                                        {locationStats.totalLocations}
+                                    </span>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h4 className="font-medium dark:text-white">Detection Locations</h4>
+                                    <div className="grid gap-3">
+                                        {locationStats.locations.map((stat, index) => (
+                                            <div 
+                                                key={index}
+                                                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                                            >
+                                                <div>
+                                                    <p className="font-medium dark:text-white">{stat.location}</p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                        Last detected: {new Date(stat.lastDetected).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                                                        {stat.detectionCount} detections
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Right Column - Recent Detections */}
@@ -527,7 +599,6 @@ export default function PersonDetails() {
                                 >
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4 mb-3">
-                                            {/* Original Database Image */}
                                             <div className="space-y-1">
                                                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
                                                     Database Image
@@ -541,7 +612,6 @@ export default function PersonDetails() {
                                                 </div>
                                             </div>
 
-                                            {/* Captured Image - Make this clickable */}
                                             <div className="space-y-1">
                                                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block">
                                                     Captured Image
@@ -559,7 +629,6 @@ export default function PersonDetails() {
                                             </div>
                                         </div>
 
-                                        {/* Detection Details */}
                                         <div className="space-y-3">
                                             <div className="flex items-center space-x-2">
                                                 <MapPin className="w-4 h-4 text-blue-500" />
@@ -571,7 +640,7 @@ export default function PersonDetails() {
                                             <div className="flex items-center space-x-2">
                                                 <Clock className="w-4 h-4 text-green-500" />
                                                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                                                    {new Date(recognition.capturedDateTime).toLocaleString()}
+                                                    {formatDateTime(recognition.capturedDateTime) + ' ' + '(' + getTimeAgo(recognition.capturedDateTime) + ')'}
                                                 </span>
                                             </div>
 

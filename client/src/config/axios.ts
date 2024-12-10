@@ -5,30 +5,20 @@ import config from './config';
 const axiosInstance = axios.create({
     baseURL: config.apiUrl,
     headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'application/json'
     }
 });
 
-// Add request interceptor to add token
+// Add auth token to requests
 axiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
-        console.log('Token from localStorage:', token);
-        
-        if (token && config.headers) {
+        if (token) {
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('Request headers:', {
-                ...config.headers,
-                Authorization: `Bearer ${token}`
-            });
-        } else {
-            console.log('No token found or headers undefined');
         }
         return config;
     },
     (error) => {
-        console.error('Request interceptor error:', error);
         return Promise.reject(error);
     }
 );

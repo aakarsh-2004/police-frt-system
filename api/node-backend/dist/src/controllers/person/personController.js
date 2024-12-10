@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = exports.getPersonStats = exports.resolvePerson = void 0;
+exports.searchPersons = exports.deletePerson = exports.updatePerson = exports.createPerson = exports.getPersonById = exports.getAllPersons = exports.getPersonLocationStats = exports.getPersonStats = exports.resolvePerson = void 0;
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
@@ -254,42 +254,48 @@ const updatePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
 exports.updatePerson = updatePerson;
 const deletePerson = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const deletedBy = req.user;
     try {
-        const person = yield prisma_1.prisma.person.findUnique({
-            where: { id },
-            include: {
-                suspect: true,
-                missingPerson: true
-            }
-        });
-        if (!person) {
-            throw (0, http_errors_1.default)(404, "Person not found");
-        }
+        // Use transaction to ensure all related records are deleted
         yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
-            if (person.type === 'suspect' && person.suspect) {
+            const person = yield tx.person.findUnique({
+                where: { id },
+                include: {
+                    suspect: true,
+                    missingPerson: true,
+                    recognizedPerson: true
+                }
+            });
+            if (!person) {
+                throw (0, http_errors_1.default)(404, "Person not found");
+            }
+            // Delete related records first
+            if (person.recognizedPerson.length > 0) {
+                yield tx.recognizedPerson.deleteMany({
+                    where: { personId: id }
+                });
+            }
+            if (person.suspect) {
                 yield tx.suspect.delete({
                     where: { personId: id }
                 });
             }
-            else if (person.type === 'missing-person' && person.missingPerson) {
+            if (person.missingPerson) {
                 yield tx.missingPerson.delete({
                     where: { personId: id }
                 });
             }
-            yield tx.recognizedPerson.deleteMany({
-                where: { personId: id }
-            });
+            // Finally delete the person
             yield tx.person.delete({
                 where: { id }
             });
+            // Create notification for person deletion
+            yield (0, notificationController_1.createNotification)(`${person.type === 'suspect' ? 'Suspect' : 'Missing Person'} ${person.firstName} ${person.lastName} was deleted by ${deletedBy === null || deletedBy === void 0 ? void 0 : deletedBy.firstName} ${deletedBy === null || deletedBy === void 0 ? void 0 : deletedBy.lastName}`, 'person_deleted');
         }));
-        res.json({
-            message: "Person deleted successfully",
-            data: person
-        });
+        res.json({ message: "Person deleted successfully" });
     }
     catch (error) {
-        console.error('Delete error:', error);
+        console.error('Error in deletePerson:', error);
         next((0, http_errors_1.default)(500, "Error deleting person: " + error));
     }
 });
@@ -435,3 +441,67 @@ const getPersonStats = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.getPersonStats = getPersonStats;
+const getPersonLocationStats = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        // Get all recognitions for this person with camera details
+        const recognitions = yield prisma_1.prisma.recognizedPerson.findMany({
+            where: {
+                personId: id
+            },
+            select: {
+                capturedDateTime: true,
+                camera: {
+                    select: {
+                        id: true,
+                        name: true,
+                        location: true
+                    }
+                }
+            },
+            orderBy: {
+                capturedDateTime: 'desc'
+            }
+        });
+        // Create a Map to store unique locations and their details
+        const locationMap = new Map();
+        // Process recognitions to get unique locations and counts
+        recognitions.forEach(recognition => {
+            const location = recognition.camera.location;
+            const current = locationMap.get(location);
+            if (current) {
+                // Update existing location
+                current.detectionCount += 1;
+                if (new Date(recognition.capturedDateTime) > current.lastDetected) {
+                    current.lastDetected = new Date(recognition.capturedDateTime);
+                }
+            }
+            else {
+                // Add new location
+                locationMap.set(location, {
+                    location,
+                    detectionCount: 1,
+                    lastDetected: new Date(recognition.capturedDateTime)
+                });
+            }
+        });
+        // Convert Map to array and format the response
+        const locationStats = {
+            totalLocations: locationMap.size,
+            locations: Array.from(locationMap.values()).map(stat => ({
+                location: stat.location,
+                detectionCount: stat.detectionCount,
+                lastDetected: stat.lastDetected.toISOString()
+            })).sort((a, b) => b.detectionCount - a.detectionCount) // Sort by detection count
+        };
+        res.json({
+            message: "Person location statistics fetched successfully",
+            data: locationStats
+        });
+    }
+    catch (error) {
+        console.error('Error in getPersonLocationStats:', error);
+        next((0, http_errors_1.default)(500, "Error fetching person location stats"));
+    }
+});
+exports.getPersonLocationStats = getPersonLocationStats;

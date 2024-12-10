@@ -177,6 +177,19 @@ export default function SuspectPage() {
         setFilteredPersons([]); // Clear filtered results
     };
 
+    const handleAddPerson = () => {
+        if (!user) {
+            toast.error('Please login to add a person');
+            navigate('/login');
+            return;
+        }
+        navigate('/suspects/new', { 
+            state: { 
+                defaultType: currentView === 'suspects' ? 'suspect' : 'missing-person' 
+            }
+        });
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-200px)]">
@@ -199,11 +212,11 @@ export default function SuspectPage() {
                     </div>
                     <div className="flex items-center space-x-4">
                         <button
-                            onClick={() => setShowCreateModal(true)}
+                            onClick={handleAddPerson}
                             className="btn btn-primary flex items-center"
                         >
                             <Plus className="w-4 h-4 mr-2" />
-                            Add New {currentView === 'suspects' ? 'Suspect' : 'Missing Person'}
+                            Add {currentView === 'suspects' ? 'Suspect' : 'Missing Person'}
                         </button>
                     </div>
                 </div>

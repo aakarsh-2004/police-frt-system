@@ -212,39 +212,37 @@ const updateUser = async (req: Request, res: Response, next: NextFunction) => {
     }
 };
 
-const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+const deleteUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
     const { id } = req.params;
+    const deletedBy = req.user;
 
     try {
-        const result = await prisma.$transaction(async (prisma) => {
-            const user = await prisma.user.findUnique({
-                where: { id }
-            });
-
-            if (!user) {
-                throw createHttpError(404, "User not found");
+        const user = await prisma.user.findUnique({
+            where: { id },
+            select: {
+                firstName: true,
+                lastName: true,
+                role: true
             }
-
-            if (user.userImageUrl) {
-                const userSplit = user.userImageUrl.split('/');
-                const lastTwo = userSplit.slice(-2);
-                if (lastTwo.length === 2) {
-                    const userImageSplit = `${lastTwo[0]}/${lastTwo[1].split('.')[0]}`;
-                    await cloudinary.uploader.destroy(userImageSplit);
-                }
-            }
-
-            const deletedUser = await prisma.user.delete({
-                where: { id }
-            });
-
-            const { password: _, ...userWithoutPassword } = deletedUser;
-            return userWithoutPassword;
         });
 
-        res.status(200).json(result);
+        if (!user) {
+            return next(createHttpError(404, "User not found"));
+        }
+
+        await prisma.user.delete({
+            where: { id }
+        });
+
+        // Create notification for user deletion
+        await createNotification(
+            `User ${user.firstName} ${user.lastName} (${user.role}) was deleted by ${deletedBy?.firstName} ${deletedBy?.lastName}`,
+            'user_deleted'
+        );
+
+        res.json({ message: "User deleted successfully" });
     } catch (error) {
-        next(createHttpError(500, "Error while deleting user " + error));
+        next(createHttpError(500, "Error deleting user: " + error));
     }
 };
 

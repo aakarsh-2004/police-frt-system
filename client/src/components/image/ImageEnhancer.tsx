@@ -432,107 +432,121 @@ export default function ImageEnhancer({
     );
 
     return (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl p-6 pb-24 relative">
-                {/* Tabs */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex space-x-4">
-                        <button
-                            onClick={() => setActiveTab('enhance')}
-                            className={`px-4 py-2 rounded-lg flex items-center ${
-                                activeTab === 'enhance' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
-                            }`}
-                        >
-                            <SlidersHorizontal className="w-4 h-4 mr-2" />
-                            Enhance
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('ai')}
-                            className={`px-4 py-2 rounded-lg flex items-center ${
-                                activeTab === 'ai' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
-                            }`}
-                        >
-                            <Wand2 className="w-4 h-4 mr-2" />
-                            AI Enhance
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('share')}
-                            className={`px-4 py-2 rounded-lg flex items-center ${
-                                activeTab === 'share' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
-                            }`}
-                        >
-                            <Share2 className="w-4 h-4 mr-2" />
-                            Share
-                        </button>
-                    </div>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] overflow-y-auto">
+            <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl m-4 max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 flex items-center justify-between p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
+                    <h2 className="text-xl font-semibold dark:text-white">Image Details</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-700"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Main Image Area */}
-                    <div className="md:col-span-2 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden relative">
-                        <div className="relative aspect-video">
-                            <img
-                                src={imageUrl}
-                                alt="Enhancement Preview"
-                                className="w-full h-full object-contain transition-all duration-200"
-                                style={imageStyle}
-                            />
+                <div className="p-4">
+                    {/* Tabs */}
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex space-x-4">
+                            <button
+                                onClick={() => setActiveTab('enhance')}
+                                className={`px-4 py-2 rounded-lg flex items-center ${
+                                    activeTab === 'enhance' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
+                                }`}
+                            >
+                                <SlidersHorizontal className="w-4 h-4 mr-2" />
+                                Enhance
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('ai')}
+                                className={`px-4 py-2 rounded-lg flex items-center ${
+                                    activeTab === 'ai' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
+                                }`}
+                            >
+                                <Wand2 className="w-4 h-4 mr-2" />
+                                AI Enhance
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('share')}
+                                className={`px-4 py-2 rounded-lg flex items-center ${
+                                    activeTab === 'share' ? 'bg-blue-900 text-white' : 'text-gray-700 dark:text-white'
+                                }`}
+                            >
+                                <Share2 className="w-4 h-4 mr-2" />
+                                Share
+                            </button>
+                        </div>
+                        {/* <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-700"
+                        >
+                            <X className="w-5 h-5" />
+                        </button> */}
+                    </div>
 
-                            {/* Navigation Buttons */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Main Image Area */}
+                        <div className="md:col-span-2 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden relative">
+                            <div className="relative aspect-video">
+                                <img
+                                    src={imageUrl}
+                                    alt="Enhancement Preview"
+                                    className="w-full h-full object-contain transition-all duration-200"
+                                    style={imageStyle}
+                                />
+
+                                {/* Navigation Buttons */}
+                                {images.length > 1 && (
+                                    <div className="absolute inset-0 flex items-center justify-between px-4 z-20">
+                                        <button
+                                            onClick={handlePrevImage}
+                                            className={`p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors 
+                                                ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            disabled={currentIndex === 0}
+                                        >
+                                            <ChevronLeft className="w-6 h-6" />
+                                        </button>
+                                        <button
+                                            onClick={handleNextImage}
+                                            className={`p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors 
+                                                ${currentIndex === images.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            disabled={currentIndex === images.length - 1}
+                                        >
+                                            <ChevronRight className="w-6 h-6" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Thumbnails */}
                             {images.length > 1 && (
-                                <div className=''>
-                                    <button
-                                        onClick={handlePrevImage}
-                                        className={`absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white 
-                                            hover:bg-black/70 transition-colors ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        disabled={currentIndex === 0}
-                                    >
-                                        <ChevronLeft className="w-6 h-6" />
-                                    </button>
-                                    <button
-                                        onClick={handleNextImage}
-                                        className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white 
-                                            hover:bg-black/70 transition-colors ${currentIndex === images.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        disabled={currentIndex === images.length - 1}
-                                    >
-                                        <ChevronRight className="w-6 h-6" />
-                                    </button>
+                                <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-2 p-4 bg-gradient-to-t from-black/50 to-transparent">
+                                    <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2">
+                                        {images.map((img, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => onImageChange?.(index)}
+                                                className={`flex-shrink-0 w-16 h-16 rounded overflow-hidden border-2 transition-colors 
+                                                    ${index === currentIndex ? 'border-blue-500' : 'border-transparent'}`}
+                                            >
+                                                <img
+                                                    src={img}
+                                                    alt={`Thumbnail ${index + 1}`}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {images.length > 1 && (
-                            <div className="absolute -bottom-30 left-0 right-0 flex justify-center gap-2 overflow-x-auto px-4 py-2 h-[200px]">
-                                {images.map((img, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => onImageChange?.(index)}
-                                        className={`w-16 h-16 rounded overflow-hidden border-2 transition-colors flex-shrink-0 ${
-                                            index === currentIndex ? 'border-blue-500' : 'border-transparent'
-                                        }`}
-                                    >
-                                        <img
-                                            src={img}
-                                            alt={`Thumbnail ${index + 1}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Controls Panel */}
-                    <div className="space-y-6">
-                        {activeTab === 'enhance' && renderEnhanceTab()}
-                        {activeTab === 'ai' && renderAITab()}
-                        {activeTab === 'share' && renderShareTab()}
+                        {/* Controls Panel */}
+                        <div className="space-y-6">
+                            {activeTab === 'enhance' && renderEnhanceTab()}
+                            {activeTab === 'ai' && renderAITab()}
+                            {activeTab === 'share' && renderShareTab()}
+                        </div>
                     </div>
                 </div>
             </div>

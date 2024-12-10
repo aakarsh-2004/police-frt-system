@@ -32,8 +32,7 @@ export const getCameraById = async (req: Request, res: Response, next: NextFunct
                     },
                     orderBy: {
                         capturedDateTime: 'desc'
-                    },
-                    take: 5
+                    }
                 },
                 _count: {
                     select: {
@@ -143,4 +142,105 @@ export const updateCameraStatus = async (req: Request, res: Response, next: Next
     } catch (error) {
         next(createHttpError(500, "Error updating camera status: " + error));
     }
-}; 
+};
+
+export const getCameraDetections = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+
+        // Get all recognitions with related data
+        const recognitions = await prisma.recognizedPerson.findMany({
+            where: { cameraId: id },
+            include: {
+                person: {
+                    include: {
+                        suspect: true,
+                        missingPerson: true
+                    }
+                },
+                camera: true
+            },
+            orderBy: { capturedDateTime: 'desc' }
+        });
+
+        // Format recent detections for the slider
+        const recentDetections = recognitions.slice(0, 10).map(recognition => ({
+            id: recognition.id,
+            personName: `${recognition.person.firstName} ${recognition.person.lastName}`,
+            personType: recognition.person.type,
+            personImageUrl: recognition.person.personImageUrl,
+            capturedImageUrl: recognition.capturedImageUrl,
+            capturedDateTime: recognition.capturedDateTime,
+            confidenceScore: recognition.confidenceScore,
+            location: recognition.camera.location
+        }));
+
+        // Get unique persons with their latest detections
+        const uniquePersonsMap = new Map();
+        recognitions.forEach(recognition => {
+            const person = recognition.person;
+            const existingPerson = uniquePersonsMap.get(person.id);
+
+            if (!existingPerson || new Date(recognition.capturedDateTime) > new Date(existingPerson.capturedDateTime)) {
+                uniquePersonsMap.set(person.id, {
+                    id: person.id,
+                    firstName: person.firstName,
+                    lastName: person.lastName,
+                    age: person.age,
+                    type: person.type,
+                    personImageUrl: person.personImageUrl,
+                    gender: person.gender,
+                    nationality: person.nationality,
+                    capturedImageUrl: recognition.capturedImageUrl,
+                    capturedDateTime: recognition.capturedDateTime,
+                    confidenceScore: recognition.confidenceScore,
+                    location: recognition.camera.location,
+                    riskLevel: person.suspect?.riskLevel,
+                    foundStatus: person.suspect?.foundStatus || person.missingPerson?.foundStatus,
+                    lastSeenDate: person.missingPerson?.lastSeenDate,
+                    lastSeenLocation: person.missingPerson?.lastSeenLocation
+                });
+            }
+        });
+
+        // Get total detections for each person
+        const detectedPersons = await Promise.all(
+            Array.from(uniquePersonsMap.entries()).map(async ([personId, personData]) => {
+                const totalDetections = await prisma.recognizedPerson.count({
+                    where: {
+                        personId: personId,
+                        cameraId: id
+                    }
+                });
+
+                return {
+                    ...personData,
+                    totalDetections
+                };
+            })
+        );
+
+        // Prepare stats
+        const stats = {
+            totalDetections: recognitions.length,
+            suspects: detectedPersons.filter(p => p.type === 'suspect').length,
+            missingPersons: detectedPersons.filter(p => p.type === 'missing-person').length,
+            recentDetections
+        };
+
+        console.log('API Response:', {
+            detectedPersons,
+            stats
+        });
+
+        res.json({
+            message: "Camera detections fetched successfully",
+            data: detectedPersons,
+            stats
+        });
+
+    } catch (error) {
+        console.error('Error in getCameraDetections:', error);
+        next(createHttpError(500, "Error fetching camera detections: " + error));
+    }
+};

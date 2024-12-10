@@ -8,17 +8,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -27,6 +16,8 @@ exports.rejectRequest = exports.approveRequest = exports.createRequest = exports
 const prisma_1 = require("../../lib/prisma");
 const http_errors_1 = __importDefault(require("http-errors"));
 const notificationController_1 = require("../notification/notificationController");
+const cloudinary_1 = __importDefault(require("../../config/cloudinary"));
+const fs_1 = __importDefault(require("fs"));
 const getAllRequests = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const requests = yield prisma_1.prisma.requests.findMany({
@@ -65,34 +56,44 @@ const createRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, func
         if (!user) {
             return next((0, http_errors_1.default)(401, "Unauthorized"));
         }
-        // Convert the request body to a string
-        const personData = JSON.stringify(req.body);
-        const imageData = req.file ? JSON.stringify(req.file) : null;
-        console.log('Creating request with data:', {
-            personData,
-            imageData,
-            userId: user.id
-        });
+        const personData = req.body;
+        let imageUrl = null;
+        // Handle image upload
+        if (req.file) {
+            try {
+                // Upload to Cloudinary
+                const result = yield cloudinary_1.default.uploader.upload(req.file.path, {
+                    folder: 'requests',
+                    resource_type: 'image'
+                });
+                imageUrl = result.secure_url;
+                // Clean up local file
+                fs_1.default.unlink(req.file.path, (err) => {
+                    if (err)
+                        console.error('Error deleting local file:', err);
+                });
+            }
+            catch (uploadError) {
+                console.error('Error uploading to Cloudinary:', uploadError);
+                return next((0, http_errors_1.default)(500, "Error uploading image"));
+            }
+        }
+        // Create request with image data
         const request = yield prisma_1.prisma.requests.create({
             data: {
                 requestedBy: user.id,
                 status: 'pending',
-                personData,
-                imageData
-            },
-            include: {
-                user: true
+                personData: JSON.stringify(Object.assign(Object.assign({}, personData), { personImageUrl: imageUrl // Store image URL in personData
+                 })),
+                imageData: imageUrl // Store Cloudinary URL directly in imageData
             }
         });
-        // Create notification for admins
-        yield (0, notificationController_1.createNotification)(`New person request from ${user.firstName} ${user.lastName}`, 'request');
         res.status(201).json({
-            message: "Request submitted successfully",
+            message: "Request created successfully",
             data: request
         });
     }
     catch (error) {
-        console.error('Error in createRequest:', error);
         next((0, http_errors_1.default)(500, "Error creating request: " + error));
     }
 });
@@ -117,34 +118,49 @@ const approveRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
             console.error('Error parsing person data:', parseError);
             return next((0, http_errors_1.default)(400, "Invalid person data format"));
         }
-        // Extract fields specific to different models
-        const { riskLevel, lastSeenDate, lastSeenLocation, missingSince, reportBy } = personData, basicPersonData = __rest(personData, ["riskLevel", "lastSeenDate", "lastSeenLocation", "missingSince", "reportBy"]);
-        // Create the person first
+        // Parse image data if exists
+        let imageData;
+        if (request.imageData) {
+            try {
+                imageData = JSON.parse(request.imageData);
+                personData.personImageUrl = imageData.path;
+            }
+            catch (parseError) {
+                console.error('Error parsing image data:', parseError);
+            }
+        }
+        // Parse missing person data if exists
+        let missingPersonData;
+        if (personData.missingPerson) {
+            try {
+                missingPersonData = JSON.parse(personData.missingPerson);
+            }
+            catch (parseError) {
+                console.error('Error parsing missing person data:', parseError);
+                return next((0, http_errors_1.default)(400, "Invalid missing person data format"));
+            }
+        }
+        // Create the person with image URL
         const person = yield prisma_1.prisma.person.create({
-            data: Object.assign(Object.assign({}, basicPersonData), { age: parseInt(basicPersonData.age), dateOfBirth: new Date(basicPersonData.dateOfBirth), personImageUrl: request.imageData ? JSON.parse(request.imageData).path : null })
+            data: Object.assign({ firstName: personData.firstName, lastName: personData.lastName, age: parseInt(personData.age), dateOfBirth: new Date(personData.dateOfBirth), address: personData.address, type: personData.type, gender: personData.gender, email: personData.email, phone: personData.phone, nationalId: personData.nationalId, nationality: personData.nationality, personImageUrl: personData.personImageUrl }, (personData.type === 'missing-person' && missingPersonData ? {
+                missingPerson: {
+                    create: {
+                        lastSeenDate: new Date(missingPersonData.lastSeenDate),
+                        lastSeenLocation: missingPersonData.lastSeenLocation,
+                        missingSince: new Date(missingPersonData.lastSeenDate),
+                        foundStatus: false,
+                        reportBy: missingPersonData.reportBy
+                    }
+                }
+            } : personData.type === 'suspect' ? {
+                suspect: {
+                    create: {
+                        riskLevel: personData.riskLevel || 'low',
+                        foundStatus: false
+                    }
+                }
+            } : {}))
         });
-        // Create related records based on person type
-        if (personData.type === 'suspect') {
-            yield prisma_1.prisma.suspect.create({
-                data: {
-                    personId: person.id,
-                    riskLevel: riskLevel || 'low',
-                    foundStatus: false
-                }
-            });
-        }
-        else if (personData.type === 'missing-person') {
-            yield prisma_1.prisma.missingPerson.create({
-                data: {
-                    personId: person.id,
-                    lastSeenDate: new Date(lastSeenDate),
-                    lastSeenLocation: lastSeenLocation,
-                    missingSince: new Date(missingSince || lastSeenDate),
-                    foundStatus: false,
-                    reportBy: reportBy
-                }
-            });
-        }
         // Update request status
         yield prisma_1.prisma.requests.update({
             where: { id },
@@ -169,16 +185,28 @@ const approveRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
 exports.approveRequest = approveRequest;
 const rejectRequest = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const { rejectedBy } = req.body;
     try {
+        const request = yield prisma_1.prisma.requests.findUnique({
+            where: { id }
+        });
+        if (!request) {
+            return next((0, http_errors_1.default)(404, "Request not found"));
+        }
         yield prisma_1.prisma.requests.update({
             where: { id },
             data: {
-                status: 'rejected'
+                status: 'rejected',
+                rejectedBy,
+                rejectedAt: new Date()
             }
         });
+        // Create notification
+        yield (0, notificationController_1.createNotification)(`Person request rejected by admin`, 'request_rejected');
         res.json({ message: "Request rejected successfully" });
     }
     catch (error) {
+        console.error('Error in rejectRequest:', error);
         next((0, http_errors_1.default)(500, "Error rejecting request: " + error));
     }
 });
