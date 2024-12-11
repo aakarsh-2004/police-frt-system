@@ -598,6 +598,9 @@ export const getPersonCameraLocations = async (req: Request, res: Response, next
             new Map(detections.map(d => [d.camera.id, d.camera])).values()
         );
 
+        console.log("unique cameras", uniqueCameras);
+        
+
         res.json({
             message: "Person's camera locations fetched successfully",
             data: uniqueCameras

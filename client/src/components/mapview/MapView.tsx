@@ -78,11 +78,19 @@ interface DetectedPerson {
     totalDetections: number;
 }
 
+interface Person {
+    id: string;
+    firstName: string;
+    lastName: string;
+    personImageUrl: string;
+    type: string;
+}
+
 const BHOPAL_BOUNDS = {
-    north: 23.3300, 
-    south: 23.1600, 
-    east: 77.5200, 
-    west: 77.3500 
+    north: 23.3300,
+    south: 23.1600,
+    east: 77.5200,
+    west: 77.3500
 };
 
 const BHOPAL_CENTER: [number, number] = [
@@ -112,24 +120,26 @@ const locations = [
 console.log(locations);
 
 // Add helper functions before the component
-const updateMarkerStyle = (el: HTMLElement, camera: CameraDetails, isSelected: boolean) => {
-    el.style.backgroundColor = isSelected ? '#EF4444' : (camera.status === 'active' ? '#4CAF50' : '#9E9E9E');
-    el.style.width = isSelected ? '28px' : '24px';
-    el.style.height = isSelected ? '28px' : '24px';
-    el.style.border = isSelected ? '3px solid #FEE2E2' : '2px solid white';
-    el.style.boxShadow = isSelected ? '0 0 0 2px rgba(239, 68, 68, 0.3)' : 'none';
-    el.style.transform = isSelected ? 'scale(1.1)' : 'scale(1)';
+const updateMarkerStyle = (el: HTMLElement, camera: CameraDetails, hasDetection: boolean) => {
+    el.style.backgroundColor = hasDetection 
+        ? '#EF4444'  // Red for cameras with detections
+        : (camera.status === 'active' ? '#4CAF50' : '#9E9E9E'); // Green for active, grey for inactive
+    el.style.width = hasDetection ? '28px' : '24px';
+    el.style.height = hasDetection ? '28px' : '24px';
+    el.style.border = hasDetection ? '3px solid #FEE2E2' : '2px solid white';
+    el.style.boxShadow = hasDetection ? '0 0 0 2px rgba(239, 68, 68, 0.3)' : 'none';
+    el.style.transform = hasDetection ? 'scale(1.1)' : 'scale(1)';
 };
 
-const createCustomMarker = (camera: CameraDetails, isSelected: boolean) => {
+const createCustomMarker = (camera: CameraDetails, hasDetection: boolean) => {
     const el = document.createElement('div');
     el.className = 'custom-marker transition-all duration-300';
     el.style.borderRadius = '50%';
     el.style.cursor = 'pointer';
-    
+
     // Apply initial styles
-    updateMarkerStyle(el, camera, isSelected);
-    
+    updateMarkerStyle(el, camera, hasDetection);
+
     return el;
 };
 
@@ -160,12 +170,13 @@ export default function MapView() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Person[]>([]);
     const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+    const [showSearchResults, setShowSearchResults] = useState(false);
 
     // First, create a ref to store markers
     const markersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
     console.log("selected camera", selectedCamera);
-    
+
 
     // Fetch cameras from the database
     useEffect(() => {
@@ -202,7 +213,7 @@ export default function MapView() {
                     stats: detectionsResponse.data.stats
                 };
                 setSelectedCamera(cameraWithStats);
-                
+
                 // Set detected persons
                 if (detectionsResponse.data.data) {
                     setDetectedPersons(detectionsResponse.data.data);
@@ -223,7 +234,7 @@ export default function MapView() {
         // Initialize map
         const map = new mapboxgl.Map({
             container: mapContainerRef.current,
-            style: 'mapbox://styles/mapbox/dark-v11',
+            style: isDarkMode ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/streets-v12",
             center: BHOPAL_CENTER,
             zoom: 12,
             maxBounds: [
@@ -261,23 +272,22 @@ export default function MapView() {
         // Add new markers
         cameras.forEach(camera => {
             const el = createMarkerElement(selectedCamera?.id === camera.id);
-            
+
             // Create popup
             const popup = new mapboxgl.Popup({
                 offset: 25,
                 closeButton: false,
                 closeOnClick: false
             })
-            .setHTML(`
+                .setHTML(`
                 <div class="p-3 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} rounded-lg shadow-lg min-w-[200px]">
                     <h3 class="font-bold text-sm">${camera.name}</h3>
                     <p class="text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}">${camera.location}</p>
                     <p class="text-xs mt-1">
-                        <span class="px-2 py-1 rounded-full ${
-                            camera.status === 'active' 
-                                ? isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'
-                                : isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
-                        }">
+                        <span class="px-2 py-1 rounded-full ${camera.status === 'active'
+                        ? isDarkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-800'
+                        : isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'
+                    }">
                             ${camera.status.toUpperCase()}
                         </span>
                     </p>
@@ -289,9 +299,9 @@ export default function MapView() {
                 element: el,
                 anchor: 'bottom'
             })
-            .setLngLat([parseFloat(camera.longitude), parseFloat(camera.latitude)])
-            .setPopup(popup)
-            .addTo(mapRef.current!);
+                .setLngLat([parseFloat(camera.longitude), parseFloat(camera.latitude)])
+                .setPopup(popup)
+                .addTo(mapRef.current!);
 
             // Store marker reference
             markersRef.current[camera.id] = marker;
@@ -300,7 +310,7 @@ export default function MapView() {
             el.addEventListener('mouseenter', () => {
                 marker.getPopup().addTo(mapRef.current!);
             });
-            
+
             el.addEventListener('mouseleave', () => {
                 marker.getPopup().remove();
             });
@@ -353,57 +363,70 @@ export default function MapView() {
         }
     };
 
-    // Add this new function to handle search
-    const handleSearch = useCallback(
-        debounce(async (query: string) => {
-            if (!query.trim()) {
-                setSearchResults([]);
-                return;
-            }
+    const handleSearch = async (query: string) => {
+        setSearchQuery(query);
 
-            try {
-                const response = await axios.get(`${config.apiUrl}/api/persons/search`, {
-                    params: { query }
-                });
-                setSearchResults(response.data.data);
-            } catch (error) {
-                console.error('Error searching persons:', error);
-                toast.error('Error searching persons');
-            }
-        }, 300),
-        []
-    );
+        if (query.trim().length === 0) {
+            setSearchResults([]);
+            setShowSearchResults(false);
+            return;
+        }
 
-    // Add this function to handle person selection
-    const handlePersonSelect = async (person: Person) => {
         try {
+            const response = await axios.get(`${config.apiUrl}/api/persons/search?q=${query}`);
+            setSearchResults(response.data.data);
+            setShowSearchResults(true);
+        } catch (error) {
+            console.error('Error searching:', error);
+            setSearchResults([]);
+        }
+    };
+
+    // Update the handlePersonSelect function
+    const handlePersonSelect = async (personId: string) => {
+        try {
+            // First fetch the person details
+            const personResponse = await axios.get(`${config.apiUrl}/api/persons/${personId}`);
+            const person = personResponse.data.data;
+            
+            
             setSelectedPerson(person);
             setSearchQuery(`${person.firstName} ${person.lastName}`);
-            setSearchResults([]); // Clear dropdown
+            setShowSearchResults(false);
 
             // Fetch cameras where this person was detected
-            const response = await axios.get(`${config.apiUrl}/api/persons/${person.id}/cameras`);
-            const personCameras = response.data.data;
+            const response = await axios.get(`${config.apiUrl}/api/persons/${personId}/cameras`);
+            const detectedCameras = response.data.data;
+            
 
-            // Update cameras state to only show relevant cameras
-            setCameras(personCameras);
+            // Get the IDs of cameras where person was detected
+            const detectedCameraIds = new Set(detectedCameras.map((cam: CameraDetails) => cam.id));
 
-            // Update markers on the map
-            if (mapRef.current) {
-                // Remove existing markers
-                markers.current.forEach(marker => marker.remove());
-                markers.current = [];
+            // Update all markers with new colors
+            markers.current.forEach(marker => {
+                const el = marker.getElement();
+                const camera = cameras.find(c => c.id === marker.cameraId);
+                if (!camera) return;
 
-                // Add new markers for filtered cameras
-                personCameras.forEach(camera => {
-                    const marker = createMarker(camera);
-                    marker.addTo(mapRef.current!);
-                    markers.current.push(marker);
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching person cameras:', error);
-            toast.error('Error fetching camera locations');
+                // Update marker style based on whether person was detected at this camera
+                updateMarkerStyle(
+                    el, 
+                    camera,
+                    detectedCameraIds.has(camera.id) // Pass true if person was detected at this camera
+                );
+            });
+
+            // Update cameras state to include detection information
+            setCameras(prevCameras => 
+                prevCameras.map(camera => ({
+                    ...camera,
+                    hasDetection: detectedCameraIds.has(camera.id)
+                }))
+            );
+
+        } catch (err) {
+            console.error('Error fetching person cameras:', err);
+            toast.error('Failed to fetch camera locations');
         }
     };
 
@@ -422,6 +445,13 @@ export default function MapView() {
         fetchCameras(); // Your existing function to fetch all cameras
     };
 
+
+    const handleSelectPerson = async (personId: string) => {
+        
+    };
+
+
+
     return (
         <div className="p-6">
             <div className="max-w-[2000px] mx-auto">
@@ -436,12 +466,40 @@ export default function MapView() {
                     <div className="space-y-6">
                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
                             <div className="relative">
-                                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" />
                                 <input
                                     type="text"
-                                    placeholder="Search by ID, name..."
-                                    className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white"
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    placeholder="Search persons..."
+                                    className="w-full pl-10 pr-4 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg focus:ring-2 focus:ring-blue-500 dark:text-white"
                                 />
+
+                                {showSearchResults && searchResults.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 max-h-60 overflow-y-auto">
+                                        {searchResults.map((result) => (
+                                            <button
+                                                key={result.id}
+                                                onClick={() => handlePersonSelect(result.id)}
+                                                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-3"
+                                            >
+                                                <img
+                                                    src={result.personImageUrl}
+                                                    alt={`${result.firstName} ${result.lastName}`}
+                                                    className="w-8 h-8 rounded-full object-cover"
+                                                />
+                                                <div>
+                                                    <div className="font-medium dark:text-white">
+                                                        {result.firstName} {result.lastName}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                        {result.type}
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -524,13 +582,13 @@ export default function MapView() {
                     <div className="lg:col-span-3">
                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
                             <div className="relative w-full h-[500px] overflow-hidden rounded-lg">
-                                <div 
-                                    ref={mapContainerRef} 
+                                <div
+                                    ref={mapContainerRef}
                                     className="absolute inset-0"
-                                    style={{ 
-                                        width: '100%', 
+                                    style={{
+                                        width: '100%',
                                         height: '100%'
-                                    }} 
+                                    }}
                                 />
                             </div>
 
@@ -559,11 +617,10 @@ export default function MapView() {
                                         </div>
                                         <div>
                                             <span className="text-sm text-gray-500 dark:text-gray-400">Status</span>
-                                            <p className={`font-medium ${
-                                                selectedCamera.status === 'active' 
-                                                    ? 'text-green-600 dark:text-green-400' 
+                                            <p className={`font-medium ${selectedCamera.status === 'active'
+                                                    ? 'text-green-600 dark:text-green-400'
                                                     : 'text-gray-600 dark:text-gray-400'
-                                            }`}>
+                                                }`}>
                                                 {selectedCamera.status.toUpperCase()}
                                             </p>
                                         </div>
@@ -582,6 +639,12 @@ export default function MapView() {
                                         <div>
                                             <span className="text-sm text-gray-500 dark:text-gray-400">Stream URL</span>
                                             <p className="font-medium dark:text-white truncate">{selectedCamera.streamUrl}</p>
+                                        </div>
+
+                                        <div className='mt-2 w-[45%] flex justify-center'>
+                                            <a href={`https://google.com/maps?q=${selectedCamera.latitude},${selectedCamera.longitude}`} target='_blank'>
+                                                <p className="truncate rounded-lg p-2 bg-amber-50 dark:bg-amber-900/20 hover:cursor-pointer text-amber-700 dark:text-amber-500" >Take me there</p>
+                                            </a>
                                         </div>
                                     </div>
 
@@ -619,8 +682,8 @@ export default function MapView() {
                             {selectedCamera && (
                                 <>
                                     {/* DetectedPersons component - Now first */}
-                                    <DetectedPersons 
-                                        detections={detectedPersons} 
+                                    <DetectedPersons
+                                        detections={detectedPersons}
                                         onImageClick={(detection) => {
                                             setSelectedImage(detection.capturedImageUrl);
                                             setSelectedDetection({
@@ -640,17 +703,17 @@ export default function MapView() {
                                     {selectedCamera.stats && (
                                         <div className="mt-6 border-t pt-4">
                                             <h4 className="text-lg font-medium mb-4 dark:text-white">Recent Detections</h4>
-                                            
+
                                             <div className="relative">
                                                 {/* Navigation Buttons */}
-                                                <button 
+                                                <button
                                                     onClick={slideLeft}
                                                     className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition-colors"
                                                 >
                                                     <ChevronLeft className="w-5 h-5" />
                                                 </button>
-                                                
-                                                <button 
+
+                                                <button
                                                     onClick={slideRight}
                                                     className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 p-2 rounded-full text-white hover:bg-black/70 transition-colors"
                                                 >
@@ -658,16 +721,16 @@ export default function MapView() {
                                                 </button>
 
                                                 {/* Slider Container */}
-                                                <div 
+                                                <div
                                                     ref={sliderRef}
                                                     className="flex overflow-x-auto space-x-4 scrollbar-hide scroll-smooth"
                                                 >
                                                     {selectedCamera.stats.recentDetections.map((detection) => (
-                                                        <div 
+                                                        <div
                                                             key={detection.id}
                                                             className="flex-none w-48"
                                                         >
-                                                            <div 
+                                                            <div
                                                                 className="aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer"
                                                                 onClick={() => handleImageClick(detection)}
                                                             >
@@ -684,11 +747,10 @@ export default function MapView() {
                                                                 <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                     {new Date(detection.capturedDateTime).toLocaleString()}
                                                                 </p>
-                                                                <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                                                                    detection.personType === 'suspect'
+                                                                <span className={`inline-block px-2 py-1 rounded-full text-xs ${detection.personType === 'suspect'
                                                                         ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
                                                                         : 'bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400'
-                                                                }`}>
+                                                                    }`}>
                                                                     {detection.personType.toUpperCase()}
                                                                 </span>
                                                             </div>

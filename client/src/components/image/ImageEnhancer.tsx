@@ -11,6 +11,7 @@ import emailjs from '@emailjs/browser';
 import config from '../../config/config';
 import { formatDate } from 'date-fns';
 import { formatDateTime } from '../../utils/dateUtils';
+import { getRecentEmails, addRecentEmail } from '../../utils/emailHistory';
 
 interface DetectionDetails {
     id: string;
@@ -69,6 +70,10 @@ export default function ImageEnhancer({
     const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
     const phoneInputRef = useRef<HTMLInputElement>(null);
+    const [showEmailDropdown, setShowEmailDropdown] = useState(false);
+    const [recentEmails, setRecentEmails] = useState<string[]>([]);
+    const emailInputRef = useRef<HTMLInputElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     console.log("id", id);
     console.log("imageUrl", imageUrl);
@@ -101,6 +106,42 @@ export default function ImageEnhancer({
 
         fetchDetectionDetails();
     }, [id]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+                emailInputRef.current && !emailInputRef.current.contains(event.target as Node)) {
+                setShowEmailDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setShowEmailDropdown(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscapeKey);
+        return () => document.removeEventListener('keydown', handleEscapeKey);
+    }, []);
+
+    const handleEmailInputFocus = () => {
+        const emails = getRecentEmails();
+        setRecentEmails(emails);
+        if (emails.length > 0) {
+            setShowEmailDropdown(true);
+        }
+    };
+
+    const handleEmailSelect = (email: string) => {
+        setRecipientEmail(email);
+        setShowEmailDropdown(false);
+    };
 
     const imageStyle = {
         filter: `brightness(${brightness}%) contrast(${contrast}%)`,
@@ -193,6 +234,7 @@ export default function ImageEnhancer({
             );
 
             console.log('Email sent successfully:', response);
+            addRecentEmail(recipientEmail);
             toast.success('Detection shared successfully');
             setRecipientEmail('');
         } catch (error) {
@@ -434,18 +476,44 @@ export default function ImageEnhancer({
                 <div className="mt-6 border-t pt-4 dark:border-gray-700">
                     <h3 className="font-medium mb-4">Share via Email</h3>
                     <form onSubmit={handleEmailShare} className="space-y-4">
-                        <div>
+                        <div className="relative" ref={dropdownRef}>
                             <label className="block text-sm font-medium mb-1 dark:text-gray-300">
                                 Recipient Email
                             </label>
                             <input
+                                ref={emailInputRef}
                                 type="email"
                                 value={recipientEmail}
                                 onChange={(e) => setRecipientEmail(e.target.value)}
+                                onFocus={handleEmailInputFocus}
+                                onClick={handleEmailInputFocus}
+                                onBlur={() => {
+                                    // Small delay to allow clicking on dropdown items
+                                    setTimeout(() => {
+                                        setShowEmailDropdown(false);
+                                    }, 200);
+                                }}
                                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 placeholder="Enter email address"
                                 required
                             />
+                            
+                            {/* Email Dropdown */}
+                            {showEmailDropdown && recentEmails.length > 0 && (
+                                <div className="absolute w-full mt-1 bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-lg shadow-lg z-50 overflow-hidden">
+                                    {recentEmails.map((email, index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            onClick={() => handleEmailSelect(email)}
+                                            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 flex items-center"
+                                        >
+                                            <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                                            <span>{email}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <button
                             type="submit"

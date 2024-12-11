@@ -58,6 +58,7 @@ interface LocationStats {
 
 interface Stats {
     totalDetections: number;
+    successfulMatches?: number;
     byType: Array<{
         type: string;
         count: number;
@@ -75,37 +76,51 @@ interface Stats {
     }>;
 }
 
-const recentReports: RecentReport[] = [
-    {
-        id: '1',
-        title: 'Daily Detection Report',
-        date: new Date().toLocaleDateString(),
-        time: '09:00 AM',
-        detections: 45,
-        matches: 32,
-        format: 'CSV'
-    },
-    {
-        id: '2',
-        title: 'Weekly Summary Report',
-        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        time: '11:30 AM',
-        detections: 312,
-        matches: 156,
-        format: 'CSV'
-    },
-    {
-        id: '3',
-        title: 'Monthly Analytics Report',
-        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toLocaleDateString(),
-        time: '10:15 AM',
-        detections: 1250,
-        matches: 890,
-        format: 'CSV'
-    }
-];
+const generateRecentReports = (stats: Stats | null) => {
+    const now = new Date();
+    const currentTime = now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+    });
+
+    // Get actual values from stats
+    const totalDetections = stats?.totalDetections || 0;
+    const successfulMatches = stats?.successfulMatches || 0;
+
+    return [
+        {
+            id: '1',
+            title: 'Daily Detection Report',
+            date: now.toLocaleDateString(),
+            time: currentTime,
+            detections: totalDetections,
+            matches: successfulMatches,
+            format: 'CSV'
+        },
+        {
+            id: '2',
+            title: 'Weekly Summary Report',
+            date: now.toLocaleDateString(),
+            time: currentTime,
+            detections: totalDetections,
+            matches: successfulMatches,
+            format: 'CSV'
+        },
+        {
+            id: '3',
+            title: 'Monthly Analytics Report',
+            date: now.toLocaleDateString(),
+            time: currentTime,
+            detections: totalDetections,
+            matches: successfulMatches,
+            format: 'CSV'
+        }
+    ];
+};
 
 export default function ReportsPage() {
+    const [recentReports, setRecentReports] = useState<RecentReport[]>(generateRecentReports(null));
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<Stats>({
         totalDetections: 0,
@@ -117,31 +132,49 @@ export default function ReportsPage() {
     const [trends, setTrends] = useState<DetectionTrends | null>(null);
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
     const [view, setView] = useState<'reports' | 'graphs'>('reports');
-
-    useEffect(() => {
-        fetchStats();
-        fetchTrends();
-    }, []);
-
+    
     const fetchStats = async () => {
         try {
-            const response = await axios.get(`${config.apiUrl}/api/recognitions/stats`);
-            setStats(response.data.data);
+            setLoading(true);
+            // Fetch both stats and trends
+            const [statsResponse, trendsResponse] = await Promise.all([
+                axios.get(`${config.apiUrl}/api/recognitions/stats`),
+                axios.get(`${config.apiUrl}/api/stats/trends`)
+            ]);
+
+            const statsData = statsResponse.data.data;
+            const trendsData = trendsResponse.data.data;
+
+            // Set both stats and trends
+            setStats(statsData);
+            setTrends(trendsData);
+
+            // Calculate total detections from trends data
+            const totalDetections = trendsData.daily.reduce((sum, day) => sum + day._count.id, 0);
+            
+            // Calculate successful matches (detections with confidence > 50%)
+            const successfulMatches = trendsData.byConfidence
+                .filter(conf => parseFloat(conf.confidenceScore) > 50)
+                .reduce((sum, conf) => sum + conf._count.id, 0);
+
+            // Generate reports with actual data
+            const reports = generateRecentReports({
+                ...statsData,
+                totalDetections,
+                successfulMatches
+            });
+            setRecentReports(reports);
+
         } catch (error) {
             console.error('Error fetching stats:', error);
+            toast.error('Failed to fetch statistics');
         } finally {
             setLoading(false);
         }
     };
-
-    const fetchTrends = async () => {
-        try {
-            const response = await axios.get(`${config.apiUrl}/api/stats/trends`);
-            setTrends(response.data.data);
-        } catch (error) {
-            console.error('Error fetching trends:', error);
-        }
-    };
+    useEffect(() => {
+        fetchStats();
+    }, []);
 
     const handleGenerateReport = async () => {
         try {
@@ -242,18 +275,18 @@ export default function ReportsPage() {
                                     />
                                 </div>
                                 <p className="text-2xl font-bold">
-                                    {loading ? '...' : stats.totalDetections.toLocaleString()}
+                                    {loading ? '...' : stats.totalDetections?.toLocaleString() || '0'}
                                 </p>
                             </div>
 
                             <div className="bg-white rounded-lg shadow-lg p-4 dark:bg-gray-800">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-gray-600 dark:text-gray-400">
-                                        {currentLanguage === 'en' ? 'Suspects Detected' : 'पहचाने गए संदिग्ध'}
+                                        {currentLanguage === 'en' ? 'Suspects Detected' : 'पहचाने गए संदिग���ध'}
                                     </h3>
                                 </div>
                                 <p className="text-2xl font-bold">
-                                    {loading ? '...' : stats.byType.find(t => t.type === 'suspect')?.count.toLocaleString() || '0'}
+                                    {loading ? '...' : (stats.byType.find(t => t.type === 'suspect')?.count || 0).toLocaleString()}
                                 </p>
                             </div>
 
@@ -264,7 +297,7 @@ export default function ReportsPage() {
                                     </h3>
                                 </div>
                                 <p className="text-2xl font-bold">
-                                    {loading ? '...' : stats.byType.find(t => t.type === 'missing-person')?.count.toLocaleString() || '0'}
+                                    {loading ? '...' : (stats.byType.find(t => t.type === 'missing-person')?.count || 0).toLocaleString()}
                                 </p>
                             </div>
                         </div>

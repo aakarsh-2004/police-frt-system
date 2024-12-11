@@ -14,17 +14,74 @@ interface SidebarProps {
 }
 
 const menuItems = [
-    { id: 'dashboard', icon: BarChart2, translationKey: 'nav.dashboard', path: '/' },
-    { id: 'monitoring', icon: Camera, translationKey: 'nav.monitoring', path: '/monitoring' },
-    { id: 'suspects', icon: User, translationKey: 'nav.suspects', path: '/suspects' },
-    { id: 'search', icon: Search, translationKey: 'nav.search', path: '/search' },
-    { id: 'alerts', icon: Bell, translationKey: 'nav.alerts', path: '/alerts' },
-    { id: 'reports', icon: FileText, translationKey: 'nav.reports', path: '/reports', adminOnly: true },
-    { id: 'mapview', icon: MapPin, translationKey: 'nav.mapview', path: '/mapview' },
-    { id: 'tutorial', icon: GraduationCap, translationKey: 'nav.tutorialTraining', path: '/tutorial' },
-    { id: 'users', icon: Users, translationKey: 'nav.users', path: '/users', adminOnly: true },
-    { id: 'settings', icon: Settings, translationKey: 'nav.settings', path: '/settings' },
-    { id: 'requests', icon: Clock, translationKey: 'nav.requests', path: '/requests'}
+    { 
+        id: 'dashboard', 
+        icon: BarChart2, 
+        translationKey: 'nav.dashboard', 
+        path: '/'
+    },
+    { 
+        id: 'monitoring', 
+        icon: Camera, 
+        translationKey: 'nav.monitoring', 
+        path: '/monitoring'
+    },
+    { 
+        id: 'suspects', 
+        icon: User, 
+        translationKey: 'nav.suspects', 
+        path: '/suspects'
+    },
+    { 
+        id: 'search', 
+        icon: Search, 
+        translationKey: 'nav.search', 
+        path: '/search'
+    },
+    { 
+        id: 'alerts', 
+        icon: Bell, 
+        translationKey: 'nav.alerts', 
+        path: '/alerts'
+    },
+    { 
+        id: 'reports', 
+        icon: FileText, 
+        translationKey: 'nav.reports', 
+        path: '/reports', 
+        adminOnly: true
+    },
+    { 
+        id: 'mapview', 
+        icon: MapPin, 
+        translationKey: 'nav.mapview', 
+        path: '/mapview'
+    },
+    { 
+        id: 'tutorial', 
+        icon: GraduationCap, 
+        translationKey: 'nav.tutorialTraining', 
+        path: '/tutorial'
+    },
+    { 
+        id: 'users', 
+        icon: Users, 
+        translationKey: 'nav.users', 
+        path: '/users', 
+        adminOnly: true
+    },
+    { 
+        id: 'settings', 
+        icon: Settings, 
+        translationKey: 'nav.settings', 
+        path: '/settings'
+    },
+    { 
+        id: 'requests', 
+        icon: Clock, 
+        translationKey: 'nav.requests', 
+        path: '/requests'
+    }
 ];
 
 export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
@@ -85,7 +142,7 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
                                 ? 'bg-blue-900 text-white dark:bg-blue-800'
                                 : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                         }`}
-                        title={collapsed ? t(item.translationKey) : ''}
+                        title={currentLanguage === 'en' ? t(`descriptions.${item.id}`) : t(`descriptions.${item.id}`)}
                     >
                         <item.icon className={`w-5 h-5 ${item.id === activePage ? 'text-amber-400' : ''}`} />
                         {!collapsed && <span className="text-sm font-medium">{t(item.translationKey)}</span>}

@@ -4,14 +4,14 @@
     "searchPlaceholder": "Search suspects, cases, or matches...",
     "newReport": "New Report",
     "dashboard": "Dashboard",
-    "monitoring": "Live Monitoring",
+    "monitoring": "Monitoring",
     "suspects": "Suspects",
-    "search": "Search & Lookup",
+    "search": "Search",
     "alerts": "Alerts",
     "reports": "Reports",
     "mapview": "Map View",
-    "tutorialTraining": "Tutorial Training",
-    "users": "User Management",
+    "tutorialTraining": "Tutorial",
+    "users": "Users",
     "settings": "Settings",
     "requests": "Requests"
   },
@@ -165,5 +165,18 @@
       "medium": "Medium",
       "low": "Low"
     }
+  },
+  "descriptions": {
+    "dashboard": "Main dashboard providing comprehensive system overview. Features include real-time statistics, detection counts, success rates, recent alerts, live camera feeds, crime hotspots, and system performance metrics. Monitor daily activities and track key performance indicators.",
+    "monitoring": "Real-time surveillance and monitoring interface. View multiple camera feeds simultaneously, perform live face detection and recognition, receive instant alerts, control PTZ cameras, and monitor system health. Includes AI-powered detection with confidence scores and instant notification system.",
+    "suspects": "Comprehensive database of suspects and missing persons. Add, edit, and manage profiles with detailed information including photos, personal details, criminal history, and detection records. View match history, generate reports, and track detection patterns across different locations.",
+    "search": "Advanced search system with multiple filters and parameters. Search by name, location, date range, camera zones, and confidence levels. Features facial recognition search, location-based filtering, time-based analysis, and detailed match history. Export search results and generate custom reports.",
+    "alerts": "Centralized alert management system showing real-time notifications and detection alerts. Filter alerts by severity, location, and time. Includes instant notifications for high-priority matches, suspicious activities, and system events. Manage alert responses and track alert history.",
+    "reports": "Comprehensive reporting system for administrators. Generate detailed analytics reports, detection statistics, system performance metrics, and user activity logs. Export data in multiple formats, create custom reports, analyze trends, and track system usage patterns. Includes data visualization tools and automated reporting schedules.",
+    "mapview": "Interactive geographical visualization of the surveillance system. View camera locations, detection hotspots, and real-time activities on an interactive map. Track suspect movements, analyze detection patterns, and monitor camera coverage areas. Features heat maps, location-based filtering, and historical data visualization.",
+    "tutorial": "Comprehensive training and documentation center. Access system tutorials, user guides, best practices, and training materials. Includes interactive tutorials, video demonstrations, troubleshooting guides, and system updates. Learn about new features, security protocols, and system optimization techniques.",
+    "users": "Administrative user management interface. Manage user accounts, roles, and permissions. Create and modify user profiles, assign access levels, track user activities, and manage security policies. Includes audit logs, activity monitoring, and role-based access control settings.",
+    "settings": "System configuration and personalization settings. Customize application preferences, notification settings, display options, and security parameters. Manage profile settings, API configurations, system integrations, and backup options. Configure detection sensitivity, alert thresholds, and automation rules.",
+    "requests": "Request management system for new person entries. Review and process incoming requests for adding suspects or missing persons. Track request status, manage approvals, and maintain request history. Includes verification workflows, documentation requirements, and automated notification system for request updates."
   }
 } 

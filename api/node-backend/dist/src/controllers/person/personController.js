@@ -530,6 +530,7 @@ const getPersonCameraLocations = (req, res, next) => __awaiter(void 0, void 0, v
         });
         // Extract unique cameras and remove duplicates
         const uniqueCameras = Array.from(new Map(detections.map(d => [d.camera.id, d.camera])).values());
+        console.log("unique cameras", uniqueCameras);
         res.json({
             message: "Person's camera locations fetched successfully",
             data: uniqueCameras
