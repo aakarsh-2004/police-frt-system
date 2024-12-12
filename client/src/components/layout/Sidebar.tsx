@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../context/LanguageContext';
+import Tooltip from '../common/Tooltip';
 
 interface SidebarProps {
     onPageChange: (page: string) => void;
@@ -134,19 +135,22 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
 
             <nav className="flex-1 px-4">
                 {visibleMenuItems.map((item) => (
-                    <button
+                    <Tooltip
                         key={item.id}
-                        onClick={() => handleNavigation(item.id)}
-                        className={`w-full flex items-center space-x-3 px-4 py-3 mb-2 rounded-lg transition-colors ${
-                            item.id === activePage
-                                ? 'bg-blue-900 text-white dark:bg-blue-800'
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                        }`}
-                        title={currentLanguage === 'en' ? t(`descriptions.${item.id}`) : t(`descriptions.${item.id}`)}
+                        content={t(`descriptions.${item.id}`)}
                     >
-                        <item.icon className={`w-5 h-5 ${item.id === activePage ? 'text-amber-400' : ''}`} />
-                        {!collapsed && <span className="text-sm font-medium">{t(item.translationKey)}</span>}
-                    </button>
+                        <button
+                            onClick={() => handleNavigation(item.id)}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 mb-2 rounded-lg transition-colors ${
+                                item.id === activePage
+                                    ? 'bg-blue-900 text-white dark:bg-blue-800'
+                                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                            }`}
+                        >
+                            <item.icon className={`w-5 h-5 ${item.id === activePage ? 'text-amber-400' : ''}`} />
+                            <span className="text-sm font-medium">{t(item.translationKey)}</span>
+                        </button>
+                    </Tooltip>
                 ))}
             </nav>
         </aside>

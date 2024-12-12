@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     GraduationCap, PlayCircle, BookOpen, HelpCircle,
     Award, CheckCircle, Video, FileText, Users, Wrench
 } from 'lucide-react';
+import StatusBadge from '../common/StatusBadge';
+import VideoPlayer from '../video/VideoPlayer';
 
 interface TrainingModule {
     id: string;
@@ -12,39 +14,59 @@ interface TrainingModule {
     type: 'video' | 'document' | 'interactive';
     status: 'completed' | 'in-progress' | 'not-started';
     thumbnail?: string;
+    videoUrl?: string;
 }
 
 const trainingModules: TrainingModule[] = [
     {
-        id: 'vid-1',
+        id: '1',
         title: 'System Overview',
-        description: 'Introduction to the Face Recognition System and its key features',
-        duration: '10 min',
+        description: 'Learn about the core features and functionalities of the Face Recognition System.',
+        videoUrl: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973016/sih-tutorial-video/ksgwnt0ueolljy6sz8d7.mp4',
+        duration: '2:01',
         type: 'video',
-        status: 'completed',
-        thumbnail: 'https://images.unsplash.com/photo-1557804506-669a67965ba0'
+        status: 'not-started',
+        thumbnail: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973016/sih-tutorial-video/ksgwnt0ueolljy6sz8d7.jpg'
     },
     {
-        id: 'vid-2',
-        title: 'Live Monitoring Tutorial',
-        description: 'Learn how to effectively use the live monitoring system',
-        duration: '15 min',
+        id: '2',
+        title: 'Live Monitoring',
+        description: 'Master the live surveillance features and real-time detection capabilities.',
+        videoUrl: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973011/sih-tutorial-video/qneouncpyyuwk6oiomlv.mp4',
+        duration: '1:26',
         type: 'video',
-        status: 'in-progress',
-        thumbnail: 'https://images.unsplash.com/photo-1551972873-b7e8754e8e26'
+        status: 'not-started',
+        thumbnail: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973011/sih-tutorial-video/qneouncpyyuwk6oiomlv.jpg'
     },
     {
-        id: 'doc-1',
-        title: 'Standard Operating Procedures',
-        description: 'Detailed documentation of operational procedures and protocols',
-        duration: '20 min',
-        type: 'document',
-        status: 'not-started'
+        id: '3',
+        title: 'Search & Analytics',
+        description: 'Learn how to use advanced search features and analyze detection data.',
+        videoUrl: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973011/sih-tutorial-video/cgviaihpxf20fvemybbu.mp4',
+        duration: '1:05',
+        type: 'video',
+        status: 'not-started',
+        thumbnail: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973011/sih-tutorial-video/cgviaihpxf20fvemybbu.jpg'
+    },
+    {
+        id: '4',
+        title: 'Alert Management',
+        description: 'Understand how to manage and respond to detection alerts effectively.',
+        videoUrl: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973011/sih-tutorial-video/p5kfsy46lss6iwxaop82.mp4',
+        duration: '1:22',
+        type: 'video',
+        status: 'not-started',
+        thumbnail: 'https://res.cloudinary.com/dxspdhwqo/video/upload/v1733973011/sih-tutorial-video/p5kfsy46lss6iwxaop82.jpg'
     }
 ];
 
 export default function TutorialTraining() {
     const [activeSection, setActiveSection] = React.useState('all');
+    const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+    const handleVideoClick = (videoUrl: string) => {
+        setSelectedVideo(videoUrl);
+    };
 
     return (
         <div className="p-6">
@@ -131,13 +153,13 @@ export default function TutorialTraining() {
                     <div className="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
                             className="h-full bg-blue-600 transition-all duration-500"
-                            style={{ width: '65%' }}
+                            style={{ width: '0%' }}
                         />
                     </div>
 
                     <div className="flex items-center justify-between mt-2 text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">Progress: 65%</span>
-                        <span className="text-gray-600 dark:text-gray-400">12/20 Modules Completed</span>
+                        <span className="text-gray-600 dark:text-gray-400">Progress: 0%</span>
+                        <span className="text-gray-600 dark:text-gray-400">0/4 Modules Completed</span>
                     </div>
                 </div>
 
@@ -146,6 +168,8 @@ export default function TutorialTraining() {
                         <div
                             key={module.id}
                             className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+                            onClick={() => module.videoUrl && handleVideoClick(module.videoUrl)}
+                            style={{ cursor: module.videoUrl ? 'pointer' : 'default' }}
                         >
                             {module.thumbnail && (
                                 <div className="aspect-video relative">
@@ -154,39 +178,21 @@ export default function TutorialTraining() {
                                         alt={module.title}
                                         className="w-full h-full object-cover"
                                     />
-                                    {module.type === 'video' && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-                                            <PlayCircle className="w-12 h-12 text-white" />
-                                        </div>
-                                    )}
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                        <PlayCircle className="w-12 h-12 text-white" />
+                                    </div>
                                 </div>
                             )}
-
                             <div className="p-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h3 className="font-semibold dark:text-white">{module.title}</h3>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium
-                                ${module.status === 'completed'
-                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                            : module.status === 'in-progress'
-                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
-                                        {module.status === 'completed' && <CheckCircle className="w-3 h-3 inline mr-1" />}
-                                        {module.status.replace('-', ' ').toUpperCase()}
-                                    </span>
-                                </div>
-
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                <h3 className="font-semibold mb-2 dark:text-white">{module.title}</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                     {module.description}
                                 </p>
-
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-500 dark:text-gray-400">
-                                        Duration: {module.duration}
+                                        {module.duration}
                                     </span>
-                                    <button className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
-                                        {module.status === 'completed' ? 'Review' : 'Start'}
-                                    </button>
+                                    <StatusBadge status={module.status} />
                                 </div>
                             </div>
                         </div>
@@ -222,6 +228,17 @@ export default function TutorialTraining() {
                     </div>
                 </div>
             </div>
+
+            {selectedVideo && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-black w-full max-w-4xl rounded-lg overflow-hidden">
+                        <VideoPlayer
+                            url={selectedVideo}
+                            onClose={() => setSelectedVideo(null)}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
