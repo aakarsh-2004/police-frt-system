@@ -9,6 +9,7 @@ import ImageEnhancer from '../image/ImageEnhancer';
 import VideoPlayer from '../video/VideoPlayer';
 import RecentVideos from '../video/RecentVideos';
 import { formatDateTime, getTimeAgo } from '../../utils/dateUtils';
+import MovementFlow from '../person/MovementFlow';
 
 interface Recognition {
     id: number;
@@ -118,6 +119,9 @@ export default function PersonDetails() {
     // Add state for location stats
     const [locationStats, setLocationStats] = useState<LocationStats | null>(null);
 
+    // Add state for movement flow
+    const [movementFlow, setMovementFlow] = useState<any[]>([]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -185,6 +189,23 @@ export default function PersonDetails() {
             fetchLocationStats();
         }
     }, [id]);
+
+    // Add this effect to fetch movement flow
+    useEffect(() => {
+        if (person?.id) {
+            axios.get(`${config.apiUrl}/api/persons/${person.id}/movement-flow`)
+                .then(response => {
+                    console.log("movement flow => ", response.data.data);
+                    
+                    if (response.data.success) {
+                        setMovementFlow(response.data.data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching movement flow:', error);
+                });
+        }
+    }, [person?.id]);
 
     const handleBack = () => {
         navigate(-1);
@@ -538,11 +559,10 @@ export default function PersonDetails() {
                                     <p><span className="text-gray-500">Address:</span> {person.address}</p>
                                 </div>
                             </div>
-                            <div>
-                                <h3 className="font-medium mb-2">Status</h3>
-                                <div className="space-y-2 text-sm">
-                                    <p><span className="text-gray-500">Status:</span> {person?.status}</p>
-                                </div>
+
+                            <div className='detected-directions-flow w-[740px]'>
+                                <h3 className="font-medium mb-2">Detected Directions Flow</h3>
+                                <MovementFlow movements={movementFlow} person={person} />
                             </div>
                         </div>
                         {renderEditForm()}

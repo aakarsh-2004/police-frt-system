@@ -610,4 +610,77 @@ export const getPersonCameraLocations = async (req: Request, res: Response, next
     }
 };
 
-export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, searchPersons, getPersonStats, getPersonLocationStats, getPersonCameraLocations };
+async function getPersonMovementFlow(req: Request, res: Response) {
+    const { personId } = req.params;
+    
+    try {
+        // Get all detections for this person, ordered by timestamp
+        const detections = await prisma.recognizedPerson.findMany({
+            where: {
+                personId
+            },
+            select: {
+                id: true,
+                capturedDateTime: true,
+                camera: {
+                    select: {
+                        name: true,
+                        location: true,
+                        latitude: true,
+                        longitude: true
+                    }
+                }
+            },
+            orderBy: {
+                capturedDateTime: 'asc'
+            }
+        });
+
+        // Process detections to create movement flow
+        const movementFlow = detections.reduce((flow: any[], detection, index) => {
+            if (index === 0) {
+                // First detection
+                flow.push({
+                    location: detection.camera.location,
+                    timestamp: detection.capturedDateTime,
+                    latitude: detection.camera.latitude,
+                    longitude: detection.camera.longitude,
+                    isRepeated: false
+                });
+                return flow;
+            }
+
+            const lastLocation = flow[flow.length - 1].location;
+            const currentLocation = detection.camera.location;
+            const timeDiff = new Date(detection.capturedDateTime).getTime() - 
+                            new Date(flow[flow.length - 1].timestamp).getTime();
+
+            // Only add if location is different or if same location appears after significant time (e.g., 30 minutes)
+            if (currentLocation !== lastLocation || timeDiff > 60 * 60 * 1000) {
+                flow.push({
+                    location: currentLocation,
+                    timestamp: detection.capturedDateTime,
+                    latitude: detection.camera.latitude,
+                    longitude: detection.camera.longitude,
+                    isRepeated: flow.some(f => f.location === currentLocation)
+                });
+            }
+
+            return flow;
+        }, []);
+
+        res.json({
+            success: true,
+            data: movementFlow
+        });
+
+    } catch (error) {
+        console.error('Error fetching person movement flow:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch movement flow'
+        });
+    }
+}
+
+export { getAllPersons, getPersonById, createPerson, updatePerson, deletePerson, searchPersons, getPersonStats, getPersonLocationStats, getPersonCameraLocations, getPersonMovementFlow };

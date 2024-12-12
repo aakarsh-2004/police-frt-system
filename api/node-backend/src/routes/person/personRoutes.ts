@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createPerson, deletePerson, getAllPersons, getPersonById, updatePerson, searchPersons, getPersonStats, getPersonLocationStats, getPersonCameraLocations } from "../../controllers/person/personController";
+import { createPerson, deletePerson, getAllPersons, getPersonById, updatePerson, searchPersons, getPersonStats, getPersonLocationStats, getPersonCameraLocations, getPersonMovementFlow } from "../../controllers/person/personController";
 import path from "node:path";
 import multer from "multer";
 import { authMiddleware } from '../../middleware/auth';
@@ -18,6 +18,7 @@ personRouter.get('/', getAllPersons);
 personRouter.get('/:id', getPersonById);
 personRouter.get('/:id/locations', getPersonLocationStats);
 personRouter.get('/:personId/cameras', getPersonCameraLocations);
+personRouter.get('/:personId/movement-flow', getPersonMovementFlow);
 
 // Protected routes
 personRouter.use(authMiddleware);

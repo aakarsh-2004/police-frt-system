@@ -33,7 +33,7 @@ export const getTimeAgo = (dateString: string, language: string = 'en') => {
         const [hours, minutes, seconds] = time.split(':').map(Number);
         
         if (!year || !month || !day || !hours || !minutes || !seconds) {
-            console.error('Invalid date/time components:', { year, month, day, hours, minutes, seconds });
+            // console.error('Invalid date/time components:', { year, month, day, hours, minutes, seconds });
             return '';
         }
         

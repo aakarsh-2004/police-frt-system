@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     BarChart2, Camera, Search, Bell, FileText,
     Users, Settings, ChevronLeft, User, MapPin, Clock, GraduationCap
@@ -87,7 +87,7 @@ const menuItems = [
 
 export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
     const { user } = useAuth();
-    const [collapsed, setCollapsed] = React.useState(false);
+    const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const { t, ready } = useTranslation();
@@ -148,7 +148,9 @@ export default function Sidebar({ onPageChange, currentPage }: SidebarProps) {
                             }`}
                         >
                             <item.icon className={`w-5 h-5 ${item.id === activePage ? 'text-amber-400' : ''}`} />
-                            <span className="text-sm font-medium">{t(item.translationKey)}</span>
+                            <span className={`text-sm font-medium ${collapsed ? 'hidden' : ''}`}>
+                                {t(item.translationKey)}
+                            </span>
                         </button>
                     </Tooltip>
                 ))}

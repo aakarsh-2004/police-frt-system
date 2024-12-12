@@ -177,6 +177,25 @@ export default function MapView() {
 
     console.log("selected camera", selectedCamera);
 
+    // Update the initial map state
+    const [viewport, setViewport] = useState({
+        latitude: 23.4,      // Madhya Pradesh's central latitude
+        longitude: 77.4,     // Madhya Pradesh's central longitude
+        zoom: 6.2,          // Zoom level to show all of MP
+        bearing: 0,
+        pitch: 0
+    });
+
+    // Update the flyToLocation function if needed
+    const flyToLocation = useCallback((lat: number, lng: number) => {
+        if (mapRef.current) {
+            mapRef.current.flyTo({
+                center: [lng, lat],
+                zoom: 15,    // Keep this zoom level for specific locations
+                duration: 2000
+            });
+        }
+    }, []);
 
     // Fetch cameras from the database
     useEffect(() => {
@@ -450,7 +469,101 @@ export default function MapView() {
         
     };
 
+    // Add this function after the component declaration
+    const getBoundsForMarkers = (cameras: CameraDetails[]) => {
+        if (!cameras.length) return null;
 
+        // Initialize with first camera's coordinates
+        let minLat = cameras[0].latitude;
+        let maxLat = cameras[0].latitude;
+        let minLng = cameras[0].longitude;
+        let maxLng = cameras[0].longitude;
+
+        // Find the bounds
+        cameras.forEach(camera => {
+            minLat = Math.min(minLat, camera.latitude);
+            maxLat = Math.max(maxLat, camera.latitude);
+            minLng = Math.min(minLng, camera.longitude);
+            maxLng = Math.max(maxLng, camera.longitude);
+        });
+
+        // Add some padding to the bounds
+        const padding = 0.5; // Adjust this value to add more/less padding
+        return {
+            minLat: minLat - padding,
+            maxLat: maxLat + padding,
+            minLng: minLng - padding,
+            maxLng: maxLng + padding
+        };
+    };
+
+    // Update the useEffect where the map is initialized
+    useEffect(() => {
+        if (mapContainerRef.current && !mapRef.current) {
+            const map = new mapboxgl.Map({
+                container: mapContainerRef.current,
+                style: isDarkMode ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
+                center: [77.4, 23.4], // MP center coordinates
+                zoom: 6.2
+            });
+
+            map.on('load', () => {
+                // Fit bounds when cameras are loaded
+                if (cameras.length > 0) {
+                    const bounds = getBoundsForMarkers(cameras);
+                    if (bounds) {
+                        map.fitBounds(
+                            [
+                                [bounds.minLng, bounds.minLat],
+                                [bounds.maxLng, bounds.maxLat]
+                            ],
+                            {
+                                padding: 50,
+                                duration: 2000
+                            }
+                        );
+                    }
+                }
+            });
+
+            mapRef.current = map;
+        }
+    }, [mapContainerRef, isDarkMode]);
+
+    // Update the useEffect where cameras are fetched
+    useEffect(() => {
+        const fetchCameras = async () => {
+            try {
+                const response = await axios.get(`${config.apiUrl}/api/cameras`);
+                if (response.data && Array.isArray(response.data)) {
+                    setCameras(response.data);
+                    
+                    // Fit bounds after cameras are loaded
+                    if (mapRef.current && response.data.length > 0) {
+                        const bounds = getBoundsForMarkers(response.data);
+                        if (bounds) {
+                            mapRef.current.fitBounds(
+                                [
+                                    [bounds.minLng, bounds.minLat],
+                                    [bounds.maxLng, bounds.maxLat]
+                                ],
+                                {
+                                    padding: 50,
+                                    duration: 2000
+                                }
+                            );
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching cameras:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCameras();
+    }, []);
 
     return (
         <div className="p-6">

@@ -73,6 +73,12 @@ export default function AlertsPage() {
         fetchAlerts(currentPage);
     }, [currentPage, filters]);
 
+    // useEffect(() => {
+    //     fetchAlerts(currentPage);
+    //     const interval = setInterval(fetchAlerts, 2000);
+    //     // return () => clearInterval(interval);
+    // }, []);
+
     const fetchAlerts = async (page: number) => {
         try {
             setLoading(true);

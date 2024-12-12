@@ -8,6 +8,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, Legend,
     ResponsiveContainer, Cell
 } from 'recharts';
+import DetectionsByLocation from '../dashboard/DetectionsByLocation';
 
 interface RecentReport {
     id: string;
@@ -132,7 +133,8 @@ export default function ReportsPage() {
     const [trends, setTrends] = useState<DetectionTrends | null>(null);
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
     const [view, setView] = useState<'reports' | 'graphs'>('reports');
-    
+    let mystats = [];
+
     const fetchStats = async () => {
         try {
             setLoading(true);
@@ -145,9 +147,34 @@ export default function ReportsPage() {
             const statsData = statsResponse.data.data;
             const trendsData = trendsResponse.data.data;
 
+            console.log("statsData", statsData);
+            console.log("trendsData", trendsData);
+
+            mystats = statsData.topLocations.map((stat) => {
+                return {
+                    camera: {location: stat.cameraName},
+                    _count: {id: stat.count},
+                }
+            })
+
+            console.log("mystats", mystats);
+            
+            
+
+            // Calculate percentages for person types
+            const totalPersons = statsData.byType.reduce((sum: number, type: any) => sum + type.count, 0);
+            const typePercentages = statsData.byType.map((type: any) => ({
+                type: type.type === 'suspect' ? 'Suspects' : 'Missing Persons',
+                value: Math.round((type.count / totalPersons) * 100),
+                count: type.count
+            }));
+
             // Set both stats and trends
             setStats(statsData);
-            setTrends(trendsData);
+            setTrends({
+                ...trendsData,
+                byType: typePercentages
+            });
 
             // Calculate total detections from trends data
             const totalDetections = trendsData.daily.reduce((sum, day) => sum + day._count.id, 0);
@@ -282,7 +309,7 @@ export default function ReportsPage() {
                             <div className="bg-white rounded-lg shadow-lg p-4 dark:bg-gray-800">
                                 <div className="flex items-center justify-between mb-2">
                                     <h3 className="text-gray-600 dark:text-gray-400">
-                                        {currentLanguage === 'en' ? 'Suspects Detected' : 'पहचाने गए संदिग���ध'}
+                                        {currentLanguage === 'en' ? 'Suspects Detected' : 'पहचाने गए संदिगध'}
                                     </h3>
                                 </div>
                                 <p className="text-2xl font-bold">
@@ -399,39 +426,29 @@ export default function ReportsPage() {
                                     <PieChart>
                                         <Pie
                                             data={trends?.byType || []}
-                                            dataKey="_count.id"
+                                            dataKey="value"
                                             nameKey="type"
                                             cx="50%"
                                             cy="50%"
                                             outerRadius={100}
-                                            label
+                                            label={({ name, value }) => `${name}: ${value}%`}
                                         >
                                             {(trends?.byType || []).map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip formatter={(value) => `${value}%`} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
                         </div>
 
-                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800 dark:text-black">
+                        <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800">
                             <h3 className="text-lg font-semibold mb-4 dark:text-white">
                                 {currentLanguage === 'en' ? 'Top Detection Locations' : 'शीर्ष पहचान स्थान'}
                             </h3>
-                            <div className="h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={trends?.byLocation || []}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="camera.location" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Bar dataKey="_count.id" fill="#8884d8" name="Detections" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                            <DetectionsByLocation />
                         </div>
 
                         <div className="bg-white p-4 rounded-lg shadow dark:bg-gray-800 dark:text-black">

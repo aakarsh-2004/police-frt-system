@@ -63,6 +63,35 @@ export default function CrimeHeatmap() {
         fetchCameras();
     }, []);
 
+    const getBoundsForMarkers = (cameras: CameraDetails[]) => {
+        if (!cameras.length) return null;
+
+        // Initialize with first camera's coordinates
+        let minLat = parseFloat(cameras[0].latitude);
+        let maxLat = parseFloat(cameras[0].latitude);
+        let minLng = parseFloat(cameras[0].longitude);
+        let maxLng = parseFloat(cameras[0].longitude);
+
+        // Find the bounds
+        cameras.forEach(camera => {
+            const lat = parseFloat(camera.latitude);
+            const lng = parseFloat(camera.longitude);
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+            minLng = Math.min(minLng, lng);
+            maxLng = Math.max(maxLng, lng);
+        });
+
+        // Add some padding to the bounds
+        const padding = 0.5;
+        return {
+            minLat: minLat - padding,
+            maxLat: maxLat + padding,
+            minLng: minLng - padding,
+            maxLng: maxLng + padding
+        };
+    };
+
     useEffect(() => {
         if (!mapContainerRef.current || cameras.length === 0) return;
 
@@ -71,14 +100,29 @@ export default function CrimeHeatmap() {
         const map = new mapboxgl.Map({
             container: mapContainerRef.current,
             style: isDarkMode ? "mapbox://styles/mapbox/dark-v11" : "mapbox://styles/mapbox/light-v11",
-            center: BHOPAL_CENTER,
-            zoom: 12,
+            center: [77.4, 23.4], // MP center coordinates
+            zoom: 6.2,
             pitch: 45,
             bearing: -17.6,
             antialias: true
         });
 
         map.on('load', () => {
+            // Fit bounds when cameras are loaded
+            const bounds = getBoundsForMarkers(cameras);
+            if (bounds) {
+                map.fitBounds(
+                    [
+                        [bounds.minLng, bounds.minLat],
+                        [bounds.maxLng, bounds.maxLat]
+                    ],
+                    {
+                        padding: 50,
+                        duration: 2000
+                    }
+                );
+            }
+
             map.addSource('cameras', {
                 'type': 'geojson',
                 'data': {

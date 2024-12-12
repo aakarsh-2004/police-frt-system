@@ -73,7 +73,7 @@ export default function Alerts() {
 
     useEffect(() => {
         fetchRecognitions();
-        const interval = setInterval(fetchRecognitions, 5000);
+        const interval = setInterval(fetchRecognitions, 2000);
         return () => clearInterval(interval);
     }, []);
 
