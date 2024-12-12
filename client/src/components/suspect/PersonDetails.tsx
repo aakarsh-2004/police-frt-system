@@ -357,6 +357,8 @@ export default function PersonDetails() {
                     </>
                 )}
 
+
+
                 <div className="mb-4">
                     <label className="block text-sm font-medium mb-1">Profile Image</label>
                     <div className="flex items-center space-x-4">
@@ -534,6 +536,12 @@ export default function PersonDetails() {
                                     <p><span className="text-gray-500">Email:</span> {person.email}</p>
                                     <p><span className="text-gray-500">Phone:</span> {person.phone}</p>
                                     <p><span className="text-gray-500">Address:</span> {person.address}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-medium mb-2">Status</h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="text-gray-500">Status:</span> {person?.status}</p>
                                 </div>
                             </div>
                         </div>

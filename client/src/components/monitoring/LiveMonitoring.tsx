@@ -77,11 +77,11 @@ const cameras: Camera[] = [
 ];
 
 const SAMPLE_STREAMS = [
-    'ws://localhost:8083/stream/d44fa640-744c-4b5d-8f44-c69d18e814b8/channel/0/mse?uuid=d44fa640-744c-4b5d-8f44-c69d18e814b8&channel=0',
-    'ws://localhost:8083/stream/9421a179-e486-4705-b78d-02967abcb14c/channel/0/mse?uuid=9421a179-e486-4705-b78d-02967abcb14c&channel=0',
-    'ws://localhost:8083/stream/52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe/channel/0/mse?uuid=52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe&channel=0',
-    'ws://localhost:8083/stream/94019b3f-4541-4100-ae81-bd7bc319e3c8/channel/0/mse?uuid=94019b3f-4541-4100-ae81-bd7bc319e3c8&channel=0',
-    'ws://localhost:8083/stream/a52feeeb-8cc7-418b-ad88-ae757d5a6433/channel/0/mse?uuid=a52feeeb-8cc7-418b-ad88-ae757d5a6433&channel=0',
+    'ws://localhost:8083/stream/089d308e-9f69-421a-9126-247b9d10d80b/channel/0/mse?uuid=089d308e-9f69-421a-9126-247b9d10d80b&channel=0',
+    'ws://localhost:8083/stream/82a7e76f-8595-4cd2-bd99-4b9e202d3c82/channel/0/mse?uuid=82a7e76f-8595-4cd2-bd99-4b9e202d3c82&channel=0',
+    'ws://localhost:8083/stream/812f8675-dbbe-4025-873e-d0897268ec14/channel/0/mse?uuid=812f8675-dbbe-4025-873e-d0897268ec14&channel=0',
+    'ws://localhost:8083/stream/a9017d91-845b-4f49-b0c6-9c334f1fe024/channel/0/mse?uuid=a9017d91-845b-4f49-b0c6-9c334f1fe024&channel=0',
+    'ws://localhost:8083/stream/d9c94ff9-7edb-4629-8e46-3c3be0ff2b44/channel/0/mse?uuid=d9c94ff9-7edb-4629-8e46-3c3be0ff2b44&channel=0',
     'ws://localhost:8083/stream/c0220694-546b-49dd-8c77-93203ab904d5/channel/0/mse?uuid=c0220694-546b-49dd-8c77-93203ab904d5&channel=0'
 ];
 

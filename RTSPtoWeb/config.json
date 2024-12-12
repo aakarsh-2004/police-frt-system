@@ -29,86 +29,50 @@
     "webrtc_port_min": 0
   },
   "streams": {
-    "52ec5a38-0285-4bbe-bdcc-f0b9b23a5cbe": {
+    "089d308e-9f69-421a-9126-247b9d10d80b": {
       "channels": {
         "0": {
           "debug": true,
-          "url": "rtsp://192.168.1.4:8080/h264.sdp"
+          "url": "rtsp://192.168.137.192:8080/h264.sdp"
         }
       },
-      "name": "frt-3"
+      "name": "sih-1"
     },
-    "60d0b153-545b-43c1-97ec-797161af2038": {
+    "812f8675-dbbe-4025-873e-d0897268ec14": {
       "channels": {
         "0": {
           "debug": true,
-          "url": "rtsp://admin:lnct@123@192.168.5.3:554/"
+          "url": "rtsp://admin:lnct%40123@10.0.25.21:554"
         }
       },
-      "name": "lnct2"
+      "name": "sih-3"
     },
-    "94019b3f-4541-4100-ae81-bd7bc319e3c8": {
+    "82a7e76f-8595-4cd2-bd99-4b9e202d3c82": {
       "channels": {
         "0": {
           "debug": true,
-          "url": "rtsp://admin:lnct@123@192.168.5.7:554/"
+          "url": "rtsp://admin:lnct%40123@10.0.100.147:554"
         }
       },
-      "name": "lnct5"
+      "name": "sih-2"
     },
-    "9421a179-e486-4705-b78d-02967abcb14c": {
+    "a9017d91-845b-4f49-b0c6-9c334f1fe024": {
       "channels": {
         "0": {
           "debug": true,
-          "url": "rtsp://192.168.1.9:8080/h264.sdp"
+          "url": "rtsp://admin:admin%40123@10.0.100.142:554"
         }
       },
-      "name": "frt-2"
+      "name": "sih-4"
     },
-    "a52feeeb-8cc7-418b-ad88-ae757d5a6433": {
+    "d9c94ff9-7edb-4629-8e46-3c3be0ff2b44": {
       "channels": {
         "0": {
           "debug": true,
-          "url": "rtsp://admin:lnct@123@192.168.5.31:554/"
+          "url": "rtsp://192.168.137.252:8080/h264.sdp"
         }
       },
-      "name": "lnct4"
-    },
-    "a8d21378-0eac-4db4-a9ff-d73d19054d5e": {
-      "channels": {
-        "0": {
-          "debug": true,
-          "url": "rtsp://admin:lnct@123@192.168.5.5:554/"
-        }
-      },
-      "name": "lnct"
-    },
-    "c0220694-546b-49dd-8c77-93203ab904d5": {
-      "channels": {
-        "0": {
-          "debug": true,
-          "url": "rtsp://admin:lnct@123@192.168.5.9:554/"
-        }
-      },
-      "name": "lnct3"
-    },
-    "d44fa640-744c-4b5d-8f44-c69d18e814b8": {
-      "channels": {
-        "0": {
-          "debug": true,
-          "url": "rtsp://192.168.1.7:8080/h264.sdp"
-        }
-      },
-      "name": "home-test"
-    },
-    "f4604be9-bea2-44e1-af7c-609ae9a2f7c1": {
-      "channels": {
-        "0": {
-          "debug": true,
-          "url": "rtsp://admin:lnct@123@192.168.5.4:554/"
-        }
-      },
-      "name": "lnct1"
+      "name": "sih-5"
     }
   }
 }

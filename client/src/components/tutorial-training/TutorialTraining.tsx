@@ -4,7 +4,7 @@ import {
     Award, CheckCircle, Video, FileText, Users, Wrench
 } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
-import VideoPlayer from '../video/VideoPlayer';
+import TutorialVideoPlayer from '../video/TutorialVideoPlayer';
 
 interface TrainingModule {
     id: string;
@@ -65,6 +65,7 @@ export default function TutorialTraining() {
     const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
     const handleVideoClick = (videoUrl: string) => {
+        if (!videoUrl) return;
         setSelectedVideo(videoUrl);
     };
 
@@ -167,9 +168,8 @@ export default function TutorialTraining() {
                     {trainingModules.map((module) => (
                         <div
                             key={module.id}
-                            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-                            onClick={() => module.videoUrl && handleVideoClick(module.videoUrl)}
-                            style={{ cursor: module.videoUrl ? 'pointer' : 'default' }}
+                            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+                            onClick={() => handleVideoClick(module.videoUrl || '')}
                         >
                             {module.thumbnail && (
                                 <div className="aspect-video relative">
@@ -230,9 +230,9 @@ export default function TutorialTraining() {
             </div>
 
             {selectedVideo && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-black w-full max-w-4xl rounded-lg overflow-hidden">
-                        <VideoPlayer
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+                    <div className="w-full max-w-4xl">
+                        <TutorialVideoPlayer
                             url={selectedVideo}
                             onClose={() => setSelectedVideo(null)}
                         />
