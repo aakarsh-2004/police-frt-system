@@ -31,6 +31,8 @@ export default function MovementFlow({ movements, person }: MovementFlowProps) {
     const [showShareModal, setShowShareModal] = useState(false);
     const sliderRef = useRef<HTMLDivElement>(null);
 
+    console.log('Movements:', movements);
+
     const scroll = (direction: 'left' | 'right') => {
         if (sliderRef.current) {
             const scrollAmount = 300; // Adjust this value as needed
@@ -209,9 +211,12 @@ export default function MovementFlow({ movements, person }: MovementFlowProps) {
                             className="flex-shrink-0 flex items-center gap-4"
                         >
                             <div className={`w-64 px-4 py-3 rounded-lg text-sm font-medium flex flex-col items-center
-                                ${node.isRepeated 
-                                    ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                                    : 'bg-blue-100 text-blue-800 border border-blue-200'}`}
+                                ${index === 0 ?
+                                    'bg-green-100 dark:bg-green-900'
+                                : index === (movements.length - 1) ?
+                                    'bg-red-100 dark:bg-red-900'
+                                : 'bg-blue-100 dark:bg-blue-900'
+                                }`}
                             >
                                 <span className='text-sm'>{node.location}</span>
                                 <span className="text-xs opacity-75">
@@ -225,7 +230,13 @@ export default function MovementFlow({ movements, person }: MovementFlowProps) {
                                         href={`https://google.com/maps?q=${node.latitude},${node.longitude}`} 
                                         target='_blank' 
                                         rel="noopener noreferrer"
-                                        className='text-xs opacity-75 text-red-700 dark:text-red-500 hover:cursor-pointer hover:underline hover:underline-offset-4'
+                                        className={`text-xs opacity-75 hover:cursor-pointer hover:underline hover:underline-offset-4
+                                            ${index === (movements.length - 1) 
+                                                ? 'text-red-700 dark:text-red-500'
+                                                : index === 0 
+                                                    ? 'text-green-700 dark:text-green-500'
+                                                    : 'text-blue-700 dark:text-blue-500'
+                                            }`}
                                     >
                                         Take me
                                     </a>
