@@ -266,8 +266,8 @@ async function main() {
     try {
         console.log('Starting seed...');
 
-        const hashedPassword = await bcrypt.hash('admin123', 10);
-        const hashedUserPassword = await bcrypt.hash('user123', 10);
+        const hashedPassword = await bcrypt.hash('admin', 10);
+        const hashedUserPassword = await bcrypt.hash('user', 10);
         
         await prisma.user.upsert({
             where: { username: 'admin' },

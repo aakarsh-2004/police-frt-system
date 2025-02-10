@@ -197,7 +197,7 @@ export default function NewLoginPage() {
         <div className={`min-h-screen flex ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
             <div className='w-[65%]'>
                 <img
-                    src="https://res.cloudinary.com/dwbr9hz8y/image/upload/v1733462754/fgel9tfdohwh1xmbgft8.gif"
+                    src="/gifs/login.gif"
                     className="w-full h-full object-cover"
                     alt="Main Display"
                 />
@@ -209,7 +209,7 @@ export default function NewLoginPage() {
                 <div className='w-full'>
                     <div className='flex flex-col justify-center items-center relative'>
                         <img
-                            src="https://res.cloudinary.com/dwbr9hz8y/image/upload/v1733422184/m73hlkm5oz1baurcxgns.png"
+                            src="images/mp-map.jpg"
                             alt="Madhya Pradesh Map"
                             className='w-[70%] opacity-30'
                         />
